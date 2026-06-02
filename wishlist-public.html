@@ -181,9 +181,21 @@
     const params = new URLSearchParams(location.search);
     const uid    = params.get("uid");
 
-    // Use initAuth which correctly initializes Firebase with all settings.
-    // Since wishlist-public.html is in PUBLIC_PAGES, it won't redirect to login.
-    WR.initAuth(async () => {
+    // Sign in anonymously so Firestore rules (which require isSignedIn())
+    // are satisfied even for unauthenticated visitors
+    WR.initAuth(async (user) => {
+      if (!user) {
+        // No session — sign in anonymously for Firestore access
+        try {
+          await firebase.auth().signInAnonymously();
+          // onAuthStateChanged will fire again with the anon user
+          return;
+        } catch (e) {
+          console.error("Anonymous auth error:", e);
+          showError("Something went wrong", "We couldn't load this wishlist. Please try again.");
+          return;
+        }
+      }
       await loadPublicWishlist();
     });
 
