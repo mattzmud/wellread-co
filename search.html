@@ -1083,12 +1083,15 @@
       btn.textContent = "Adding...";
 
       try {
+        const bookId  = modalBook.bookId || modalBook.isbn13 || modalBook.id;
+        const existing = userBooks[bookId] || {};
+
         const flags = {
-          inLibrary:  selectedOption === "library",
-          onReadList: selectedOption === "read",
-          onTBR:      selectedOption === "tbr",
-          onWishlist: selectedOption === "wishlist",
-          tbrNeedsAcquisition: selectedOption === "tbr"
+          inLibrary:  existing.inLibrary  || selectedOption === "library",
+          onReadList: existing.onReadList || selectedOption === "read",
+          onTBR:      existing.onTBR      || selectedOption === "tbr",
+          onWishlist: existing.onWishlist || selectedOption === "wishlist",
+          tbrNeedsAcquisition: selectedOption === "tbr" && !existing.inLibrary
         };
 
         const success = await WR.addBookToUserCollection(modalBook, flags);

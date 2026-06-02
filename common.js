@@ -1032,7 +1032,7 @@ function buildBookCard(book, actions = []) {
 // ─── Google Books API ────────────────────────────────────────
 async function searchGoogleBooks(query) {
   const encoded = encodeURIComponent(query);
-  const url     = `https://www.googleapis.com/books/v1/volumes?q=${encoded}&maxResults=20&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`;
+  const url     = `https://www.googleapis.com/books/v1/volumes?q=${encoded}&maxResults=20`;
   try {
     const res  = await fetch(url);
     const data = await res.json();
@@ -1045,7 +1045,7 @@ async function searchGoogleBooks(query) {
 }
 
 async function getGoogleBookByISBN(isbn) {
-  const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`;
+  const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
   try {
     const res  = await fetch(url);
     const data = await res.json();
@@ -1159,23 +1159,34 @@ async function addBookToUserCollection(book, flags = {}) {
     .doc(book.bookId);
 
   try {
-    await ref.set({
+    // Build the update — only include flag fields that were explicitly passed
+    // so we never accidentally overwrite existing flags with false
+    const data = {
       bookId:    book.bookId,
       isbn:      book.isbn13  || book.isbn10 || null,
       title:     book.title   || "",
       author:    Array.isArray(book.authors) ? book.authors.join(", ") : (book.author || ""),
       coverURL:  book.coverURL || null,
-      inLibrary:  flags.inLibrary  || false,
-      onReadList: flags.onReadList || false,
-      onWishlist: flags.onWishlist || false,
-      onTBR:      flags.onTBR      || false,
-      tbrNeedsAcquisition: flags.tbrNeedsAcquisition || false,
-      readingSessions: [],
-      lendingHistory:  [],
-      clubReads:       [],
-      addedAt:   firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+
+    // Only set these if explicitly provided in flags
+    if (flags.inLibrary  !== undefined) data.inLibrary  = flags.inLibrary;
+    if (flags.onReadList !== undefined) data.onReadList = flags.onReadList;
+    if (flags.onWishlist !== undefined) data.onWishlist = flags.onWishlist;
+    if (flags.onTBR      !== undefined) data.onTBR      = flags.onTBR;
+    if (flags.tbrNeedsAcquisition !== undefined) data.tbrNeedsAcquisition = flags.tbrNeedsAcquisition;
+
+    // Only set these on first add (merge:true won't overwrite existing arrays)
+    const snap = await ref.get();
+    if (!snap.exists) {
+      data.readingSessions = [];
+      data.lendingHistory  = [];
+      data.clubReads       = [];
+      data.addedAt         = firebase.firestore.FieldValue.serverTimestamp();
+    }
+
+    await ref.set(data, { merge: true });
     return true;
   } catch (e) {
     console.error("Error adding book to user collection:", e);

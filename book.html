@@ -910,12 +910,22 @@
     async function openQuickAdd(type) {
       const bookId = book.bookId || book.isbn13 || book.id;
 
+      // Merge with existing flags so adding to read list
+      // doesn't remove the book from library, and vice versa
+      const existing = {
+        inLibrary:  userBook?.inLibrary  || false,
+        onReadList: userBook?.onReadList || false,
+        onTBR:      userBook?.onTBR      || false,
+        onWishlist: userBook?.onWishlist || false
+      };
+
       const flags = {
-        inLibrary:           type === "library",
-        onReadList:          type === "read",
-        onTBR:               type === "tbr",
-        onWishlist:          type === "wishlist",
-        tbrNeedsAcquisition: type === "tbr" && !userBook?.inLibrary
+        ...existing,
+        inLibrary:           type === "library"  ? true : existing.inLibrary,
+        onReadList:          type === "read"      ? true : existing.onReadList,
+        onTBR:               type === "tbr"       ? true : existing.onTBR,
+        onWishlist:          type === "wishlist"  ? true : existing.onWishlist,
+        tbrNeedsAcquisition: type === "tbr" && !existing.inLibrary
       };
 
       try {
