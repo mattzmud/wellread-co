@@ -932,14 +932,41 @@ async function declineFriendRequest(friendshipId, notifId) {
   }
 }
 
-async function acceptClubInvite(inviteId, notifId) {
-  showToast("Joined club!", "success");
-  if (notifId) await dismissNotif(notifId);
+async function acceptClubInvite(clubId, notifId) {
+  const uid = _currentUser.uid;
+  try {
+    const profile = _currentUser._profile;
+
+    // Add user to club memberUids
+    await _db.collection("clubs").doc(clubId).update({
+      memberUids: firebase.firestore.FieldValue.arrayUnion(uid)
+    });
+
+    // Add member doc
+    await _db.collection("clubs").doc(clubId)
+      .collection("members").doc(uid).set({
+        uid,
+        displayName: profile?.displayName || "",
+        photoURL:    profile?.photoURL    || null,
+        role:        "member",
+        status:      "active",
+        joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+    if (notifId) await dismissNotif(notifId);
+    showToast("You joined the club! 👥", "success");
+
+    // Navigate to the club page
+    setTimeout(() => { location.href = `club.html?id=${clubId}`; }, 800);
+  } catch (e) {
+    console.error("Accept club invite error:", e);
+    showToast("Something went wrong joining the club.", "error");
+  }
 }
 
-async function declineClubInvite(inviteId, notifId) {
-  showToast("Invite declined.");
+async function declineClubInvite(clubId, notifId) {
   if (notifId) await dismissNotif(notifId);
+  showToast("Invite declined.");
 }
 
 // ─── Toast ───────────────────────────────────────────────────

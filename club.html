@@ -1207,11 +1207,16 @@
       }).join("");
     }
 
+    // Track pending invites: uid → { inviteId, notifId }
+    const pendingInvites = {};
+
     async function inviteFriend(uid, name, btn) {
-      btn.textContent = "Sending...";
-      btn.disabled    = true;
+      btn.textContent   = "Sending...";
+      btn.disabled      = true;
+      btn.style.opacity = "0.6";
       try {
-        await WR.getDb()
+        // Create invite doc and capture its ID
+        const inviteRef = await WR.getDb()
           .collection("clubs").doc(clubId)
           .collection("invites").add({
             invitedUid:   uid,
@@ -1219,17 +1224,36 @@
             status:       "pending",
             createdAt:    firebase.firestore.FieldValue.serverTimestamp()
           });
-        await WR.createNotification(uid, {
-          type:     "club_invite",
-          title:    `You're invited to ${club.name}!`,
-          body:     `${WR.getCurrentUser()._profile?.displayName || "Someone"} invited you to join the book club.`,
-          linkedId: clubId
-        });
-        btn.textContent      = "Invited ✓";
-        btn.style.background = "var(--faded-moss)";
+
+        // Create notification and capture its ID
+        const notifRef = await WR.getDb()
+          .collection("notifications").doc(uid)
+          .collection("items").add({
+            type:      "club_invite",
+            title:     `You're invited to ${club.name}!`,
+            body:      `${WR.getCurrentUser()._profile?.displayName || "Someone"} invited you to join the book club.`,
+            bodyHTML:  null,
+            linkedId:  clubId,
+            read:      false,
+            dismissed: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+        // Store IDs so we can cancel
+        pendingInvites[uid] = { inviteId: inviteRef.id, notifId: notifRef.id };
+
+        // Switch to Cancel Invite button
+        btn.textContent      = "Cancel Invite";
+        btn.style.background = "var(--aged-paper)";
+        btn.style.color      = "var(--terracotta)";
+        btn.style.border     = "1.5px solid var(--border)";
+        btn.style.opacity    = "1";
+        btn.disabled         = false;
+        btn.onclick          = () => cancelInvite(uid, name, btn);
+
         WR.showToast(`Invite sent to ${name}!`, "success");
 
-        // Send email notification if they have it enabled (fire and forget)
+        // Send email if enabled (fire and forget)
         try {
           const friendSnap = await WR.getDb().collection("users").doc(uid).get();
           const friend     = friendSnap.data();
@@ -1247,9 +1271,53 @@
         }
       } catch (e) {
         console.error("Invite error:", e);
-        btn.textContent = "Error";
-        btn.disabled    = false;
+        btn.textContent   = "Error";
+        btn.style.opacity = "1";
+        btn.disabled      = false;
         WR.showToast("Error sending invite.", "error");
+      }
+    }
+
+    async function cancelInvite(uid, name, btn) {
+      btn.textContent   = "Cancelling...";
+      btn.disabled      = true;
+      btn.style.opacity = "0.6";
+
+      const invite = pendingInvites[uid];
+      try {
+        // Delete the invite document
+        if (invite?.inviteId) {
+          await WR.getDb()
+            .collection("clubs").doc(clubId)
+            .collection("invites").doc(invite.inviteId).delete();
+        }
+
+        // Dismiss the notification
+        if (invite?.notifId) {
+          await WR.getDb()
+            .collection("notifications").doc(uid)
+            .collection("items").doc(invite.notifId)
+            .update({ dismissed: true, read: true });
+        }
+
+        delete pendingInvites[uid];
+
+        // Switch back to Invite button
+        btn.textContent      = "Invite";
+        btn.style.background = "var(--amethyst)";
+        btn.style.color      = "#FAF6EE";
+        btn.style.border     = "none";
+        btn.style.opacity    = "1";
+        btn.disabled         = false;
+        btn.onclick          = () => inviteFriend(uid, name, btn);
+
+        WR.showToast(`Invite to ${name} cancelled.`);
+      } catch (e) {
+        console.error("Cancel invite error:", e);
+        btn.textContent   = "Cancel Invite";
+        btn.style.opacity = "1";
+        btn.disabled      = false;
+        WR.showToast("Error cancelling invite.", "error");
       }
     }
 
@@ -1395,6 +1463,7 @@
     window.loadFriends         = loadFriends;
     window.searchFriends       = searchFriends;
     window.inviteFriend        = inviteFriend;
+    window.cancelInvite        = cancelInvite;
     window.openEditModal       = openEditModal;
     window.saveClubEdit        = saveClubEdit;
     window.leaveClub           = leaveClub;
