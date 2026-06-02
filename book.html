@@ -550,6 +550,14 @@
     WR.initAuth(async (user) => {
       if (!user) return;
 
+      // Ensure current user's profile is loaded (fallback for first navigation)
+      if (!user._profile) {
+        try {
+          const snap = await WR.getDb().collection("users").doc(user.uid).get();
+          if (snap.exists) user._profile = snap.data();
+        } catch (e) { console.error("Profile fallback error:", e); }
+      }
+
       const params = new URLSearchParams(location.search);
       const bookId = params.get("id");
 
@@ -835,11 +843,17 @@
         </p>`;
       }
 
-      const session = userBook?.readingSessions?.[0];
+      const session        = userBook?.readingSessions?.[0];
       const existingRating = session?.rating || 0;
       const existingReview = session?.review || "";
       myRating = existingRating;
 
+      // If a review already exists, show the saved state
+      if (existingRating || existingReview) {
+        return renderSavedReview(existingReview, existingRating, session?.reviewPublished || false);
+      }
+
+      // No review yet — show the write form
       return `
         <div class="write-review-section" style="margin-top:1rem;">
           <p class="write-review-title">Your Rating & Review</p>
@@ -974,24 +988,34 @@
         return;
       }
 
+      // Disable save button while saving
+      const saveBtn = document.querySelector(".submit-review-btn");
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving..."; }
+
       try {
         const db = WR.getDb();
 
         // Update reading session in user's book doc
         const userBookRef = db.collection("users").doc(user.uid).collection("books").doc(bookId);
         const snap        = await userBookRef.get();
+
+        // Create a session if none exists
+        let sessions = [];
         if (snap.exists) {
-          const data     = snap.data();
-          let sessions   = data.readingSessions || [];
-          if (sessions.length === 0) {
-            sessions = [{ sessionId: WR.generateId(), startDate: null, endDate: null,
-              completed: false, dnf: false, format: "read" }];
-          }
-          sessions[0].rating          = myRating || null;
-          sessions[0].review          = text || null;
-          sessions[0].reviewPublished = publish;
-          await userBookRef.update({ readingSessions: sessions, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          sessions = snap.data().readingSessions || [];
         }
+        if (sessions.length === 0) {
+          sessions = [{ sessionId: WR.generateId(), startDate: null, endDate: null,
+            completed: false, dnf: false, format: "read" }];
+        }
+        sessions[0].rating          = myRating || null;
+        sessions[0].review          = text || null;
+        sessions[0].reviewPublished = publish;
+
+        await userBookRef.set(
+          { readingSessions: sessions, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+          { merge: true }
+        );
 
         // Write / update public review if published
         if (publish && (myRating || text)) {
@@ -1019,11 +1043,56 @@
           if (reviewsBody) reviewsBody.innerHTML = renderReviewsList(publicReviews);
         }
 
+        // Update local userBook so re-render reflects saved state
+        if (!userBook) userBook = { id: bookId };
+        if (!userBook.readingSessions) userBook.readingSessions = [{}];
+        userBook.readingSessions[0] = {
+          ...userBook.readingSessions[0],
+          rating: myRating || null,
+          review: text || null,
+          reviewPublished: publish
+        };
+
+        // Re-render notes section to show saved state
+        const notesBody = document.getElementById("notes-body");
+        if (notesBody) {
+          notesBody.innerHTML = renderSavedReview(text, myRating, publish);
+        }
+
         WR.showToast("Review saved! 📖", "success");
 
       } catch (e) {
         console.error("Save review error:", e);
         WR.showToast("Something went wrong saving your review.", "error");
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Save Review"; }
+      }
+    }
+
+    // ── Saved Review State ────────────────────────────────────
+    function renderSavedReview(text, rating, published) {
+      const stars = rating
+        ? "★".repeat(rating) + "☆".repeat(5 - rating)
+        : "";
+      return `
+        <div class="write-review-section" style="margin-top:1rem;background:#DCF0E8;border-radius:10px;padding:1rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+            <p style="font-size:14px;font-weight:600;color:#2E6B50;">✅ Review saved</p>
+            <button class="submit-review-btn" style="background:var(--amethyst);font-size:12px;padding:6px 14px;"
+                    onclick="editMyReview()">Edit Review</button>
+          </div>
+          ${stars ? `<div style="font-size:20px;color:var(--warm-gold);margin-bottom:0.5rem;">${stars}</div>` : ""}
+          ${text ? `<p style="font-size:14px;color:var(--deep-plum);line-height:1.6;font-style:italic;">"${WR.escapeHTML(text)}"</p>` : ""}
+          <p style="font-size:11px;color:#4A8A62;margin-top:8px;">
+            ${published ? "🌐 Shared publicly on this book's page" : "🔒 Private — only visible to you"}
+          </p>
+        </div>`;
+    }
+
+    function editMyReview() {
+      const notesBody = document.getElementById("notes-body");
+      if (notesBody) {
+        notesBody.innerHTML = renderMyNotes();
+        WR.initStarPicker("myStarPicker");
       }
     }
 
@@ -1062,6 +1131,7 @@
     window.toggleDesc    = toggleDesc;
     window.openQuickAdd  = openQuickAdd;
     window.saveMyReview  = saveMyReview;
+    window.editMyReview  = editMyReview;
   </script>
 
   <script>
