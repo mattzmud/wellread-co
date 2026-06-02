@@ -1159,19 +1159,18 @@
       el.innerHTML = `<p style="font-size:13px;color:#BDB5CC;padding:4px 0;">Searching...</p>`;
 
       try {
-        const db = WR.getDb();
-        const [snap1, snap2] = await Promise.all([
-          db.collection("users").orderBy("displayName").startAt(query).endAt(query + "\uf8ff").limit(15).get(),
-          db.collection("users").orderBy("firstName").startAt(query).endAt(query + "\uf8ff").limit(15).get()
-        ]);
+        const q    = query.toLowerCase();
+        const snap = await WR.getDb().collection("users").limit(500).get();
 
-        const seen   = new Set([uid]); // exclude self
-        const people = [];
-        [...snap1.docs, ...snap2.docs].forEach(d => {
-          if (seen.has(d.id)) return;
-          seen.add(d.id);
-          people.push({ uid: d.id, ...d.data() });
-        });
+        const people = snap.docs
+          .map(d => ({ uid: d.id, ...d.data() }))
+          .filter(p => {
+            if (p.uid === uid) return false;
+            const name  = (p.displayName || "").toLowerCase();
+            const first = (p.firstName   || "").toLowerCase();
+            const last  = (p.lastName    || "").toLowerCase();
+            return name.includes(q) || first.includes(q) || last.includes(q);
+          });
 
         if (!people.length) {
           el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">No members found matching "${WR.escapeHTML(query)}".</p>`;
