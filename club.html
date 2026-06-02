@@ -751,10 +751,16 @@
                           ${m.role === "admin" ? `<div style="font-size:10px;color:var(--warm-gold);font-weight:600;">Admin</div>` : ""}
                         </div>
                         ${m.uid !== WR.getCurrentUser().uid ? `
-                        <button onclick="${m.role === "admin" ? `demoteAdmin('${m.uid}')` : `promoteAdmin('${m.uid}')`}"
-                          style="font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--terracotta);cursor:pointer;white-space:nowrap;">
-                          ${m.role === "admin" ? "Remove Admin" : "Make Admin"}
-                        </button>` : ""}
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                          <button onclick="${m.role === "admin" ? `demoteAdmin('${m.uid}')` : `promoteAdmin('${m.uid}')`}"
+                            style="font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--terracotta);cursor:pointer;white-space:nowrap;">
+                            ${m.role === "admin" ? "Remove Admin" : "Make Admin"}
+                          </button>
+                          <button onclick="removeMember('${m.uid}','${WR.escapeHTML(m.displayName||"")}')"
+                            style="font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;border:1px solid #F5C6C6;background:#FCE8E8;color:#8B2020;cursor:pointer;white-space:nowrap;">
+                            Remove
+                          </button>
+                        </div>` : ""}
                       </div>`).join("")}
                   </div>` : `
                   <div class="members-grid">
@@ -1210,6 +1216,33 @@
       } catch (e) {
         console.error("RSVP error:", e);
         WR.showToast("Error saving RSVP.", "error");
+      }
+    }
+
+    async function removeMember(uid, name) {
+      if (!confirm(`Remove ${name} from this club?`)) return;
+      try {
+        // Remove from memberUids array on club doc
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          memberUids: firebase.firestore.FieldValue.arrayRemove(uid),
+          adminUids:  firebase.firestore.FieldValue.arrayRemove(uid)
+        });
+
+        // Delete member subdoc
+        await WR.getDb().collection("clubs").doc(clubId)
+          .collection("members").doc(uid).delete();
+
+        // Update local state
+        members = members.filter(m => m.uid !== uid);
+        club.memberUids = (club.memberUids || []).filter(u => u !== uid);
+        club.adminUids  = (club.adminUids  || []).filter(u => u !== uid);
+
+        renderPage();
+        startPostsListener();
+        WR.showToast(`${name} removed from club.`, "success");
+      } catch (e) {
+        console.error("Remove member error:", e);
+        WR.showToast("Error removing member.", "error");
       }
     }
 
@@ -1944,6 +1977,7 @@
     window.toggleRsvpList        = toggleRsvpList;
     window.editEvent             = editEvent;
     window.deleteEvent           = deleteEvent;
+    window.removeMember          = removeMember;
     window.promoteAdmin          = promoteAdmin;
     window.demoteAdmin           = demoteAdmin;
     window.showMembersTab        = showMembersTab;
