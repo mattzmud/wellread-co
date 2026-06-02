@@ -175,39 +175,61 @@
   <script src="common.js"></script>
 
   <script>
-    // Public page — no auth check needed, just load Firestore data.
-    // We use WR.initAuth with a public page flag so Firebase initializes
-    // correctly (including long-polling settings) without enforcing auth.
     const params = new URLSearchParams(location.search);
     const uid    = params.get("uid");
 
-    // Sign in anonymously so Firestore rules (which require isSignedIn())
-    // are satisfied even for unauthenticated visitors
-    WR.initAuth(async (user) => {
-      if (!user) {
-        // No session — sign in anonymously for Firestore access
+    // Initialize Firebase directly (WR.initAuth would only fire once
+    // and doesn't handle the anonymous sign-in re-fire pattern)
+    async function init() {
+      // Wait for Firebase SDKs to be ready via common.js bootstrap
+      // common.js calls initFirebase() which sets up _app, _auth, _db
+      // We need to trigger that manually here since we're not using initAuth
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey:            "AIzaSyC9il8nGf3pz6Z6UqXnoKWFW3h2fBrUU5M",
+          authDomain:        "wellread-co.firebaseapp.com",
+          projectId:         "wellread-co",
+          storageBucket:     "wellread-co.firebasestorage.app",
+          messagingSenderId: "114566291288",
+          appId:             "1:114566291288:web:d915eef5e65d1661e74f2d"
+        });
+      }
+
+      const db   = firebase.firestore();
+      const auth = firebase.auth();
+
+      // Apply long-polling fix for Safari
+      try {
+        db.settings({
+          experimentalAutoDetectLongPolling: false,
+          experimentalForceLongPolling:      true,
+          merge:                             true
+        });
+      } catch (e) { /* already set */ }
+
+      // Sign in anonymously if not already signed in
+      if (!auth.currentUser) {
         try {
-          await firebase.auth().signInAnonymously();
-          // onAuthStateChanged will fire again with the anon user
-          return;
+          await auth.signInAnonymously();
         } catch (e) {
           console.error("Anonymous auth error:", e);
           showError("Something went wrong", "We couldn't load this wishlist. Please try again.");
           return;
         }
       }
-      await loadPublicWishlist();
-    });
 
-    async function loadPublicWishlist() {
+      await loadPublicWishlist(db);
+    }
+
+    init();
+
+    async function loadPublicWishlist(db) {
       if (!uid) {
         showError("No user specified", "This wishlist link is missing a user ID.");
         return;
       }
 
       try {
-        const db = WR.getDb();
-
         // Load user profile
         const userSnap = await db.collection("users").doc(uid).get();
         if (!userSnap.exists) {
