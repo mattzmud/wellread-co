@@ -1298,11 +1298,15 @@
           return;
         }
 
-        // Check friendship status for each result
+        // Check friendship status for each result — handle missing docs gracefully
         const friendStatuses = await Promise.all(people.map(async p => {
-          const fid   = WR.getFriendshipId(uid, p.uid);
-          const fsnap = await WR.getDb().collection("friends").doc(fid).get();
-          return fsnap.exists ? fsnap.data().status : null;
+          try {
+            const fid   = WR.getFriendshipId(uid, p.uid);
+            const fsnap = await WR.getDb().collection("friends").doc(fid).get();
+            return fsnap.exists ? fsnap.data().status : null;
+          } catch (e) {
+            return null; // not friends, or can't determine — show Add Friend button
+          }
         }));
 
         el.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;">
