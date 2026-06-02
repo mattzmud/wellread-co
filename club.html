@@ -873,15 +873,56 @@
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
-      const users   = (post.reactions?.[emoji] || []);
-      const hasIt   = users.includes(uid);
-      const field   = `reactions.${emoji}`;
-      const update  = hasIt
+      const users = (post.reactions?.[emoji] || []);
+      const hasIt = users.includes(uid);
+
+      // Optimistic local update — update posts array immediately
+      // so the snapshot re-render doesn't flicker
+      if (!post.reactions) post.reactions = {};
+      if (hasIt) {
+        post.reactions[emoji] = users.filter(u => u !== uid);
+      } else {
+        post.reactions[emoji] = [...users, uid];
+      }
+
+      // Re-render just this post's reactions without rebuilding the whole list
+      const postEl = document.getElementById("post-" + postId);
+      if (postEl) {
+        const reactionsEl = postEl.querySelector(".post-reactions");
+        if (reactionsEl) {
+          const REACTIONS = ["❤️","😂","😮","👍","😢","😡"];
+          const reactions = post.reactions || {};
+          const reactionHTML = REACTIONS.map(e => {
+            const u = reactions[e] || [];
+            if (!u.length) return "";
+            const reacted = u.includes(uid);
+            return `<button class="reaction-btn${reacted ? " reacted" : ""}"
+              onclick="toggleReaction('${postId}','${e}')">
+              ${e} <span class="reaction-count">${u.length}</span>
+            </button>`;
+          }).filter(Boolean).join("");
+          // Keep the picker button, replace reaction buttons before it
+          const picker = reactionsEl.querySelector(".reaction-picker");
+          reactionsEl.innerHTML = reactionHTML;
+          if (picker) reactionsEl.appendChild(picker);
+        }
+      }
+
+      const field  = `reactions.${emoji}`;
+      const update = hasIt
         ? { [field]: firebase.firestore.FieldValue.arrayRemove(uid) }
         : { [field]: firebase.firestore.FieldValue.arrayUnion(uid) };
 
       try { await ref.update(update); }
-      catch (e) { console.error("Reaction error:", e); }
+      catch (e) {
+        console.error("Reaction error:", e);
+        // Revert optimistic update on error
+        if (hasIt) {
+          post.reactions[emoji] = [...users];
+        } else {
+          post.reactions[emoji] = users.filter(u => u !== uid);
+        }
+      }
     }
 
     function toggleReactionPicker(id) {

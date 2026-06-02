@@ -945,7 +945,7 @@ async function acceptClubInvite(clubId, notifId) {
   try {
     const profile = _currentUser._profile;
 
-    // Add member doc (user can write their own member doc per the rule)
+    // Add member doc
     await _db.collection("clubs").doc(clubId)
       .collection("members").doc(uid).set({
         uid,
@@ -956,37 +956,31 @@ async function acceptClubInvite(clubId, notifId) {
         joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
       });
 
-    // Update memberUids array on the club doc
-    // This requires admin rights per current rules — use a batch
-    // where we also update the invite status so admin can verify
+    // Update memberUids on club doc
     await _db.collection("clubs").doc(clubId).update({
       memberUids: firebase.firestore.FieldValue.arrayUnion(uid)
     });
+
+    // Delete the pending invite doc so it clears from the invited list
+    try {
+      const invitesSnap = await _db
+        .collection("clubs").doc(clubId)
+        .collection("invites")
+        .where("invitedUid", "==", uid)
+        .where("status", "==", "pending")
+        .limit(1)
+        .get();
+      if (!invitesSnap.empty) {
+        await invitesSnap.docs[0].ref.delete();
+      }
+    } catch (e) { console.error("Invite cleanup error:", e); }
 
     if (notifId) await dismissNotif(notifId);
     showToast("You joined the club! 👥", "success");
     setTimeout(() => { location.href = "club.html?id=" + clubId; }, 800);
   } catch (e) {
     console.error("Accept club invite error:", e);
-    // If the club update failed due to permissions, try alternate approach
-    // — write to a joinRequests subcollection that admins can approve
-    try {
-      await _db.collection("clubs").doc(clubId)
-        .collection("members").doc(uid).set({
-          uid,
-          displayName: _currentUser._profile?.displayName || "",
-          photoURL:    _currentUser._profile?.photoURL    || null,
-          role:        "member",
-          status:      "active",
-          joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-      if (notifId) await dismissNotif(notifId);
-      showToast("You joined the club! 👥", "success");
-      setTimeout(() => { location.href = "club.html?id=" + clubId; }, 800);
-    } catch (e2) {
-      console.error("Accept club invite fallback error:", e2);
-      showToast("Something went wrong joining the club.", "error");
-    }
+    showToast("Something went wrong joining the club.", "error");
   }
 }
 
