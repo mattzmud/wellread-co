@@ -837,7 +837,7 @@
                        hour < 17 ? "Good afternoon" :
                        "Good evening";
 
-      const name = profile?.displayName || profile?.firstName || "reader";
+      const name = profile?.firstName || profile?.displayName || "reader";
       document.getElementById("welcomeHeading").textContent = `${greeting}, ${name} 📖`;
       document.getElementById("welcomeSub").textContent = getDateString();
 

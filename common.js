@@ -150,6 +150,10 @@ function renderNav() {
             <span class="wr-nav-label">Alerts</span>
             <span class="wr-bell-badge" id="wrBellBadge" style="display:none;">0</span>
           </button>
+          <button class="wr-nav-item wr-signout-btn" onclick="signOut()" aria-label="Sign out" title="Sign out">
+            <span class="wr-nav-icon">🚪</span>
+            <span class="wr-nav-label">Sign Out</span>
+          </button>
         </div>
       </div>
     </nav>
@@ -170,6 +174,10 @@ function renderNav() {
           <span class="wr-bell-badge wr-bell-badge-mobile" id="wrBellBadgeMobile" style="display:none;">0</span>
         </span>
         <span class="wr-tab-label">Alerts</span>
+      </button>
+      <button class="wr-tab-item" onclick="signOut()" aria-label="Sign out">
+        <span class="wr-tab-icon">🚪</span>
+        <span class="wr-tab-label">Sign Out</span>
       </button>
     </nav>
 
@@ -279,6 +287,13 @@ function getNavStyles() {
     }
     .wr-nav-item.active .wr-nav-label { color: #C9A84C; }
     .wr-nav-spacer { height: 60px; }
+
+    /* ── Sign Out Button ── */
+    .wr-signout-btn {
+      opacity: 0.7;
+      transition: opacity 0.15s, background 0.15s !important;
+    }
+    .wr-signout-btn:hover { opacity: 1 !important; background: rgba(192,57,43,0.15) !important; }
 
     /* ── Bell Badge ── */
     .wr-bell-badge {
@@ -1227,6 +1242,17 @@ function getFriendshipId(uid1, uid2) {
   return [uid1, uid2].sort().join("_");
 }
 
+// ─── Sign Out ─────────────────────────────────────────────────
+async function signOut() {
+  try {
+    if (_notifUnsubscribe) _notifUnsubscribe();
+    await _auth.signOut();
+    location.href = "login.html";
+  } catch (e) {
+    console.error("Sign out error:", e);
+  }
+}
+
 // ─── Cloudflare Worker Caller ────────────────────────────────
 async function callWorker(action, data = {}) {
   try {
@@ -1261,6 +1287,7 @@ window.acceptFriendRequest = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;
 window.acceptClubInvite   = acceptClubInvite;
 window.declineClubInvite  = declineClubInvite;
+window.signOut            = signOut;
 
 // ─── Exported API ────────────────────────────────────────────
 window.WR = {
@@ -1270,6 +1297,7 @@ window.WR = {
   getDb:          () => _db,
   getAuth:        () => _auth,
   isAdmin:        () => ADMIN_UIDS.includes(_currentUser?.uid),
+  signOut,
 
   // Notifications
   createNotification,

@@ -326,11 +326,15 @@
     }
 
     .social-icon {
-      font-size: 20px;
-      width: 28px;
-      text-align: center;
+      width: 32px;
+      height: 32px;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
+    .social-icon svg { display: block; border-radius: 4px; }
 
     .social-row input { margin-bottom: 0; }
 
@@ -527,7 +531,20 @@
       <div class="form-group">
         <label>Instagram <span class="label-optional">(optional)</span></label>
         <div class="social-row">
-          <span class="social-icon">📸</span>
+          <span class="social-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs><linearGradient id="ig-s" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#f09433"/>
+                <stop offset="25%" style="stop-color:#e6683c"/>
+                <stop offset="50%" style="stop-color:#dc2743"/>
+                <stop offset="75%" style="stop-color:#cc2366"/>
+                <stop offset="100%" style="stop-color:#bc1888"/>
+              </stop></linearGradient></defs>
+              <rect width="24" height="24" rx="6" fill="url(#ig-s)"/>
+              <path d="M12 7.2A4.8 4.8 0 1 0 12 16.8 4.8 4.8 0 0 0 12 7.2zm0 7.92A3.12 3.12 0 1 1 12 8.88 3.12 3.12 0 0 1 12 15.12z" fill="#fff"/>
+              <circle cx="16.92" cy="7.08" r="1.12" fill="#fff"/>
+            </svg>
+          </span>
           <input type="text" id="instagram" placeholder="@yourusername" maxlength="60">
         </div>
       </div>
@@ -535,7 +552,12 @@
       <div class="form-group">
         <label>Facebook <span class="label-optional">(optional)</span></label>
         <div class="social-row">
-          <span class="social-icon">👥</span>
+          <span class="social-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#1877F2"/>
+              <path d="M16.5 8H14.5C13.95 8 13.5 8.45 13.5 9V11H16.5L16 14H13.5V21H10.5V14H8.5V11H10.5V9C10.5 6.79 12.29 5 14.5 5H16.5V8Z" fill="#fff"/>
+            </svg>
+          </span>
           <input type="text" id="facebook" placeholder="facebook.com/yourname" maxlength="100">
         </div>
       </div>
@@ -543,7 +565,12 @@
       <div class="form-group">
         <label>X (Twitter) <span class="label-optional">(optional)</span></label>
         <div class="social-row">
-          <span class="social-icon">🐦</span>
+          <span class="social-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#000"/>
+              <path d="M17.75 4H20.5L14.5 10.78L21.5 20H15.97L11.65 14.35L6.73 20H3.97L10.38 12.76L3.5 4H9.16L13.08 9.14L17.75 4ZM16.77 18.36H18.3L8.3 5.53H6.65L16.77 18.36Z" fill="#fff"/>
+            </svg>
+          </span>
           <input type="text" id="xtwitter" placeholder="@yourusername" maxlength="60">
         </div>
       </div>
@@ -551,7 +578,12 @@
       <div class="form-group">
         <label>Bluesky <span class="label-optional">(optional)</span></label>
         <div class="social-row">
-          <span class="social-icon">🦋</span>
+          <span class="social-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#0085FF"/>
+              <path d="M12 10.4C11.04 8.88 8.4 6.08 6 5.28C4.08 4.64 3.5 5.92 3.5 7.04C3.5 8.16 3.98 10.08 4.24 10.88C5.04 13.36 7.6 14.08 10.08 13.6C9.84 13.68 9.6 13.84 9.36 13.92C7.36 14.72 4.48 16 5.76 18.64C6.56 20.24 9.04 19.92 10.64 18.72C11.44 18.16 11.84 17.6 12 17.04C12.16 17.6 12.56 18.16 13.36 18.72C14.96 19.92 17.44 20.24 18.24 18.64C19.52 16 16.64 14.72 14.64 13.92C14.4 13.84 14.16 13.68 13.92 13.6C16.4 14.08 18.96 13.36 19.76 10.88C20.02 10.08 20.5 8.16 20.5 7.04C20.5 5.92 19.92 4.64 18 5.28C15.6 6.08 12.96 8.88 12 10.4Z" fill="#fff"/>
+            </svg>
+          </span>
           <input type="text" id="bluesky" placeholder="@you.bsky.social" maxlength="100">
         </div>
       </div>
@@ -853,6 +885,7 @@
         // Send welcome email (fire and forget — don't await)
         WR.callWorker("send_welcome_email", {
           to:          user.email,
+          firstName:   profile.firstName,
           displayName: profile.displayName
         });
 
