@@ -172,18 +172,13 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="common.js"></script>
 
   <script>
     const params = new URLSearchParams(location.search);
     const uid    = params.get("uid");
 
-    // Initialize Firebase directly (WR.initAuth would only fire once
-    // and doesn't handle the anonymous sign-in re-fire pattern)
+    // Initialize Firebase and load wishlist data
     async function init() {
-      // Wait for Firebase SDKs to be ready via common.js bootstrap
-      // common.js calls initFirebase() which sets up _app, _auth, _db
-      // We need to trigger that manually here since we're not using initAuth
       if (!firebase.apps.length) {
         firebase.initializeApp({
           apiKey:            "AIzaSyC9il8nGf3pz6Z6UqXnoKWFW3h2fBrUU5M",
@@ -198,7 +193,7 @@
       const db   = firebase.firestore();
       const auth = firebase.auth();
 
-      // Apply long-polling fix for Safari
+      // Long-polling fix for Safari
       try {
         db.settings({
           experimentalAutoDetectLongPolling: false,
@@ -207,15 +202,13 @@
         });
       } catch (e) { /* already set */ }
 
-      // Sign in anonymously if not already signed in
-      if (!auth.currentUser) {
-        try {
-          await auth.signInAnonymously();
-        } catch (e) {
-          console.error("Anonymous auth error:", e);
-          showError("Something went wrong", "We couldn't load this wishlist. Please try again.");
-          return;
-        }
+      // Sign in anonymously so Firestore rules (isSignedIn()) are satisfied
+      try {
+        await auth.signInAnonymously();
+      } catch (e) {
+        console.error("Anonymous auth error:", e);
+        showError("Something went wrong", "We couldn't load this wishlist. Please try again.");
+        return;
       }
 
       await loadPublicWishlist(db);
