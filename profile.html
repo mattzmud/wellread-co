@@ -492,6 +492,26 @@
   </div>
 
   <!-- Firebase -->
+  <!-- Goal Modal -->
+  <div id="profileGoalModal" onclick="if(event.target===this)closeProfileGoalModal()" style="display:none;position:fixed;inset:0;background:rgba(45,27,78,0.45);z-index:500;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--aged-paper);border-radius:20px 20px 0 0;padding:1.75rem;width:100%;max-width:420px;box-shadow:0 -4px 32px rgba(45,27,78,0.18);">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1.25rem;"></div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);margin-bottom:0.25rem;">🎯 Monthly Reading Goal</h2>
+      <p id="profileGoalModalDesc" style="font-size:13px;color:var(--terracotta);margin-bottom:1.25rem;"></p>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:1.25rem;">
+        <button onclick="adjustProfileGoal(-1)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <input type="number" id="profileGoalInput" value="4" min="1" max="100"
+          style="width:80px;text-align:center;font-family:'Playfair Display',serif;font-size:36px;color:var(--deep-plum);border:none;background:transparent;outline:none;-moz-appearance:textfield;">
+        <button onclick="adjustProfileGoal(1)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <span style="font-size:14px;color:var(--terracotta);">books</span>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="closeProfileGoalModal()" style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px;border:1.5px solid var(--border);background:var(--aged-paper);color:var(--terracotta);cursor:pointer;">Cancel</button>
+        <button onclick="saveProfileGoal()" style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;">Save Goal</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -826,7 +846,95 @@
             <a href="search.html?tab=people" style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;text-decoration:none;">🔍 Find Readers</a>
           </div>
         </div>` : ""}
+
+        ${isOwnProfile ? buildGoalSection(profileData) : ""}
       `;
+    }
+
+    function buildGoalSection(profile) {
+      const now       = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const monthName = now.toLocaleString("default", { month: "long", year: "numeric" });
+      const goal      = profile?.monthlyGoal;
+      const history   = profile?.goalHistory || {};
+
+      // Current month goal status
+      const hasGoal       = goal?.month === thisMonth && goal?.target;
+      const booksThisMonth = hasGoal ? countProfileBooksThisMonth(thisMonth) : 0;
+      const pct           = hasGoal ? Math.min(100, Math.round((booksThisMonth / goal.target) * 100)) : 0;
+
+      const currentGoalHTML = `
+        <div style="background:var(--lavender-mist);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;color:var(--deep-plum);">${monthName}</span>
+            ${hasGoal
+              ? `<span style="font-size:12px;color:var(--terracotta);">${booksThisMonth} of ${goal.target} books</span>`
+              : `<span style="font-size:12px;color:#BDB5CC;">No goal set</span>`}
+          </div>
+          ${hasGoal ? `
+          <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;margin-bottom:6px;">
+            <div style="height:100%;width:${pct}%;background:${pct >= 100 ? "var(--faded-moss)" : "var(--amethyst)"};border-radius:4px;transition:width 0.4s;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--terracotta);">
+            ${pct >= 100 ? (booksThisMonth > goal.target ? "🏆 Goal surpassed!" : "🎉 Goal complete!") : `${pct}% complete`}
+          </div>` : ""}
+          <div style="margin-top:10px;">
+            <button onclick="openProfileGoalModal()" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 14px;border-radius:7px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;">
+              ${hasGoal ? "✏️ Edit Goal" : "🎯 Set Goal"}
+            </button>
+          </div>
+        </div>`;
+
+      // History sorted newest first
+      const historyEntries = Object.entries(history)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .slice(0, 24); // show up to 24 months
+
+      const historyHTML = historyEntries.length ? `
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${historyEntries.map(([month, entry]) => {
+            const [year, mo] = month.split("-");
+            const label = new Date(year, parseInt(mo) - 1, 1)
+              .toLocaleString("default", { month: "long", year: "numeric" });
+            const pctH  = Math.min(100, Math.round((entry.booksRead / entry.target) * 100));
+            const color = entry.surpassed ? "var(--warm-gold)" : entry.met ? "var(--faded-moss)" : "var(--border)";
+            return `
+              <div style="background:var(--lavender-mist);border-radius:8px;padding:10px 12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-size:12px;font-weight:600;color:var(--deep-plum);">${label}</span>
+                  <span style="font-size:11px;color:var(--terracotta);">${entry.booksRead} of ${entry.target} books ${entry.surpassed ? "🏆" : entry.met ? "🎉" : ""}</span>
+                </div>
+                <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
+                  <div style="height:100%;width:${pctH}%;background:${color};border-radius:4px;"></div>
+                </div>
+              </div>`;
+          }).join("")}
+        </div>` : `<p style="font-size:13px;color:#BDB5CC;text-align:center;padding:0.5rem;">No reading history yet. Complete a month to see it here.</p>`;
+
+      return `
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('goals', this)">
+            <span class="section-title">🎯 Reading Goals</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="goals-body">
+            ${currentGoalHTML}
+            ${historyEntries.length ? `
+            <p style="font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Past Goals</p>
+            ${historyHTML}` : historyHTML}
+          </div>
+        </div>`;
+    }
+
+    function countProfileBooksThisMonth(monthKey) {
+      // Count from userBooks which is already loaded
+      let count = 0;
+      userBooks.forEach(b => {
+        (b.readingSessions || []).forEach(s => {
+          if (s.completed && s.endDate && s.endDate.startsWith(monthKey)) count++;
+        });
+      });
+      return count;
     }
 
     // Inline SVG logos for each social platform
@@ -970,8 +1078,63 @@
         </div>`;
     }
 
-    window.toggleSection     = toggleSection;
-    window.sendFriendRequest = sendFriendRequest;
+    // ── Profile Goal Modal ────────────────────────────────────
+    function openProfileGoalModal() {
+      const now       = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const monthName = now.toLocaleString("default", { month: "long" });
+      const goal      = profileData?.monthlyGoal;
+
+      document.getElementById("profileGoalModalDesc").textContent =
+        `How many books do you want to read in ${monthName}?`;
+      document.getElementById("profileGoalInput").value =
+        (goal?.month === thisMonth ? goal.target : 4);
+
+      const modal = document.getElementById("profileGoalModal");
+      modal.style.display = "flex";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeProfileGoalModal() {
+      document.getElementById("profileGoalModal").style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    function adjustProfileGoal(delta) {
+      const input = document.getElementById("profileGoalInput");
+      input.value = Math.max(1, Math.min(100, parseInt(input.value || "4") + delta));
+    }
+
+    async function saveProfileGoal() {
+      const user   = WR.getCurrentUser();
+      const target = parseInt(document.getElementById("profileGoalInput").value);
+      if (!target || target < 1) return;
+
+      const now       = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set({
+          monthlyGoal: { month: thisMonth, target, achieved: false }
+        }, { merge: true });
+
+        if (profileData) profileData.monthlyGoal = { month: thisMonth, target, achieved: false };
+        closeProfileGoalModal();
+        WR.showToast(`Goal set: ${target} books this month! 🎯`, "success");
+        renderPage();
+      } catch (e) {
+        console.error("Profile goal save error:", e);
+        WR.showToast("Error saving goal.", "error");
+      }
+    }
+
+    window.toggleSection        = toggleSection;
+    window.sendFriendRequest    = sendFriendRequest;
+    window.openProfileGoalModal  = openProfileGoalModal;
+    window.closeProfileGoalModal = closeProfileGoalModal;
+    window.adjustProfileGoal     = adjustProfileGoal;
+    window.saveProfileGoal       = saveProfileGoal;
+    window.countProfileBooksThisMonth = countProfileBooksThisMonth;
     window.removeFriend      = removeFriend;
     window.sendMessage       = sendMessage;
   </script>

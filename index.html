@@ -816,6 +816,7 @@
     // ── State ─────────────────────────────────────────────────
     let profile       = null;
     let userStats     = { library: 0, read: 0, tbr: 0, wishlist: 0 };
+    let allBooks      = []; // all user book docs, used for goal progress
     let currentReads  = [];
     let upcomingEvents = [];
     let myClubs       = [];
@@ -874,8 +875,9 @@
           .collection("users").doc(user.uid)
           .collection("books").get();
 
-        snap.forEach(doc => {
-          const b = doc.data();
+        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        allBooks.forEach(b => {
           if (b.inLibrary)  userStats.library++;
           if (b.readingSessions?.some(s => s.completed)) userStats.read++;
           if (b.onTBR)      userStats.tbr++;
@@ -887,48 +889,93 @@
         document.getElementById("qsTBR").textContent      = userStats.tbr;
         document.getElementById("qsWishlist").textContent = userStats.wishlist;
 
+        // Check if we need to snapshot last month's goal result
+        await checkMonthEnd();
         renderGoalCard();
       } catch (e) {
         console.error("Stats error:", e);
       }
     }
 
+    // ── Goal Helpers ──────────────────────────────────────────
+    function getMonthKey(date) {
+      const d = date || new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function countBooksReadInMonth(monthKey) {
+      let count = 0;
+      allBooks.forEach(b => {
+        (b.readingSessions || []).forEach(s => {
+          if (s.completed && s.endDate && s.endDate.startsWith(monthKey)) count++;
+        });
+      });
+      return count;
+    }
+
+    function countBooksReadThisMonth() {
+      return countBooksReadInMonth(getMonthKey());
+    }
+
+    // When user logs in during a new month, snapshot last month's result
+    async function checkMonthEnd() {
+      const user      = WR.getCurrentUser();
+      const thisMonth = getMonthKey();
+      const goal      = profile?.monthlyGoal;
+      const history   = profile?.goalHistory || {};
+
+      if (!goal?.month || goal.month === thisMonth) return;
+      if (history[goal.month]) return; // already snapshotted
+
+      const booksRead = countBooksReadInMonth(goal.month);
+      const met       = booksRead >= goal.target;
+      const surpassed = booksRead > goal.target;
+      const entry     = { target: goal.target, booksRead, met, surpassed };
+
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set({
+          goalHistory: { ...history, [goal.month]: entry }
+        }, { merge: true });
+        if (!profile.goalHistory) profile.goalHistory = {};
+        profile.goalHistory[goal.month] = entry;
+      } catch (e) { console.error("Goal snapshot error:", e); }
+    }
+
     // ── Goal Card ─────────────────────────────────────────────
     function renderGoalCard() {
-      const goal    = profile?.monthlyGoal;
-      const now     = new Date();
-      const month   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const isThisMonth = goal?.month === month;
+      const now       = new Date();
+      const thisMonth = getMonthKey(now);
+      const monthName = now.toLocaleString("default", { month: "long" });
+      const goal      = profile?.monthlyGoal;
+      const hasGoal   = goal?.month === thisMonth && goal?.target;
 
-      if (!isThisMonth || !goal?.target) {
-        document.getElementById("goalTitle").textContent  = "Set your reading goal for this month";
-        document.getElementById("goalLabel").textContent  = "No goal set yet";
-        document.getElementById("goalFill").style.width   = "0%";
+      if (!hasGoal) {
+        document.getElementById("goalTitle").textContent   = "Set your reading goal for this month";
+        document.getElementById("goalLabel").textContent   = "No goal set yet";
+        document.getElementById("goalFill").style.width    = "0%";
         document.getElementById("goalBtnText").textContent = "Set Goal";
         return;
       }
 
-      // Count books completed this month
-      const target = goal.target;
-      // We use the overall read count as a proxy — a more precise version
-      // would filter by completion date in the current month
+      const target         = goal.target;
       const booksThisMonth = countBooksReadThisMonth();
-      const pct = Math.min(100, Math.round((booksThisMonth / target) * 100));
+      const pct            = Math.min(100, Math.round((booksThisMonth / target) * 100));
 
-      document.getElementById("goalTitle").textContent =
-        pct >= 100
-          ? `🎉 Goal complete! You read ${booksThisMonth} of ${target} books`
-          : `${booksThisMonth} of ${target} books read this month`;
-      document.getElementById("goalFill").style.width  = pct + "%";
-      document.getElementById("goalLabel").innerHTML =
-        `<strong>${pct}%</strong> of your ${now.toLocaleString("default", { month: "long" })} goal`;
+      if (booksThisMonth > target) {
+        document.getElementById("goalTitle").textContent =
+          `🏆 Goal surpassed! ${booksThisMonth} of ${target} books read`;
+      } else if (pct >= 100) {
+        document.getElementById("goalTitle").textContent =
+          `🎉 Goal complete! You read ${booksThisMonth} of ${target} books`;
+      } else {
+        document.getElementById("goalTitle").textContent =
+          `${booksThisMonth} of ${target} books read this month`;
+      }
+
+      document.getElementById("goalFill").style.width = pct + "%";
+      document.getElementById("goalLabel").innerHTML  =
+        `<strong>${pct}%</strong> of your ${monthName} goal`;
       document.getElementById("goalBtnText").textContent = "Edit Goal";
-    }
-
-    function countBooksReadThisMonth() {
-      // Placeholder — in a full implementation this would check
-      // readingSessions[].endDate against the current month
-      return 0;
     }
 
     // ── Goal Modal ────────────────────────────────────────────
@@ -966,15 +1013,15 @@
       const target = parseInt(document.getElementById("goalInput").value);
       if (!target || target < 1) return;
 
-      const now   = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const thisMonth = getMonthKey();
 
       try {
+        // Save current month's goal — keep goalHistory separate for past months
         await WR.getDb().collection("users").doc(user.uid).set({
-          monthlyGoal: { month, target, achieved: false }
+          monthlyGoal: { month: thisMonth, target, achieved: false }
         }, { merge: true });
 
-        if (profile) profile.monthlyGoal = { month, target, achieved: false };
+        if (profile) profile.monthlyGoal = { month: thisMonth, target, achieved: false };
         renderGoalCard();
         WR.showToast(`Goal set: ${target} books this month! 🎯`, "success");
         closeGoalModal();
