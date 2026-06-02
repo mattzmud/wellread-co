@@ -857,6 +857,16 @@ function openNotifDetail(notifId) {
 }
 
 function buildNotifModalFooter(notif) {
+  // Past notifications — show what action was taken, no buttons
+  if (notif.dismissed) {
+    const label = notif.actionTaken || "Dismissed";
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--terracotta);">
+      <span style="font-size:16px;">✓</span>
+      <span>${escapeHTML(label)}</span>
+    </div>`;
+  }
+
+  // Active notifications — show action buttons
   switch (notif.type) {
     case "friend_request":
       return `
@@ -869,9 +879,9 @@ function buildNotifModalFooter(notif) {
         <button class="wr-btn wr-btn-moss wr-btn-sm" onclick="acceptClubInvite('${notif.linkedId}','${notif.id}');closeNotifModal()">Join Club</button>
       `;
     case "club_event":
-      return `<button class="wr-btn wr-btn-primary wr-btn-sm" onclick="dismissNotif('${notif.id}');location.href='club.html?id=${notif.linkedId}'">View Club</button>`;
+      return `<button class="wr-btn wr-btn-primary wr-btn-sm" onclick="dismissNotif('${notif.id}','Viewed');location.href='club.html?id=${notif.linkedId}'">View Club</button>`;
     default:
-      return `<button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="dismissNotif('${notif.id}');closeNotifModal()">Dismiss</button>`;
+      return `<button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="dismissNotif('${notif.id}','Dismissed');closeNotifModal()">Dismiss</button>`;
   }
 }
 
@@ -906,14 +916,16 @@ async function createNotification(targetUid, { type, title, body, bodyHTML, link
 
 // ─── Friend Actions ──────────────────────────────────────────
 // Stub functions — full logic lives in profile.html and friends feature
-async function dismissNotif(notifId) {
+async function dismissNotif(notifId, actionTaken) {
   if (!notifId || !_currentUser) return;
   try {
+    const update = { dismissed: true, read: true };
+    if (actionTaken) update.actionTaken = actionTaken;
     await _db.collection("notifications")
       .doc(_currentUser.uid)
       .collection("items")
       .doc(notifId)
-      .update({ dismissed: true, read: true });
+      .update(update);
   } catch (e) { console.error("Dismiss notif error:", e); }
 }
 
@@ -923,7 +935,7 @@ async function acceptFriendRequest(friendshipId, notifId) {
       status: "accepted",
       acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    if (notifId) await dismissNotif(notifId);
+    if (notifId) await dismissNotif(notifId, "Friend request accepted");
     showToast("Friend request accepted! 🎉", "success");
   } catch (e) {
     showToast("Error accepting request.", "error");
@@ -933,7 +945,7 @@ async function acceptFriendRequest(friendshipId, notifId) {
 async function declineFriendRequest(friendshipId, notifId) {
   try {
     await _db.collection("friends").doc(friendshipId).delete();
-    if (notifId) await dismissNotif(notifId);
+    if (notifId) await dismissNotif(notifId, "Friend request declined");
     showToast("Friend request declined.");
   } catch (e) {
     showToast("Error declining request.", "error");
@@ -975,7 +987,7 @@ async function acceptClubInvite(clubId, notifId) {
       }
     } catch (e) { console.error("Invite cleanup error:", e); }
 
-    if (notifId) await dismissNotif(notifId);
+    if (notifId) await dismissNotif(notifId, "Joined club");
     showToast("You joined the club! 👥", "success");
     setTimeout(() => { location.href = "club.html?id=" + clubId; }, 800);
   } catch (e) {
@@ -1001,7 +1013,7 @@ async function declineClubInvite(clubId, notifId) {
   } catch (e) {
     console.error("Decline invite cleanup error:", e);
   }
-  if (notifId) await dismissNotif(notifId);
+  if (notifId) await dismissNotif(notifId, "Invite declined");
   showToast("Invite declined.");
 }
 
