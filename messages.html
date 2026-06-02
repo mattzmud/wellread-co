@@ -25,17 +25,19 @@
     html, body { height: 100%; font-family: 'Nunito Sans', sans-serif; background: var(--lavender-mist); color: var(--deep-plum); overflow: hidden; }
 
     /* ── Layout ── */
+    .wr-nav-spacer { display: none; } /* messages manages its own offset */
+
     .messages-layout {
       display: grid;
       grid-template-columns: 320px 1fr;
-      height: calc(100vh - 60px); /* subtract desktop nav height */
+      height: calc(100vh - 60px);
       margin-top: 60px;
     }
 
     @media (max-width: 768px) {
       .messages-layout {
         grid-template-columns: 1fr;
-        height: calc(100vh - 64px); /* subtract mobile tab bar */
+        height: calc(100vh - 64px);
         margin-top: 0;
       }
       .thread-panel { display: none; }

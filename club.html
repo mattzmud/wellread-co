@@ -532,6 +532,8 @@
         pendingInvitesList = [];
       }
     }
+
+    function startPostsListener() {
       if (postsUnsub) postsUnsub();
       postsUnsub = WR.getDb()
         .collection("clubs").doc(clubId)
@@ -542,6 +544,28 @@
           posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           renderPosts();
         }, e => console.error("Posts listener error:", e));
+    }
+
+    function buildInvitedList() {
+      if (!pendingInvitesList.length) {
+        return '<p style="font-size:13px;color:var(--terracotta);text-align:center;padding:1rem;">No pending invites.</p>';
+      }
+      const items = pendingInvitesList.map(p => {
+        const avatar = p.photoURL
+          ? '<img src="' + WR.escapeHTML(p.photoURL) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+          : '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--lavender-mist);margin-bottom:6px;">'
+          + avatar
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:13px;font-weight:600;color:var(--deep-plum);">' + WR.escapeHTML(p.displayName || "") + '</div>'
+          + '<div style="font-size:11px;color:var(--terracotta);">Invite pending</div>'
+          + '</div>'
+          + '<button onclick="cancelInviteFromPanel(\'' + p.uid + '\',\'' + p.inviteId + '\')" '
+          + 'style="font-family:\'Nunito Sans\',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--terracotta);cursor:pointer;">'
+          + 'Cancel</button>'
+          + '</div>';
+      });
+      return '<div style="display:flex;flex-direction:column;">' + items.join("") + '</div>';
     }
 
     // ── Render Page ───────────────────────────────────────────
@@ -707,24 +731,7 @@
                 </div>
                 <!-- Invited list (hidden by default) -->
                 <div id="invitedTabContent" style="display:none;">
-                  ${pendingInvitesList.length ? `
-                  <div style="display:flex;flex-direction:column;gap:8px;">
-                    ${pendingInvitesList.map(p => `
-                      <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--lavender-mist);">
-                        ${p.photoURL
-                          ? `<img src="${WR.escapeHTML(p.photoURL)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
-                          : `<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>`}
-                        <div style="flex:1;min-width:0;">
-                          <div style="font-size:13px;font-weight:600;color:var(--deep-plum);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${WR.escapeHTML(p.displayName || "")}</div>
-                          <div style="font-size:11px;color:var(--terracotta);">Invite pending</div>
-                        </div>
-                        <button onclick="cancelInviteFromPanel('${p.uid}','${p.inviteId}')"
-                          style="font-family:'Nunito Sans',sans-serif;font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--terracotta);cursor:pointer;white-space:nowrap;">
-                          Cancel
-                        </button>
-                      </div>`).join("")}
-                  </div>` : `
-                  <p style="font-size:13px;color:var(--terracotta);text-align:center;padding:1rem;">No pending invites.</p>`}
+                  ${buildInvitedList()}
                 </div>
                 ${isAdmin ? `
                 <div style="margin-top:1rem;">
