@@ -62,10 +62,13 @@ function initFirebase() {
   _auth = firebase.auth();
   _db   = firebase.firestore();
 
-  // Force long-polling to fix Safari's aggressive WebChannel/WebSocket
-  // connection dropping. This trades a small performance cost for
-  // reliable connectivity across all browsers.
-  _db.settings({ experimentalForceLongPolling: true, merge: true });
+  // Disable auto-detect then force long-polling to fix Safari WebChannel drops.
+  // These two settings cannot be used together, so we must set both explicitly.
+  _db.settings({
+    experimentalAutoDetectLongPolling: false,
+    experimentalForceLongPolling:      true,
+    merge:                             true
+  });
 }
 
 // ─── Auth State ──────────────────────────────────────────────
