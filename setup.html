@@ -849,6 +849,13 @@
         });
 
         WR.showToast("Welcome to WellRead Co.! 🎉", "success");
+
+        // Send welcome email (fire and forget — don't await)
+        WR.callWorker("send_welcome_email", {
+          to:          user.email,
+          displayName: profile.displayName
+        });
+
         setTimeout(() => { location.href = "index.html"; }, 1000);
 
       } catch (e) {

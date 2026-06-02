@@ -1209,9 +1209,26 @@
           body:     `${WR.getCurrentUser()._profile?.displayName || "Someone"} invited you to join the book club.`,
           linkedId: clubId
         });
-        btn.textContent = "Invited ✓";
+        btn.textContent      = "Invited ✓";
         btn.style.background = "var(--faded-moss)";
         WR.showToast(`Invite sent to ${name}!`, "success");
+
+        // Send email notification if they have it enabled (fire and forget)
+        try {
+          const friendSnap = await WR.getDb().collection("users").doc(uid).get();
+          const friend     = friendSnap.data();
+          if (friend?.emailPreferences?.addedToClub !== false && friend?.email) {
+            WR.callWorker("send_club_invite_email", {
+              to:            friend.email,
+              recipientName: friend.displayName,
+              clubName:      club.name,
+              inviterName:   WR.getCurrentUser()._profile?.displayName || "Someone",
+              clubId
+            });
+          }
+        } catch (emailErr) {
+          console.error("Club invite email error:", emailErr);
+        }
       } catch (e) {
         console.error("Invite error:", e);
         btn.textContent = "Error";

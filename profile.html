@@ -853,6 +853,21 @@
         friendStatus = "pending";
         document.querySelector(".profile-actions").innerHTML = buildActionButtons();
         WR.showToast("Friend request sent!", "success");
+
+        // Send email notification if they have it enabled (fire and forget)
+        try {
+          const theirSnap = await WR.getDb().collection("users").doc(profileUid).get();
+          const them      = theirSnap.data();
+          if (them?.emailPreferences?.friendRequest !== false && them?.email) {
+            WR.callWorker("send_friend_request_email", {
+              to:            them.email,
+              recipientName: them.displayName,
+              requesterName: currentUser._profile?.displayName || "Someone"
+            });
+          }
+        } catch (emailErr) {
+          console.error("Friend request email error:", emailErr);
+        }
       } catch (e) {
         console.error("Friend request error:", e);
         WR.showToast("Error sending friend request.", "error");
