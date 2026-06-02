@@ -343,34 +343,24 @@
     async function loadAllBooks() {
       const user = WR.getCurrentUser();
       try {
-        let snap;
-        try {
-          // Try cache first — instant if previously visited
-          snap = await WR.getDb()
-            .collection("users").doc(user.uid)
-            .collection("books").get({ source: "cache" });
-        } catch (cacheErr) {
-          // Cache miss — fetch from server
-          snap = await WR.getDb()
-            .collection("users").doc(user.uid)
-            .collection("books").get({ source: "server" });
-        }
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").get();
+
         allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         updateCounts();
         renderTab();
 
         // Load wishlist visibility
         try {
-          const usnap = await WR.getDb().collection("users").doc(user.uid).get({ source: "cache" });
-          if (usnap.exists) isPublic = usnap.data().profileVisibility?.wishlist !== false;
-        } catch {
           const usnap = await WR.getDb().collection("users").doc(user.uid).get();
           if (usnap.exists) isPublic = usnap.data().profileVisibility?.wishlist !== false;
+        } catch (e) {
+          console.error("Visibility load error:", e);
         }
-        return;
       } catch (e) {
         console.error("Error loading books:", e);
-        WR.showToast("Error loading your books.", "error");
+        WR.showToast("Error loading your books. Please refresh.", "error");
       }
     }
 

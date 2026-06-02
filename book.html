@@ -676,26 +676,7 @@
     }
 
     async function loadUserBook(bookId) {
-      const user = WR.getCurrentUser();
-      if (!user) return;
-      try {
-        let snap;
-        try {
-          snap = await WR.getDb()
-            .collection("users").doc(user.uid)
-            .collection("books").doc(bookId)
-            .get({ source: "cache" });
-        } catch {
-          snap = await WR.getDb()
-            .collection("users").doc(user.uid)
-            .collection("books").doc(bookId)
-            .get({ source: "server" });
-        }
-        userBook = snap.exists ? { id: snap.id, ...snap.data() } : null;
-      } catch (e) {
-        console.error("Error loading user book:", e);
-        userBook = null;
-      }
+      userBook = await WR.getUserBook(bookId);
     }
 
     async function loadUserClubs() {

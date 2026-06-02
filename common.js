@@ -61,6 +61,11 @@ function initFirebase() {
   _app  = firebase.initializeApp(FIREBASE_CONFIG);
   _auth = firebase.auth();
   _db   = firebase.firestore();
+
+  // Force long-polling to fix Safari's aggressive WebChannel/WebSocket
+  // connection dropping. This trades a small performance cost for
+  // reliable connectivity across all browsers.
+  _db.settings({ experimentalForceLongPolling: true, merge: true });
 }
 
 // ─── Auth State ──────────────────────────────────────────────
@@ -95,16 +100,9 @@ function initAuth(onReady) {
         return;
       }
 
-      // Fetch user profile — try cache first (instant), fall back to network
+      // Fetch user profile doc
       try {
-        let snap;
-        try {
-          // Cache hit is instant — no network round trip needed
-          snap = await _db.collection("users").doc(user.uid).get({ source: "cache" });
-        } catch (cacheErr) {
-          // Cache miss — fetch from network
-          snap = await _db.collection("users").doc(user.uid).get({ source: "server" });
-        }
+        const snap = await _db.collection("users").doc(user.uid).get();
         if (!snap.exists && page !== "setup.html") {
           location.href = "setup.html";
           return;
