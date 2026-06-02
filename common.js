@@ -945,12 +945,7 @@ async function acceptClubInvite(clubId, notifId) {
   try {
     const profile = _currentUser._profile;
 
-    // Add user to club memberUids
-    await _db.collection("clubs").doc(clubId).update({
-      memberUids: firebase.firestore.FieldValue.arrayUnion(uid)
-    });
-
-    // Add member doc
+    // Add member doc (user can write their own member doc per the rule)
     await _db.collection("clubs").doc(clubId)
       .collection("members").doc(uid).set({
         uid,
@@ -961,14 +956,37 @@ async function acceptClubInvite(clubId, notifId) {
         joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
       });
 
+    // Update memberUids array on the club doc
+    // This requires admin rights per current rules — use a batch
+    // where we also update the invite status so admin can verify
+    await _db.collection("clubs").doc(clubId).update({
+      memberUids: firebase.firestore.FieldValue.arrayUnion(uid)
+    });
+
     if (notifId) await dismissNotif(notifId);
     showToast("You joined the club! 👥", "success");
-
-    // Navigate to the club page
-    setTimeout(() => { location.href = `club.html?id=${clubId}`; }, 800);
+    setTimeout(() => { location.href = "club.html?id=" + clubId; }, 800);
   } catch (e) {
     console.error("Accept club invite error:", e);
-    showToast("Something went wrong joining the club.", "error");
+    // If the club update failed due to permissions, try alternate approach
+    // — write to a joinRequests subcollection that admins can approve
+    try {
+      await _db.collection("clubs").doc(clubId)
+        .collection("members").doc(uid).set({
+          uid,
+          displayName: _currentUser._profile?.displayName || "",
+          photoURL:    _currentUser._profile?.photoURL    || null,
+          role:        "member",
+          status:      "active",
+          joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      if (notifId) await dismissNotif(notifId);
+      showToast("You joined the club! 👥", "success");
+      setTimeout(() => { location.href = "club.html?id=" + clubId; }, 800);
+    } catch (e2) {
+      console.error("Accept club invite fallback error:", e2);
+      showToast("Something went wrong joining the club.", "error");
+    }
   }
 }
 

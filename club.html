@@ -1328,6 +1328,29 @@
       btn.removeAttribute("onclick");
 
       try {
+        // Check for existing pending invite to prevent duplicates
+        const existingSnap = await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("invites")
+          .where("invitedUid", "==", uid)
+          .where("status", "==", "pending")
+          .limit(1)
+          .get();
+
+        if (!existingSnap.empty) {
+          // Already invited — switch to cancel state
+          const existingId = existingSnap.docs[0].id;
+          pendingInvites[uid] = { inviteId: existingId, notifId: null };
+          btn.textContent      = "Cancel Invite";
+          btn.style.background = "var(--aged-paper)";
+          btn.style.color      = "var(--terracotta)";
+          btn.style.border     = "1.5px solid var(--border)";
+          btn.style.opacity    = "1";
+          btn.disabled         = false;
+          btn.setAttribute("onclick", `cancelInvite('${uid}','${WR.escapeHTML(name)}')`);
+          WR.showToast("This person already has a pending invite.", "error");
+          return;
+        }
         // Create invite doc and capture its ID
         const inviteRef = await WR.getDb()
           .collection("clubs").doc(clubId)
