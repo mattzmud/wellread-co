@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Reset Password</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--deep-plum);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Brand Bar ── */
+    .brand-bar {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .brand-icon { font-size: 40px; display: block; margin-bottom: 0.5rem; }
+
+    .brand-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #F7F3FF;
+      text-decoration: none;
+      display: block;
+    }
+
+    .brand-name:hover { opacity: 0.85; }
+
+    /* ── Card ── */
+    .reset-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--aged-paper);
+      border-radius: 20px;
+      padding: 2.25rem 2rem;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Panels — one visible at a time ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Panel Icons ── */
+    .panel-icon {
+      font-size: 48px;
+      text-align: center;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .panel-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: var(--deep-plum);
+      margin-bottom: 0.4rem;
+      text-align: center;
+    }
+
+    .panel-desc {
+      font-size: 13px;
+      color: var(--terracotta);
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 1.75rem;
+    }
+
+    /* ── Form Fields ── */
+    .form-group { margin-bottom: 1rem; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--terracotta);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 15px;
+      color: var(--deep-plum);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--amethyst);
+      box-shadow: 0 0 0 3px rgba(123,94,167,0.12);
+    }
+
+    input.error {
+      border-color: #C0392B;
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.10);
+    }
+
+    /* ── Password wrap ── */
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .pw-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--terracotta);
+      padding: 4px;
+      line-height: 1;
+    }
+
+    /* ── Password strength ── */
+    .pw-strength { margin-top: 6px; display: none; }
+    .pw-strength.show { display: block; }
+    .pw-strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .pw-strength-fill {
+      height: 100%;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s, background 0.3s;
+    }
+    .pw-strength-label { font-size: 11px; color: var(--terracotta); }
+
+    /* ── Field errors ── */
+    .field-error {
+      font-size: 12px;
+      color: #C0392B;
+      margin-top: 5px;
+      display: none;
+    }
+    .field-error.show { display: block; }
+
+    /* ── Banners ── */
+    .error-banner {
+      background: #FDECEC;
+      border: 1px solid #F5C6C6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #922B21;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .error-banner.show { display: block; }
+
+    /* ── Submit Button ── */
+    .submit-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .submit-btn:hover  { opacity: 0.88; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .submit-btn .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .submit-btn.loading .spinner  { display: block; }
+    .submit-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Secondary Link Button ── */
+    .link-btn {
+      display: block;
+      text-align: center;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      color: var(--amethyst);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px;
+      width: 100%;
+    }
+    .link-btn:hover { opacity: 0.8; }
+
+    /* ── Success panel specifics ── */
+    .success-detail {
+      background: var(--lavender-mist);
+      border: 1px solid #DDD6F3;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 13px;
+      color: var(--deep-plum);
+      line-height: 1.6;
+    }
+
+    .success-email {
+      font-weight: 600;
+      color: var(--amethyst);
+    }
+
+    .resend-row {
+      text-align: center;
+      font-size: 13px;
+      color: var(--terracotta);
+      margin-top: 0.5rem;
+    }
+
+    .resend-btn {
+      background: none;
+      border: none;
+      color: var(--amethyst);
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    .resend-btn:disabled {
+      color: #BDB5CC;
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+
+    /* ── New password panel ── */
+    .requirements-list {
+      list-style: none;
+      margin: 0.75rem 0 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .req-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #BDB5CC;
+      transition: color 0.2s;
+    }
+
+    .req-item.met { color: #27AE60; }
+
+    .req-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #BDB5CC;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .req-item.met .req-dot { background: #27AE60; }
+
+    /* ── Back to sign in ── */
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 13px;
+      color: #BDB5CC;
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: var(--terracotta); }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .reset-card { padding: 1.75rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Brand -->
+  <div class="brand-bar">
+    <span class="brand-icon">📖</span>
+    <a href="login.html" class="brand-name">WellRead Co.</a>
+  </div>
+
+  <div class="reset-card">
+
+    <!-- ── Panel 1: Request Reset ── -->
+    <div class="panel active" id="panelRequest">
+      <span class="panel-icon">🔑</span>
+      <h1 class="panel-title">Forgot your password?</h1>
+      <p class="panel-desc">Enter the email address on your account and we'll send you a link to reset your password.</p>
+
+      <div class="error-banner" id="requestError"></div>
+
+      <div class="form-group">
+        <label for="resetEmail">Email Address</label>
+        <input type="email" id="resetEmail" placeholder="you@example.com" autocomplete="email">
+        <span class="field-error" id="resetEmailErr">Please enter a valid email address.</span>
+      </div>
+
+      <button class="submit-btn" id="requestBtn" onclick="handleRequestReset()">
+        <div class="spinner"></div>
+        <span class="btn-text">Send Reset Link</span>
+      </button>
+
+      <button class="link-btn" onclick="location.href='login.html'">Back to Sign In</button>
+    </div>
+
+    <!-- ── Panel 2: Email Sent ── -->
+    <div class="panel" id="panelSent">
+      <span class="panel-icon">📬</span>
+      <h1 class="panel-title">Check your inbox</h1>
+      <p class="panel-desc">We've sent a password reset link to:</p>
+
+      <div class="success-detail">
+        <span class="success-email" id="sentEmailDisplay"></span>
+        <br><br>
+        Click the link in the email to choose a new password. If you don't see it, check your spam folder.
+      </div>
+
+      <button class="submit-btn" onclick="location.href='login.html'">
+        <span class="btn-text">Back to Sign In</span>
+      </button>
+
+      <div class="resend-row">
+        Didn't get it?
+        <button class="resend-btn" id="resendBtn" onclick="handleResend()">Resend email</button>
+      </div>
+    </div>
+
+    <!-- ── Panel 3: New Password ── -->
+    <!-- This panel shows when the user arrives from the reset email link -->
+    <div class="panel" id="panelNewPassword">
+      <span class="panel-icon">🔒</span>
+      <h1 class="panel-title">Choose a new password</h1>
+      <p class="panel-desc">Pick something strong that you haven't used before.</p>
+
+      <div class="error-banner" id="newPwError"></div>
+
+      <div class="form-group">
+        <label for="newPassword">New Password</label>
+        <div class="password-wrap">
+          <input type="password" id="newPassword" placeholder="At least 8 characters"
+                 autocomplete="new-password" oninput="onNewPwInput(this.value)">
+          <button class="pw-toggle" type="button"
+                  onclick="togglePw('newPassword', this)" aria-label="Show password">👁️</button>
+        </div>
+        <div class="pw-strength" id="pwStrength">
+          <div class="pw-strength-bar">
+            <div class="pw-strength-fill" id="pwStrengthFill"></div>
+          </div>
+          <span class="pw-strength-label" id="pwStrengthLabel"></span>
+        </div>
+        <ul class="requirements-list">
+          <li class="req-item" id="req-length">
+            <div class="req-dot"></div>At least 8 characters
+          </li>
+          <li class="req-item" id="req-upper">
+            <div class="req-dot"></div>One uppercase letter
+          </li>
+          <li class="req-item" id="req-number">
+            <div class="req-dot"></div>One number
+          </li>
+        </ul>
+        <span class="field-error" id="newPwErr">Password must be at least 8 characters.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm New Password</label>
+        <div class="password-wrap">
+          <input type="password" id="confirmPassword" placeholder="Repeat your new password"
+                 autocomplete="new-password">
+          <button class="pw-toggle" type="button"
+                  onclick="togglePw('confirmPassword', this)" aria-label="Show password">👁️</button>
+        </div>
+        <span class="field-error" id="confirmPwErr">Passwords do not match.</span>
+      </div>
+
+      <button class="submit-btn" id="newPwBtn" onclick="handleSetNewPassword()">
+        <div class="spinner"></div>
+        <span class="btn-text">Set New Password</span>
+      </button>
+    </div>
+
+    <!-- ── Panel 4: All Done ── -->
+    <div class="panel" id="panelDone">
+      <span class="panel-icon">🎉</span>
+      <h1 class="panel-title">Password updated!</h1>
+      <p class="panel-desc">Your password has been changed successfully. You can now sign in with your new password.</p>
+
+      <button class="submit-btn" onclick="location.href='login.html'">
+        <span class="btn-text">Sign In</span>
+      </button>
+    </div>
+
+  </div>
+
+  <a href="login.html" class="back-link" id="backLink">← Back to Sign In</a>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let resetEmail    = "";
+    let oobCode       = null;   // Firebase action code from the reset link
+    let resendCooldown = false;
+
+    // ── Init ──────────────────────────────────────────────────
+    // Check URL params — Firebase appends ?mode=resetPassword&oobCode=...
+    // when the user arrives from the reset email link.
+    WR.initAuth(null); // reset.html is public
+
+    const params = new URLSearchParams(location.search);
+    const mode   = params.get("mode");
+    oobCode      = params.get("oobCode");
+
+    if (mode === "resetPassword" && oobCode) {
+      // Verify the code is valid before showing the new password form
+      verifyResetCode(oobCode);
+    }
+
+    async function verifyResetCode(code) {
+      try {
+        // getAuth() may not be ready instantly — small wait
+        await new Promise(r => setTimeout(r, 500));
+        const email = await WR.getAuth().verifyPasswordResetCode(code);
+        resetEmail = email;
+        showPanel("panelNewPassword");
+        document.getElementById("backLink").style.display = "none";
+      } catch (e) {
+        // Code is invalid or expired — show request panel with error
+        showPanel("panelRequest");
+        showBanner("requestError",
+          "This reset link has expired or already been used. Please request a new one.");
+      }
+    }
+
+    // ── Panel Switching ───────────────────────────────────────
+    function showPanel(id) {
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    // ── Request Reset ─────────────────────────────────────────
+    async function handleRequestReset() {
+      clearErrors();
+      const email = document.getElementById("resetEmail").value.trim();
+
+      if (!isValidEmail(email)) {
+        document.getElementById("resetEmail").classList.add("error");
+        document.getElementById("resetEmailErr").classList.add("show");
+        return;
+      }
+
+      setLoading("requestBtn", true);
+
+      try {
+        await WR.getAuth().sendPasswordResetEmail(email, {
+          url: location.origin + "/reset.html" // redirect back here after link click
+        });
+        resetEmail = email;
+        document.getElementById("sentEmailDisplay").textContent = email;
+        showPanel("panelSent");
+      } catch (e) {
+        setLoading("requestBtn", false);
+        // Don't reveal whether the email exists — always show success-like message
+        // but for network/config errors, show a real error
+        if (e.code === "auth/network-request-failed") {
+          showBanner("requestError", "Network error. Please check your connection and try again.");
+        } else {
+          // For auth/user-not-found we still show the "sent" panel
+          // so we don't leak which emails are registered
+          resetEmail = email;
+          document.getElementById("sentEmailDisplay").textContent = email;
+          showPanel("panelSent");
+        }
+      }
+    }
+
+    // ── Resend ────────────────────────────────────────────────
+    async function handleResend() {
+      if (resendCooldown || !resetEmail) return;
+
+      const btn = document.getElementById("resendBtn");
+      btn.disabled = true;
+      resendCooldown = true;
+
+      try {
+        await WR.getAuth().sendPasswordResetEmail(resetEmail, {
+          url: location.origin + "/reset.html"
+        });
+        btn.textContent = "Email sent!";
+        setTimeout(() => {
+          btn.textContent  = "Resend email";
+          btn.disabled     = false;
+          resendCooldown   = false;
+        }, 30000); // 30 second cooldown
+      } catch (e) {
+        btn.textContent = "Try again later";
+        setTimeout(() => {
+          btn.textContent = "Resend email";
+          btn.disabled    = false;
+          resendCooldown  = false;
+        }, 10000);
+      }
+    }
+
+    // ── New Password Input ────────────────────────────────────
+    function onNewPwInput(pw) {
+      // Strength meter
+      const el    = document.getElementById("pwStrength");
+      const fill  = document.getElementById("pwStrengthFill");
+      const label = document.getElementById("pwStrengthLabel");
+
+      if (!pw) { el.classList.remove("show"); return; }
+      el.classList.add("show");
+
+      let score = 0;
+      if (pw.length >= 8)           score++;
+      if (pw.length >= 12)          score++;
+      if (/[A-Z]/.test(pw))         score++;
+      if (/[0-9]/.test(pw))         score++;
+      if (/[^A-Za-z0-9]/.test(pw))  score++;
+
+      const levels = [
+        { pct: "20%", color: "#C0392B", text: "Very weak"   },
+        { pct: "40%", color: "#E67E22", text: "Weak"        },
+        { pct: "60%", color: "#F1C40F", text: "Fair"        },
+        { pct: "80%", color: "#27AE60", text: "Strong"      },
+        { pct: "100%",color: "#1A8A4A", text: "Very strong" }
+      ];
+      const level = levels[Math.min(score - 1, 4)] || levels[0];
+      fill.style.width      = level.pct;
+      fill.style.background = level.color;
+      label.textContent     = level.text;
+      label.style.color     = level.color;
+
+      // Requirements checklist
+      toggleReq("req-length", pw.length >= 8);
+      toggleReq("req-upper",  /[A-Z]/.test(pw));
+      toggleReq("req-number", /[0-9]/.test(pw));
+    }
+
+    function toggleReq(id, met) {
+      document.getElementById(id).classList.toggle("met", met);
+    }
+
+    // ── Set New Password ──────────────────────────────────────
+    async function handleSetNewPassword() {
+      clearErrors();
+      const pw      = document.getElementById("newPassword").value;
+      const confirm = document.getElementById("confirmPassword").value;
+      let valid     = true;
+
+      if (pw.length < 8) {
+        document.getElementById("newPassword").classList.add("error");
+        document.getElementById("newPwErr").classList.add("show");
+        valid = false;
+      }
+      if (pw !== confirm) {
+        document.getElementById("confirmPassword").classList.add("error");
+        document.getElementById("confirmPwErr").classList.add("show");
+        valid = false;
+      }
+      if (!valid) return;
+
+      setLoading("newPwBtn", true);
+
+      try {
+        await WR.getAuth().confirmPasswordReset(oobCode, pw);
+        showPanel("panelDone");
+        document.getElementById("backLink").style.display = "none";
+      } catch (e) {
+        setLoading("newPwBtn", false);
+        const msg = e.code === "auth/expired-action-code"
+          ? "This reset link has expired. Please request a new one."
+          : e.code === "auth/weak-password"
+          ? "Please choose a stronger password."
+          : "Something went wrong. Please try again.";
+        showBanner("newPwError", msg);
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.classList.toggle("loading", loading);
+      btn.disabled = loading;
+    }
+
+    function showBanner(id, msg) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add("show");
+    }
+
+    function clearErrors() {
+      document.querySelectorAll(".field-error").forEach(e => e.classList.remove("show"));
+      document.querySelectorAll("input.error").forEach(e => e.classList.remove("error"));
+      document.querySelectorAll(".error-banner").forEach(e => e.classList.remove("show"));
+    }
+
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const show  = input.type === "password";
+      input.type  = show ? "text" : "password";
+      btn.textContent = show ? "🙈" : "👁️";
+    }
+
+    // ── Enter key ─────────────────────────────────────────────
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const requestActive    = document.getElementById("panelRequest").classList.contains("active");
+      const newPwActive      = document.getElementById("panelNewPassword").classList.contains("active");
+      if (requestActive) handleRequestReset();
+      if (newPwActive)   handleSetNewPassword();
+    });
+
+    // ── Expose for HTML handlers ──────────────────────────────
+    window.handleRequestReset    = handleRequestReset;
+    window.handleResend          = handleResend;
+    window.handleSetNewPassword  = handleSetNewPassword;
+    window.onNewPwInput          = onNewPwInput;
+    window.togglePw              = togglePw;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>
