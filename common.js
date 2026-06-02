@@ -889,14 +889,15 @@ async function createNotification(targetUid, { type, title, body, bodyHTML, link
       .doc(targetUid)
       .collection("items")
       .add({
-        type:      type || "app_admin",
-        title:     title || "",
-        body:      body  || "",
-        bodyHTML:  bodyHTML || null,
-        linkedId:  linkedId || null,
-        read:      false,
-        dismissed: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        type:         type || "app_admin",
+        title:        title || "",
+        body:         body  || "",
+        bodyHTML:     bodyHTML || null,
+        linkedId:     linkedId || null,
+        read:         false,
+        dismissed:    false,
+        createdByUid: _currentUser?.uid || null,
+        createdAt:    firebase.firestore.FieldValue.serverTimestamp()
       });
   } catch (e) {
     console.error("Error creating notification:", e);

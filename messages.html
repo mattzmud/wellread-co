@@ -28,16 +28,12 @@
     .messages-layout {
       display: grid;
       grid-template-columns: 320px 1fr;
-      height: calc(100vh - 60px);
-      margin-top: 60px;
+      height: 100vh;
+      padding-top: 60px; /* nav height */
     }
 
     @media (max-width: 768px) {
-      .messages-layout {
-        grid-template-columns: 1fr;
-        margin-top: 0;
-        height: calc(100vh - 64px);
-      }
+      .messages-layout { grid-template-columns: 1fr; padding-top: 0; padding-bottom: 64px; }
       .thread-panel { display: none; }
       .thread-panel.mobile-open { display: flex; }
       .sidebar-panel.mobile-hidden { display: none; }
@@ -636,30 +632,10 @@
     function filterThreads(val) { renderThreadsList(val); }
 
     // ── Open Thread ───────────────────────────────────────────
-    async function openThread(threadId, threadObj) {
+    async function openThread(threadId) {
       activeThreadId = threadId;
-      // Accept a pre-built thread object to avoid the race where onSnapshot
-      // replaces the threads array before threads.find() runs.
-      let thread = threadObj || threads.find(t => t.id === threadId);
-
-      // Last-resort fallback: fetch directly from Firestore
-      if (!thread) {
-        try {
-          const snap = await WR.getDb().collection("messages").doc(threadId).get();
-          if (snap.exists) {
-            thread = { id: snap.id, ...snap.data() };
-            const uid      = WR.getCurrentUser().uid;
-            const otherUid = thread.participants?.find(u => u !== uid);
-            if (otherUid) {
-              const pSnap          = await WR.getDb().collection("users").doc(otherUid).get();
-              thread._otherProfile = pSnap.exists ? pSnap.data() : null;
-              thread._otherUid     = otherUid;
-            }
-          }
-        } catch (e) { console.error("openThread fallback fetch failed:", e); }
-      }
-
-      if (!thread) { console.error("openThread: thread not found", threadId); return; }
+      const thread   = threads.find(t => t.id === threadId);
+      if (!thread) return;
 
       // Mobile: show thread, hide sidebar
       document.getElementById("sidebarPanel").classList.add("mobile-hidden");
@@ -667,7 +643,8 @@
 
       renderThreadsList();
       renderThreadUI(thread);
-      startMessagesListener(threadId);
+      // Start listener AFTER renderThreadUI so messagesArea exists in DOM
+      setTimeout(() => startMessagesListener(threadId), 0);
     }
 
     function renderThreadUI(thread) {
@@ -896,7 +873,7 @@
         }
 
         renderThreadsList();
-        await openThread(threadId, thread);
+        await openThread(threadId);
       } catch (e) {
         console.error("Open DM error:", e);
         WR.showToast("Could not open conversation. Please try again.", "error");

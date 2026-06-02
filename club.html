@@ -1234,14 +1234,15 @@
         const notifRef = await WR.getDb()
           .collection("notifications").doc(uid)
           .collection("items").add({
-            type:      "club_invite",
-            title:     `You're invited to ${club.name}!`,
-            body:      `${WR.getCurrentUser()._profile?.displayName || "Someone"} invited you to join the book club.`,
-            bodyHTML:  null,
-            linkedId:  clubId,
-            read:      false,
-            dismissed: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            type:         "club_invite",
+            title:        `You're invited to ${club.name}!`,
+            body:         `${WR.getCurrentUser()._profile?.displayName || "Someone"} invited you to join the book club.`,
+            bodyHTML:     null,
+            linkedId:     clubId,
+            read:         false,
+            dismissed:    false,
+            createdByUid: WR.getCurrentUser().uid,
+            createdAt:    firebase.firestore.FieldValue.serverTimestamp()
           });
 
         // Store IDs so we can cancel
@@ -1306,7 +1307,6 @@
             .collection("items").doc(invite.notifId)
             .update({ dismissed: true, read: true });
         }
-
         delete pendingInvites[uid];
 
         if (btn) {
