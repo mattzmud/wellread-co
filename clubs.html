@@ -498,10 +498,23 @@
 
     function switchTab(tab) {
       activeTab = tab;
-      document.getElementById("tabMy").classList.toggle("active", tab === "my");
-      document.getElementById("tabBrowse").classList.toggle("active", tab === "browse");
-      document.getElementById("myClubsSection").style.display  = tab === "my"     ? "" : "none";
-      document.getElementById("browseSection").style.display   = tab === "browse"  ? "" : "none";
+      const tabMy     = document.getElementById("tabMy");
+      const tabBrowse = document.getElementById("tabBrowse");
+
+      if (tab === "my") {
+        tabMy.style.background     = "var(--amethyst)";
+        tabMy.style.color          = "#FAF6EE";
+        tabBrowse.style.background = "none";
+        tabBrowse.style.color      = "var(--terracotta)";
+      } else {
+        tabBrowse.style.background = "var(--amethyst)";
+        tabBrowse.style.color      = "#FAF6EE";
+        tabMy.style.background     = "none";
+        tabMy.style.color          = "var(--terracotta)";
+      }
+
+      document.getElementById("myClubsSection").style.display = tab === "my"     ? "" : "none";
+      document.getElementById("browseSection").style.display  = tab === "browse" ? "" : "none";
       if (tab === "browse" && !discoverClubs.length) loadDiscoverClubs();
     }
 
@@ -517,8 +530,15 @@
           .get();
 
         discoverClubs = snap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter(c => !c.memberUids?.includes(user.uid) && !c.deleted);
+          .map(d => {
+            const data = d.data();
+            return {
+              id: d.id,
+              ...data,
+              isMember: data.memberUids?.includes(user.uid) || false
+            };
+          })
+          .filter(c => !c.deleted);
 
         renderDiscoverClubs();
       } catch (e) {
@@ -570,11 +590,9 @@
     }
 
     function filterDiscoverClubs(val) {
-      locationFilter    = val.toLowerCase().trim();
-      searchLat         = null;
-      searchLng         = null;
-      searchRadiusMiles = null;
-      renderDiscoverClubs();
+      // Text-only filter — just narrows by location string, doesn't touch geocoded state
+      locationFilter = val.toLowerCase().trim();
+      if (!searchLat) renderDiscoverClubs(); // only re-render for text filter; distance search uses Search button
     }
 
     // Haversine formula — distance in miles between two lat/lng points
@@ -628,12 +646,17 @@
         ? `<img class="club-card-header-img" src="${WR.escapeHTML(club.headerImageURL)}" alt="">` : "";
       const distLabel   = club._dist != null
         ? `<span style="font-size:11px;font-weight:600;background:#DCF0E8;color:#2E6B50;padding:2px 7px;border-radius:8px;">📍 ${Math.round(club._dist)} mi away</span>` : "";
+      const memberBadge = club.isMember
+        ? `<span style="font-size:11px;font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 7px;border-radius:8px;">✓ Member</span>` : "";
 
       return `
         <div class="club-card" style="cursor:default;">
           <div class="club-card-header" ${headerStyle}>${headerImg}</div>
           <div class="club-card-body">
-            <div class="club-card-name">${WR.escapeHTML(club.name || "")}</div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
+              <div class="club-card-name" style="margin-bottom:0;">${WR.escapeHTML(club.name || "")}</div>
+              ${memberBadge}
+            </div>
             <div class="club-card-meta">
               ${members} member${members === 1 ? "" : "s"} ·
               ${club.sessionFrequency === "quarterly" ? "Quarterly" : "Monthly"} reads
@@ -642,8 +665,10 @@
             ${distLabel ? `<div style="margin-top:4px;">${distLabel}</div>` : ""}
             ${club.details ? `<p style="font-size:12px;color:var(--terracotta);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${WR.escapeHTML(club.details)}</p>` : ""}
             ${club.currentRead?.title ? `<div class="club-current-read"><div class="club-read-dot"></div><span class="club-read-text">Reading: <strong>${WR.escapeHTML(club.currentRead.title)}</strong></span></div>` : ""}
-            <div style="margin-top:10px;display:flex;gap:8px;">
-              <a href="club.html?id=${club.id}" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--deep-plum);text-decoration:none;">View Club</a>
+            <div style="margin-top:10px;">
+              <a href="club.html?id=${club.id}" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--deep-plum);text-decoration:none;">
+                ${club.isMember ? "View Club →" : "View Club"}
+              </a>
             </div>
           </div>
         </div>`;
