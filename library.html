@@ -853,7 +853,10 @@
     }
 
     async function markReading(bookId) {
-      const user = WR.getCurrentUser();
+      const user  = WR.getCurrentUser();
+      const book  = allBooks.find(b => b.id === bookId);
+      if (!book) { WR.showToast("Book not found.", "error"); return; }
+
       try {
         const today   = new Date().toISOString().split("T")[0];
         const session = {
@@ -867,16 +870,25 @@
           rating:          null,
           reviewPublished: false
         };
-        await WR.getDb().collection("users").doc(user.uid).collection("books").doc(bookId)
-          .set({
-            onTBR:           false,
-            readingSessions: firebase.firestore.FieldValue.arrayUnion(session),
-            updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
 
+        // Use the Firestore document ID (b.id) which is what was used when saving
+        const docId = book.bookId || book.id;
+        const ref   = WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(docId);
+
+        await ref.set({
+          onTBR:           false,
+          tbrNeedsAcquisition: false,
+          readingSessions: firebase.firestore.FieldValue.arrayUnion(session),
+          updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Update local state
         const idx = allBooks.findIndex(b => b.id === bookId);
         if (idx !== -1) {
-          allBooks[idx].onTBR = false;
+          allBooks[idx].onTBR            = false;
+          allBooks[idx].tbrNeedsAcquisition = false;
           if (!allBooks[idx].readingSessions) allBooks[idx].readingSessions = [];
           allBooks[idx].readingSessions.unshift(session);
         }

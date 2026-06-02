@@ -618,23 +618,32 @@
         return;
       }
 
-      await Promise.all([
-        loadBook(bookId),
+      // Fetch book data and user data in parallel.
+      // Try Firestore DB and Google Books API simultaneously —
+      // whichever returns first wins for the book data.
+      // This solves the first-navigation Firestore timing issue.
+      const [firestoreBook, apiBook] = await Promise.all([
+        WR.getDb().collection("books").doc(bookId).get()
+          .then(snap => snap.exists ? { id: snap.id, ...snap.data() } : null)
+          .catch(() => null),
+        fetchFromAPI(bookId),
         loadUserBook(bookId),
         loadUserClubs()
       ]);
 
-      if (!book) {
-        // Try fetching from Google Books API
-        await fetchFromAPI(bookId);
-      }
+      // Prefer Firestore data (more complete), fall back to API
+      book = firestoreBook || apiBook;
 
       if (!book) {
         showNotFound();
         return;
       }
 
-      // Update page title
+      // Save to Firestore if it only came from API
+      if (!firestoreBook && apiBook) {
+        WR.saveBookToDb(apiBook).catch(() => {});
+      }
+
       document.title = `${book.title} — WellRead Co.`;
 
       await Promise.all([
@@ -643,25 +652,13 @@
       ]);
 
       renderPage();
-      // Init star picker after page HTML is in DOM
       WR.initStarPicker("myStarPicker");
-      // Render lending section if user owns the book
       renderLendingSection();
     });
 
     // ── Data Loaders ──────────────────────────────────────────
-    async function loadBook(bookId) {
-      try {
-        const snap = await WR.getDb().collection("books").doc(bookId).get();
-        if (snap.exists) book = { id: snap.id, ...snap.data() };
-      } catch (e) {
-        console.error("Error loading book:", e);
-      }
-    }
-
     async function fetchFromAPI(bookId) {
       try {
-        // Try ISBN first, then Google Books ID
         let result = null;
         if (bookId.length === 13 && /^\d+$/.test(bookId)) {
           result = await WR.getGoogleBookByISBN(bookId);
@@ -671,12 +668,10 @@
           const data = await res.json();
           if (data.id) result = WR.normalizeGoogleBook(data);
         }
-        if (result) {
-          book = result;
-          await WR.saveBookToDb(result);
-        }
+        return result || null;
       } catch (e) {
         console.error("API fetch error:", e);
+        return null;
       }
     }
 
@@ -870,8 +865,8 @@
           html += `<button class="action-btn btn-library" onclick="openQuickAdd('library')">📚 Add to Library</button>`;
         }
 
-        if (userBook.onReadList) {
-          html += `<button class="action-btn btn-greyed" disabled>📖 Reading Logged</button>`;
+        if (userBook.readingSessions?.length > 0) {
+          html += `<button class="action-btn btn-read" onclick="openReadModal()">📖 Update Reading</button>`;
         } else {
           html += `<button class="action-btn btn-read" onclick="openReadModal()">📖 Log Reading</button>`;
         }
@@ -1058,12 +1053,18 @@
     let selectedFormat = "read";
 
     function openReadModal() {
-      selectedFormat = "read";
-      document.getElementById("rmStartDate").value = "";
-      document.getElementById("rmEndDate").value   = "";
-      document.getElementById("rmDNF").checked     = false;
-      selectFormat("read");
+      const session = userBook?.readingSessions?.[0];
+      selectedFormat = session?.format || "read";
+      document.getElementById("rmStartDate").value = session?.startDate || "";
+      document.getElementById("rmEndDate").value   = session?.endDate   || "";
+      document.getElementById("rmDNF").checked     = session?.dnf       || false;
+      selectFormat(selectedFormat);
       const modal = document.getElementById("readModal");
+      // Update modal title based on whether this is an update
+      const titleEl = modal.querySelector("h2");
+      const descEl  = modal.querySelector("p");
+      if (titleEl) titleEl.textContent = session ? "📖 Update Reading" : "📖 Log Reading";
+      if (descEl)  descEl.textContent  = session ? "Update your reading details for this book." : "Record how and when you read this book.";
       modal.style.display = "flex";
       document.body.style.overflow = "hidden";
     }
@@ -1101,18 +1102,6 @@
       const endDate   = document.getElementById("rmEndDate").value   || null;
       const dnf       = document.getElementById("rmDNF").checked;
 
-      const session = {
-        sessionId:       WR.generateId(),
-        startDate:       startDate || null,
-        endDate:         endDate   || null,
-        completed:       !!endDate && !dnf,
-        dnf,
-        format:          selectedFormat,
-        review:          null,
-        rating:          null,
-        reviewPublished: false
-      };
-
       try {
         const existing = {
           inLibrary:  userBook?.inLibrary  || false,
@@ -1120,27 +1109,50 @@
           onTBR:      userBook?.onTBR      || false,
           onWishlist: userBook?.onWishlist || false
         };
-
         await WR.addBookToUserCollection(book, existing);
 
-        await WR.getDb()
-          .collection("users").doc(user.uid)
-          .collection("books").doc(bookId)
-          .update({ readingSessions: firebase.firestore.FieldValue.arrayUnion(session), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        const ref  = WR.getDb().collection("users").doc(user.uid).collection("books").doc(bookId);
+        const snap = await ref.get();
+        let sessions = snap.exists ? (snap.data().readingSessions || []) : [];
+
+        if (sessions.length > 0) {
+          // Update the most recent session
+          sessions[0] = {
+            ...sessions[0],
+            startDate: startDate || sessions[0].startDate || null,
+            endDate:   endDate   || null,
+            completed: !!endDate && !dnf,
+            dnf,
+            format:    selectedFormat
+          };
+          await ref.update({ readingSessions: sessions, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        } else {
+          // Create a new session
+          const session = {
+            sessionId:       WR.generateId(),
+            startDate:       startDate || null,
+            endDate:         endDate   || null,
+            completed:       !!endDate && !dnf,
+            dnf,
+            format:          selectedFormat,
+            review:          null,
+            rating:          null,
+            reviewPublished: false
+          };
+          await ref.update({ readingSessions: firebase.firestore.FieldValue.arrayUnion(session), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          sessions = [session];
+        }
 
         userBook = await WR.getUserBook(bookId);
         closeReadModal();
         const msg = endDate ? "Reading logged! ✅" : "Started reading! 📖";
         WR.showToast(msg, "success");
-
-        // Re-render action buttons and notes section
         document.querySelector(".action-buttons").innerHTML = buildActionButtons();
         const notesBody = document.getElementById("notes-body");
         if (notesBody && notesBody.classList.contains("open")) {
           notesBody.innerHTML = renderMyNotes();
           WR.initStarPicker("myStarPicker");
         }
-        // Re-render lending section
         renderLendingSection();
       } catch (e) {
         console.error("Mark as read error:", e);
