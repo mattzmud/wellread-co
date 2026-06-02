@@ -584,6 +584,13 @@
       background: transparent;
       outline: none;
       width: 80px;
+      /* Hide native browser number spinner */
+      -moz-appearance: textfield;
+    }
+    .goal-number-input::-webkit-outer-spin-button,
+    .goal-number-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     .goal-unit {
