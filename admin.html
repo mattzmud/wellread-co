@@ -184,15 +184,15 @@
 
     <!-- Stats -->
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card" onclick="showView('users')" style="cursor:pointer;" title="View all users">
         <span class="stat-num" id="statUsers">—</span>
         <span class="stat-label">Total Users</span>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" onclick="showView('books')" style="cursor:pointer;" title="View book database">
         <span class="stat-num" id="statBooks">—</span>
         <span class="stat-label">Books in Database</span>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" onclick="showView('clubs')" style="cursor:pointer;" title="View book clubs">
         <span class="stat-num" id="statClubs">—</span>
         <span class="stat-label">Book Clubs</span>
       </div>
@@ -202,21 +202,69 @@
       </div>
     </div>
 
+    <!-- Detail Views (shown when stat card clicked) -->
+    <div id="detailView" style="display:none;margin-bottom:1.75rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <h2 id="detailViewTitle" style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);"></h2>
+        <button onclick="hideDetailView()" style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--terracotta);cursor:pointer;">✕ Close</button>
+      </div>
+      <div id="detailViewContent" style="background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden;"></div>
+    </div>
+
     <!-- Notification Deployment -->
     <div class="notif-card">
       <h2 class="card-title">📢 Send App Notification</h2>
-      <input type="text" class="notif-input" id="notifTitle" placeholder="Notification title">
-      <textarea class="notif-body" id="notifBody" placeholder="Notification body — supports emojis and plain text formatting..."></textarea>
-      <div class="notif-options">
+
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Title</label>
+        <input type="text" class="notif-input" id="notifTitle" placeholder="Notification title" style="margin-bottom:0;">
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Body</label>
+        <textarea class="notif-body" id="notifBody" placeholder="Notification body — plain text, supports emojis..." style="margin-bottom:0;"></textarea>
+      </div>
+
+      <div class="notif-options" style="margin-bottom:1.25rem;">
+        <label class="notif-checkbox">
+          <input type="checkbox" id="notifInApp" checked>
+          Send as in-app notification
+        </label>
         <label class="notif-checkbox">
           <input type="checkbox" id="notifEmail" checked>
-          Also send as email to all users
+          Also send as email
         </label>
       </div>
+
+      <!-- Test buttons -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0.875rem 1rem;background:var(--lavender-mist);border-radius:10px;margin-bottom:1rem;">
+        <span style="font-size:12px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.05em;">🧪 Test First</span>
+        <button class="send-notif-btn" id="testInAppBtn" onclick="sendTestInApp()"
+          style="background:var(--faded-moss);padding:8px 16px;font-size:13px;">
+          <div class="spinner"></div>
+          <span class="btn-text">Test In-App</span>
+        </button>
+        <button class="send-notif-btn" id="testEmailBtn" onclick="sendTestEmail()"
+          style="background:var(--faded-moss);padding:8px 16px;font-size:13px;">
+          <div class="spinner"></div>
+          <span class="btn-text">Test Email</span>
+        </button>
+        <span style="font-size:11px;color:#BDB5CC;">Sends only to you</span>
+      </div>
+
+      <!-- Send to all -->
       <button class="send-notif-btn" id="sendNotifBtn" onclick="sendAppNotification()">
         <div class="spinner"></div>
         <span class="btn-text">📣 Send to All Users</span>
       </button>
+
+      <!-- Sent ledger -->
+      <div style="margin-top:1.75rem;border-top:1px solid var(--border);padding-top:1.25rem;">
+        <h3 style="font-family:'Playfair Display',serif;font-size:16px;color:var(--deep-plum);margin-bottom:0.875rem;">📋 Sent Notifications</h3>
+        <div id="notifLedger">
+          <p style="font-size:13px;color:#BDB5CC;">Loading...</p>
+        </div>
+      </div>
     </div>
 
     <!-- Users Table -->
@@ -279,7 +327,7 @@
         setTimeout(() => { location.href = "index.html"; }, 1000);
         return;
       }
-      await Promise.all([loadStats(), loadUsers()]);
+      await Promise.all([loadStats(), loadUsers(), loadNotifLedger()]);
     });
 
     // ── Stats ─────────────────────────────────────────────────
@@ -585,66 +633,280 @@
       if (idx2 !== -1) displayUsers[idx2] = { ...displayUsers[idx2], ...updates };
     }
 
-    // ── App Notification ──────────────────────────────────────
-    async function sendAppNotification() {
+    // ── Constants ─────────────────────────────────────────────
+    const ADMIN_UID   = "lxXxOVUQ8IVzBop4n1eqDHal6Gy2";
+    const ADMIN_EMAIL = "matt.zmud@gmail.com";
+
+    // ── Stat Card Detail Views ────────────────────────────────
+    function showView(type) {
+      const view    = document.getElementById("detailView");
+      const title   = document.getElementById("detailViewTitle");
+      const content = document.getElementById("detailViewContent");
+      view.style.display = "block";
+      view.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      if (type === "users") {
+        title.textContent = "👤 All Users";
+        content.innerHTML = document.getElementById("usersTableWrap").innerHTML;
+      } else if (type === "books") {
+        title.textContent = "📚 Books in Database";
+        content.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">Loading books...</p>`;
+        loadBooksView(content);
+      } else if (type === "clubs") {
+        title.textContent = "👥 Book Clubs";
+        content.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">Loading clubs...</p>`;
+        loadClubsView(content);
+      }
+    }
+
+    function hideDetailView() {
+      document.getElementById("detailView").style.display = "none";
+    }
+
+    async function loadBooksView(container) {
+      try {
+        const snap  = await WR.getDb().collection("books").orderBy("title").limit(200).get();
+        const books = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        container.innerHTML = `
+          <table class="users-table">
+            <thead><tr>
+              <th>Title</th><th>Author</th><th>ISBN</th><th>Added</th>
+            </tr></thead>
+            <tbody>
+              ${books.map(b => `
+                <tr onclick="location.href='book.html?id=${b.id}'" style="cursor:pointer;">
+                  <td style="font-weight:600;">${WR.escapeHTML(b.title||"")}</td>
+                  <td>${WR.escapeHTML(b.author||"")}</td>
+                  <td style="font-size:11px;color:#BDB5CC;">${b.isbn13||b.isbn||""}</td>
+                  <td style="font-size:11px;color:#BDB5CC;">${b.createdAt ? WR.formatRelativeTime(b.createdAt) : "—"}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>`;
+      } catch (e) {
+        container.innerHTML = `<p style="padding:2rem;color:var(--terracotta);">Error loading books: ${e.message}</p>`;
+      }
+    }
+
+    async function loadClubsView(container) {
+      try {
+        const snap  = await WR.getDb().collection("clubs").orderBy("name").limit(100).get();
+        const clubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        container.innerHTML = `
+          <table class="users-table">
+            <thead><tr>
+              <th>Club Name</th><th>Members</th><th>Current Read</th><th>Created</th>
+            </tr></thead>
+            <tbody>
+              ${clubs.map(c => `
+                <tr onclick="location.href='club.html?id=${c.id}'" style="cursor:pointer;">
+                  <td style="font-weight:600;">${WR.escapeHTML(c.name||"")}</td>
+                  <td>${c.memberUids?.length||0}</td>
+                  <td>${c.currentRead?.title ? WR.escapeHTML(c.currentRead.title) : "—"}</td>
+                  <td style="font-size:11px;color:#BDB5CC;">${c.createdAt ? WR.formatRelativeTime(c.createdAt) : "—"}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>`;
+      } catch (e) {
+        container.innerHTML = `<p style="padding:2rem;color:var(--terracotta);">Error loading clubs: ${e.message}</p>`;
+      }
+    }
+
+    // ── Notification Helpers ──────────────────────────────────
+    function getNotifFields() {
       const title   = document.getElementById("notifTitle").value.trim();
       const body    = document.getElementById("notifBody").value.trim();
-      const withEmail = document.getElementById("notifEmail").checked;
-      const btn     = document.getElementById("sendNotifBtn");
+      const inApp   = document.getElementById("notifInApp").checked;
+      const email   = document.getElementById("notifEmail").checked;
+      return { title, body, inApp, email };
+    }
+
+    function clearNotifForm() {
+      document.getElementById("notifTitle").value = "";
+      document.getElementById("notifBody").value  = "";
+    }
+
+    // ── Test In-App Notification ──────────────────────────────
+    async function sendTestInApp() {
+      const { title, body } = getNotifFields();
+      if (!title || !body) { WR.showToast("Enter a title and body first.", "error"); return; }
+      const btn = document.getElementById("testInAppBtn");
+      btn.classList.add("loading"); btn.disabled = true;
+      try {
+        await WR.getDb()
+          .collection("notifications").doc(ADMIN_UID)
+          .collection("items").add({
+            type:      "app_admin",
+            title,
+            body,
+            bodyHTML:  null,
+            linkedId:  null,
+            read:      false,
+            dismissed: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        WR.showToast("Test in-app notification sent to you! 🔔", "success");
+      } catch (e) {
+        console.error("Test in-app error:", e);
+        WR.showToast("Error sending test.", "error");
+      } finally {
+        btn.classList.remove("loading"); btn.disabled = false;
+      }
+    }
+
+    // ── Test Email ────────────────────────────────────────────
+    async function sendTestEmail() {
+      const { title, body } = getNotifFields();
+      if (!title || !body) { WR.showToast("Enter a title and body first.", "error"); return; }
+      const btn = document.getElementById("testEmailBtn");
+      btn.classList.add("loading"); btn.disabled = true;
+      try {
+        const result = await WR.callWorker("send_broadcast_emails", {
+          title,
+          body,
+          users: [{ email: ADMIN_EMAIL, displayName: "Matt (Test)" }]
+        });
+        if (result?.success) {
+          WR.showToast(`Test email sent to ${ADMIN_EMAIL}! 📧`, "success");
+        } else {
+          throw new Error(result?.error || "Unknown error");
+        }
+      } catch (e) {
+        console.error("Test email error:", e);
+        WR.showToast("Error sending test email: " + e.message, "error");
+      } finally {
+        btn.classList.remove("loading"); btn.disabled = false;
+      }
+    }
+
+    // ── Send to All Users ─────────────────────────────────────
+    async function sendAppNotification() {
+      const { title, body, inApp, email } = getNotifFields();
 
       if (!title || !body) {
         WR.showToast("Please enter a title and body.", "error");
         return;
       }
+      if (!inApp && !email) {
+        WR.showToast("Select at least one delivery method.", "error");
+        return;
+      }
 
+      const userCount = allUsers.length;
       showConfirm(
-        "Send Notification",
-        `Send "${title}" to all ${allUsers.length} users?${withEmail ? " Also sends an email." : ""}`,
+        "Send to All Users",
+        `Send "${title}" to all ${userCount} users?${email ? " Includes email." : ""}`,
         "Send to All",
         "safe",
         async () => {
+          const btn = document.getElementById("sendNotifBtn");
           btn.classList.add("loading"); btn.disabled = true;
           try {
-            // Save to appNotifications collection
+            // 1. Save to appNotifications ledger
             await WR.getDb().collection("appNotifications").add({
-              title, body, emailAlso: withEmail,
-              sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+              title,
+              body,
+              inApp,
+              emailAlso: email,
+              recipientCount: userCount,
+              sentAt:    firebase.firestore.FieldValue.serverTimestamp(),
               sentByUid: WR.getCurrentUser().uid
             });
 
-            // Create notification for each user (batch in groups of 500)
-            const batchSize = 400;
-            for (let i = 0; i < allUsers.length; i += batchSize) {
-              const batch = WR.getDb().batch();
-              allUsers.slice(i, i + batchSize).forEach(u => {
-                const ref = WR.getDb()
-                  .collection("notifications").doc(u.uid)
-                  .collection("items").doc();
-                batch.set(ref, {
-                  type:      "app_admin",
-                  title,
-                  body,
-                  bodyHTML:  null,
-                  linkedId:  null,
-                  read:      false,
-                  dismissed: false,
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            // 2. Send in-app notifications via Firestore batch
+            if (inApp) {
+              const batchSize = 400;
+              for (let i = 0; i < allUsers.length; i += batchSize) {
+                const batch = WR.getDb().batch();
+                allUsers.slice(i, i + batchSize).forEach(u => {
+                  const ref = WR.getDb()
+                    .collection("notifications").doc(u.uid)
+                    .collection("items").doc();
+                  batch.set(ref, {
+                    type: "app_admin", title, body,
+                    bodyHTML: null, linkedId: null,
+                    read: false, dismissed: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
                 });
-              });
-              await batch.commit();
+                await batch.commit();
+              }
             }
 
-            document.getElementById("notifTitle").value = "";
-            document.getElementById("notifBody").value  = "";
-            WR.showToast(`Notification sent to ${allUsers.length} users! 📢`, "success");
+            // 3. Send broadcast emails via Worker
+            if (email) {
+              const emailUsers = allUsers
+                .filter(u => u.email && !u.suspended)
+                .map(u => ({ email: u.email, displayName: u.displayName || "reader" }));
+
+              if (emailUsers.length) {
+                const result = await WR.callWorker("send_broadcast_emails", {
+                  title, body, users: emailUsers
+                });
+                if (!result?.success) {
+                  console.error("Broadcast email result:", result);
+                  WR.showToast(`In-app sent. Email had issues: ${result?.error || "check logs"}`, "error");
+                  return;
+                }
+              }
+            }
+
+            clearNotifForm();
+            WR.showToast(`Sent to ${userCount} users! 📢`, "success");
+            loadNotifLedger(); // Refresh ledger
           } catch (e) {
-            console.error("Notification error:", e);
-            WR.showToast("Error sending notification.", "error");
+            console.error("Broadcast error:", e);
+            WR.showToast("Error sending notification: " + e.message, "error");
           } finally {
             btn.classList.remove("loading"); btn.disabled = false;
           }
         }
       );
+    }
+
+    // ── Notification Ledger ───────────────────────────────────
+    async function loadNotifLedger() {
+      const el = document.getElementById("notifLedger");
+      try {
+        const snap = await WR.getDb()
+          .collection("appNotifications")
+          .orderBy("sentAt", "desc")
+          .limit(20)
+          .get();
+
+        if (snap.empty) {
+          el.innerHTML = `<p style="font-size:13px;color:#BDB5CC;">No notifications sent yet.</p>`;
+          return;
+        }
+
+        el.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${snap.docs.map(d => {
+              const n = d.data();
+              const date = n.sentAt?.toDate
+                ? n.sentAt.toDate().toLocaleString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" })
+                : "Unknown date";
+              const badges = [
+                n.inApp !== false ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:var(--lavender-mist);color:var(--amethyst);">🔔 In-App</span>` : "",
+                n.emailAlso ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:#FEF3CD;color:#8B6914;">📧 Email</span>` : ""
+              ].filter(Boolean).join(" ");
+              return `
+                <div style="padding:10px 12px;background:var(--lavender-mist);border-radius:8px;border:1px solid var(--border);">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
+                    <span style="font-size:13px;font-weight:600;color:var(--deep-plum);">${WR.escapeHTML(n.title||"")}</span>
+                    <span style="font-size:11px;color:#BDB5CC;white-space:nowrap;flex-shrink:0;">${date}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--terracotta);margin-bottom:6px;">${WR.escapeHTML((n.body||"").slice(0,120))}${(n.body||"").length > 120 ? "…" : ""}</div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    ${badges}
+                    ${n.recipientCount ? `<span style="font-size:10px;color:#BDB5CC;">${n.recipientCount} recipients</span>` : ""}
+                  </div>
+                </div>`;
+            }).join("")}
+          </div>`;
+      } catch (e) {
+        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);">Error loading ledger.</p>`;
+        console.error("Ledger error:", e);
+      }
     }
 
     // ── Confirm Dialog ────────────────────────────────────────
@@ -678,6 +940,10 @@
     window.adminReset          = adminReset;
     window.adminDelete         = adminDelete;
     window.sendAppNotification = sendAppNotification;
+    window.sendTestInApp       = sendTestInApp;
+    window.sendTestEmail       = sendTestEmail;
+    window.showView            = showView;
+    window.hideDetailView      = hideDetailView;
     window.closeConfirm        = closeConfirm;
     window.proceedConfirm      = proceedConfirm;
   </script>
