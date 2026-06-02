@@ -75,9 +75,15 @@ function initFirebase() {
 function initAuth(onReady) {
   initFirebase();
 
-  const page = location.pathname.split("/").pop() || "index.html";
+  const page     = location.pathname.split("/").pop() || "index.html";
   const isPublic = PUBLIC_PAGES.includes(page);
   const isAdmin  = ADMIN_PAGES.includes(page);
+
+  // Hide body on protected pages until auth is confirmed —
+  // prevents flash of content before redirect to login
+  if (!isPublic) {
+    document.body.style.visibility = "hidden";
+  }
 
   _auth.onAuthStateChanged(async (user) => {
     if (!user && !isPublic) {
@@ -114,6 +120,7 @@ function initAuth(onReady) {
 
       // Render nav and start notification listener
       if (!isPublic) {
+        document.body.style.visibility = "visible";
         renderNav();
         startNotificationListener();
       }
