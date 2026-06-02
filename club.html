@@ -632,7 +632,6 @@
               ${isAdmin ? `
                 <button class="action-btn btn-primary" onclick="openModal('eventModal')">+ Add Event</button>
                 <button class="action-btn btn-outline" onclick="openEditModal()">✏️ Edit Club</button>
-                <button class="action-btn btn-danger" onclick="closeTheChapter()" style="margin-left:auto;" title="Permanently delete this club">📕 Close the Chapter</button>
               ` : ""}
               ${isMember ? `
                 <button class="action-btn btn-outline" onclick="openModal('inviteModal');loadFriends()">👤 Invite</button>
@@ -826,6 +825,24 @@
             </div>` : ""}
           </div>
         </div>
+
+        ${isAdmin ? `
+        <div style="margin-top:2rem;border:1.5px solid #F5C6C6;border-radius:16px;overflow:hidden;">
+          <div style="background:#FCE8E8;padding:1rem 1.25rem;border-bottom:1px solid #F5C6C6;">
+            <h3 style="font-family:'Playfair Display',serif;font-size:16px;color:#8B2020;margin:0;">⚠️ Danger Zone</h3>
+          </div>
+          <div style="background:#fff;padding:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--deep-plum);margin-bottom:3px;">Close the Chapter</div>
+              <div style="font-size:12px;color:var(--terracotta);line-height:1.5;">Closing the chapter will permanently delete this club and all of its data. This action cannot be undone.</div>
+            </div>
+            <button onclick="closeTheChapter()"
+              style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:9px 18px;border-radius:8px;border:1.5px solid #F5C6C6;background:#fff;color:#8B2020;cursor:pointer;white-space:nowrap;flex-shrink:0;"
+              onmouseover="this.style.background='#FCE8E8'" onmouseout="this.style.background='#fff'">
+              📕 Close the Chapter
+            </button>
+          </div>
+        </div>` : ""}
       `;
     }
 
