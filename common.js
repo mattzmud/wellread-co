@@ -129,6 +129,11 @@ function initAuth(onReady) {
       }
     }
 
+    // Make public pages visible too
+    if (isPublic) {
+      document.body.style.visibility = "visible";
+    }
+
     if (onReady) onReady(user);
   });
 }

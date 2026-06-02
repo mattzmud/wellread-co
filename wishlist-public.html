@@ -175,21 +175,17 @@
   <script src="common.js"></script>
 
   <script>
-    // Public page — no auth check, just init Firebase
-    // We call initFirebase directly (not initAuth) so no redirect happens
+    // Public page — no auth check needed, just load Firestore data.
+    // We use WR.initAuth with a public page flag so Firebase initializes
+    // correctly (including long-polling settings) without enforcing auth.
     const params = new URLSearchParams(location.search);
     const uid    = params.get("uid");
 
-    // Bootstrap Firebase without auth enforcement
-    // common.js exposes WR.getDb() after initAuth, but we need
-    // it without auth here, so we init manually
-    (function() {
-      const FIREBASE_CONFIG_COPY = window.FIREBASE_CONFIG || {};
-      // WR.initAuth will have been called if user is signed in,
-      // but on this public page we just need Firestore
-      // We use a small delay to let common.js finish setting up
-      setTimeout(loadPublicWishlist, 300);
-    })();
+    // Use initAuth which correctly initializes Firebase with all settings.
+    // Since wishlist-public.html is in PUBLIC_PAGES, it won't redirect to login.
+    WR.initAuth(async () => {
+      await loadPublicWishlist();
+    });
 
     async function loadPublicWishlist() {
       if (!uid) {
@@ -198,8 +194,7 @@
       }
 
       try {
-        // We need the db — use firebase directly since WR may not be auth'd
-        const db = firebase.firestore();
+        const db = WR.getDb();
 
         // Load user profile
         const userSnap = await db.collection("users").doc(uid).get();
