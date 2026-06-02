@@ -706,7 +706,7 @@ function startNotificationListener() {
 
       snap.forEach(doc => {
         const n = { id: doc.id, ...doc.data() };
-        if (n.dismissed || n.read) {
+        if (n.dismissed) {
           _pastNotifs.push(n);
         } else {
           _activeNotifs.push(n);
@@ -837,14 +837,15 @@ function openNotifDetail(notifId) {
   document.getElementById("wrNotifModal").classList.add("open");
   document.getElementById("wrNotifModalOverlay").classList.add("open");
 
-  // Mark as dismissed when opened
-  if (!notif.dismissed) {
+  // Mark as read when opened (but NOT dismissed — stays in active until acted on)
+  if (!notif.read) {
     _db.collection("notifications")
       .doc(_currentUser.uid)
       .collection("items")
       .doc(notifId)
-      .update({ dismissed: true, read: true })
-      .catch(e => console.error("Error dismissing notif:", e));
+      .update({ read: true })
+      .catch(e => console.error("Error marking notif read:", e));
+    notif.read = true;
   }
 }
 
@@ -852,18 +853,18 @@ function buildNotifModalFooter(notif) {
   switch (notif.type) {
     case "friend_request":
       return `
-        <button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="declineFriendRequest('${notif.linkedId}');closeNotifModal()">Decline</button>
-        <button class="wr-btn wr-btn-primary wr-btn-sm" onclick="acceptFriendRequest('${notif.linkedId}');closeNotifModal()">Accept</button>
+        <button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="declineFriendRequest('${notif.linkedId}','${notif.id}');closeNotifModal()">Decline</button>
+        <button class="wr-btn wr-btn-primary wr-btn-sm" onclick="acceptFriendRequest('${notif.linkedId}','${notif.id}');closeNotifModal()">Accept</button>
       `;
     case "club_invite":
       return `
-        <button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="declineClubInvite('${notif.linkedId}');closeNotifModal()">Decline</button>
-        <button class="wr-btn wr-btn-moss wr-btn-sm" onclick="acceptClubInvite('${notif.linkedId}');closeNotifModal()">Join Club</button>
+        <button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="declineClubInvite('${notif.linkedId}','${notif.id}');closeNotifModal()">Decline</button>
+        <button class="wr-btn wr-btn-moss wr-btn-sm" onclick="acceptClubInvite('${notif.linkedId}','${notif.id}');closeNotifModal()">Join Club</button>
       `;
     case "club_event":
-      return `<button class="wr-btn wr-btn-primary wr-btn-sm" onclick="location.href='club.html?id=${notif.linkedId}'">View Club</button>`;
+      return `<button class="wr-btn wr-btn-primary wr-btn-sm" onclick="dismissNotif('${notif.id}');location.href='club.html?id=${notif.linkedId}'">View Club</button>`;
     default:
-      return `<button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="closeNotifModal()">Dismiss</button>`;
+      return `<button class="wr-btn wr-btn-secondary wr-btn-sm" onclick="dismissNotif('${notif.id}');closeNotifModal()">Dismiss</button>`;
   }
 }
 
@@ -897,31 +898,48 @@ async function createNotification(targetUid, { type, title, body, bodyHTML, link
 
 // ─── Friend Actions ──────────────────────────────────────────
 // Stub functions — full logic lives in profile.html and friends feature
-async function acceptFriendRequest(friendshipId) {
+async function dismissNotif(notifId) {
+  if (!notifId || !_currentUser) return;
   try {
-    await _db.collection("friends").doc(friendshipId).update({ status: "accepted", acceptedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    showToast("Friend request accepted!", "success");
+    await _db.collection("notifications")
+      .doc(_currentUser.uid)
+      .collection("items")
+      .doc(notifId)
+      .update({ dismissed: true, read: true });
+  } catch (e) { console.error("Dismiss notif error:", e); }
+}
+
+async function acceptFriendRequest(friendshipId, notifId) {
+  try {
+    await _db.collection("friends").doc(friendshipId).update({
+      status: "accepted",
+      acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (notifId) await dismissNotif(notifId);
+    showToast("Friend request accepted! 🎉", "success");
   } catch (e) {
     showToast("Error accepting request.", "error");
   }
 }
 
-async function declineFriendRequest(friendshipId) {
+async function declineFriendRequest(friendshipId, notifId) {
   try {
     await _db.collection("friends").doc(friendshipId).delete();
+    if (notifId) await dismissNotif(notifId);
     showToast("Friend request declined.");
   } catch (e) {
     showToast("Error declining request.", "error");
   }
 }
 
-async function acceptClubInvite(inviteId) {
-  // Stub — full logic in clubs feature
+async function acceptClubInvite(inviteId, notifId) {
   showToast("Joined club!", "success");
+  if (notifId) await dismissNotif(notifId);
 }
 
-async function declineClubInvite(inviteId) {
+async function declineClubInvite(inviteId, notifId) {
   showToast("Invite declined.");
+  if (notifId) await dismissNotif(notifId);
 }
 
 // ─── Toast ───────────────────────────────────────────────────
@@ -1329,10 +1347,11 @@ window.closeNotifTray     = closeNotifTray;
 window.switchNotifTab     = switchNotifTab;
 window.openNotifDetail    = openNotifDetail;
 window.closeNotifModal    = closeNotifModal;
-window.acceptFriendRequest = acceptFriendRequest;
+window.acceptFriendRequest  = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;
-window.acceptClubInvite   = acceptClubInvite;
-window.declineClubInvite  = declineClubInvite;
+window.acceptClubInvite     = acceptClubInvite;
+window.declineClubInvite    = declineClubInvite;
+window.dismissNotif         = dismissNotif;
 window.signOut            = signOut;
 
 // ─── Exported API ────────────────────────────────────────────

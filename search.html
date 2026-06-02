@@ -813,9 +813,16 @@
       if (!user) return;
       await loadUserBooks();
 
-      // Pre-fill search from URL param e.g. search.html?q=dune
       const params = new URLSearchParams(location.search);
-      const q      = params.get("q");
+
+      // Switch to people tab if requested via URL param
+      const tab = params.get("tab");
+      if (tab === "people") {
+        switchSearchTab("people");
+      }
+
+      // Pre-fill search from URL param e.g. search.html?q=dune
+      const q = params.get("q");
       if (q) {
         document.getElementById("searchInput").value = q;
         document.getElementById("searchClear").classList.add("show");
