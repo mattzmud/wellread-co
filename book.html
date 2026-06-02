@@ -587,6 +587,8 @@
       ]);
 
       renderPage();
+      // Init star picker after page HTML is in DOM
+      WR.initStarPicker("myStarPicker");
     });
 
     // ── Data Loaders ──────────────────────────────────────────
@@ -900,6 +902,10 @@
       const isOpen = body.classList.contains("open");
       toggle.classList.toggle("open", !isOpen);
       body.classList.toggle("open", !isOpen);
+      // Init star picker when notes section is opened
+      if (id === "notes" && !isOpen) {
+        WR.initStarPicker("myStarPicker");
+      }
     }
 
     function toggleDesc() {
@@ -951,6 +957,7 @@
         const notesBody = document.getElementById("notes-body");
         if (notesBody && notesBody.classList.contains("open")) {
           notesBody.innerHTML = renderMyNotes();
+          WR.initStarPicker("myStarPicker");
         }
 
       } catch (e) {

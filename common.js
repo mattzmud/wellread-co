@@ -970,11 +970,11 @@ function renderStarPicker(containerId, initialRating = 0, onSelect) {
     document.head.appendChild(s);
   }
 
-  // Store callback and current value
+  // Store callback and current value keyed by containerId
   _starPickerCallbacks[containerId] = onSelect;
   _starPickerValues[containerId]    = initialRating;
 
-  const html = `
+  return `
     <div class="wr-star-picker" id="${containerId}" data-rating="${initialRating}">
       ${[1,2,3,4,5].map(i => `
         <span class="wr-star-pick${i <= initialRating ? " filled" : ""}"
@@ -982,44 +982,42 @@ function renderStarPicker(containerId, initialRating = 0, onSelect) {
       `).join("")}
     </div>
   `;
+}
 
-  // Attach listeners after a short delay to ensure DOM is ready
-  setTimeout(() => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+// Call this after inserting renderStarPicker HTML into the DOM
+function initStarPicker(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-    container.querySelectorAll(".wr-star-pick").forEach(star => {
-      const val = parseInt(star.dataset.val);
+  container.querySelectorAll(".wr-star-pick").forEach(star => {
+    const val = parseInt(star.dataset.val);
 
-      star.addEventListener("mouseover", () => {
-        container.querySelectorAll(".wr-star-pick").forEach(s => {
-          s.classList.toggle("hover", parseInt(s.dataset.val) <= val);
-        });
-      });
-
-      star.addEventListener("mouseout", () => {
-        const current = _starPickerValues[containerId] || 0;
-        container.querySelectorAll(".wr-star-pick").forEach(s => {
-          s.classList.remove("hover");
-          s.classList.toggle("filled", parseInt(s.dataset.val) <= current);
-        });
-      });
-
-      star.addEventListener("click", () => {
-        _starPickerValues[containerId] = val;
-        container.dataset.rating       = val;
-        container.querySelectorAll(".wr-star-pick").forEach(s => {
-          s.classList.remove("hover");
-          s.classList.toggle("filled", parseInt(s.dataset.val) <= val);
-        });
-        if (_starPickerCallbacks[containerId]) {
-          _starPickerCallbacks[containerId](val);
-        }
+    star.addEventListener("mouseover", () => {
+      container.querySelectorAll(".wr-star-pick").forEach(s => {
+        s.classList.toggle("hover", parseInt(s.dataset.val) <= val);
       });
     });
-  }, 0);
 
-  return html;
+    star.addEventListener("mouseout", () => {
+      const current = _starPickerValues[containerId] || 0;
+      container.querySelectorAll(".wr-star-pick").forEach(s => {
+        s.classList.remove("hover");
+        s.classList.toggle("filled", parseInt(s.dataset.val) <= current);
+      });
+    });
+
+    star.addEventListener("click", () => {
+      _starPickerValues[containerId] = val;
+      container.dataset.rating       = val;
+      container.querySelectorAll(".wr-star-pick").forEach(s => {
+        s.classList.remove("hover");
+        s.classList.toggle("filled", parseInt(s.dataset.val) <= val);
+      });
+      if (_starPickerCallbacks[containerId]) {
+        _starPickerCallbacks[containerId](val);
+      }
+    });
+  });
 }
 
 const _starPickerValues    = {};
@@ -1361,6 +1359,7 @@ window.WR = {
   showToast,
   renderStars,
   renderStarPicker,
+  initStarPicker,
   buildBookCard,
   initCollapsibles,
 
