@@ -151,19 +151,48 @@
   <div class="page-wrap">
     <div class="page-header">
       <div>
-        <h1 class="page-title">👥 My Book Clubs</h1>
+        <h1 class="page-title">👥 Book Clubs</h1>
         <p class="page-subtitle" id="clubsSubtitle">Your reading communities</p>
       </div>
       <button class="new-club-btn" onclick="openCreateModal()">+ Start a New Club</button>
     </div>
 
-    <div id="clubsArea">
-      <div class="skeleton-grid">
-        <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:60%;height:18px;"></div><div class="skeleton-line" style="width:40%"></div><div class="skeleton-line" style="width:80%"></div></div></div>
-        <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:70%;height:18px;"></div><div class="skeleton-line" style="width:35%"></div><div class="skeleton-line" style="width:75%"></div></div></div>
-        <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:55%;height:18px;"></div><div class="skeleton-line" style="width:45%"></div><div class="skeleton-line" style="width:70%"></div></div></div>
+    <!-- Tab Bar -->
+    <div style="display:flex;background:#fff;border-radius:12px;border:1px solid var(--border);padding:5px;gap:4px;margin-bottom:1.5rem;">
+      <button id="tabMy" onclick="switchTab('my')"
+        style="flex:1;padding:10px 8px;border:none;border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;background:var(--amethyst);color:#FAF6EE;transition:all 0.2s;">
+        📚 My Clubs
+      </button>
+      <button id="tabBrowse" onclick="switchTab('browse')"
+        style="flex:1;padding:10px 8px;border:none;border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;background:none;color:var(--terracotta);transition:all 0.2s;">
+        🔍 Browse Clubs
+      </button>
+    </div>
+
+    <!-- My Clubs -->
+    <div id="myClubsSection">
+      <div id="clubsArea">
+        <div class="skeleton-grid">
+          <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:60%;height:18px;"></div><div class="skeleton-line" style="width:40%"></div><div class="skeleton-line" style="width:80%"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:70%;height:18px;"></div><div class="skeleton-line" style="width:35%"></div><div class="skeleton-line" style="width:75%"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:55%;height:18px;"></div><div class="skeleton-line" style="width:45%"></div><div class="skeleton-line" style="width:70%"></div></div></div>
+        </div>
       </div>
     </div>
+
+    <!-- Browse Discoverable Clubs -->
+    <div id="browseSection" style="display:none;">
+      <div style="margin-bottom:1.25rem;">
+        <input type="text" placeholder="Filter by location (city, state, or zip — exact text match)..."
+          oninput="filterDiscoverClubs(this.value)"
+          style="width:100%;max-width:420px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);background:#fff;outline:none;">
+        <p style="font-size:12px;color:#BDB5CC;margin-top:6px;">Searches club location fields by text — e.g. "Ann Arbor", "MI", or "48197".</p>
+      </div>
+      <div id="browseGrid">
+        <p style="font-size:14px;color:var(--terracotta);text-align:center;padding:2rem;">Click Browse Clubs to discover reading communities.</p>
+      </div>
+    </div>
+
   </div>
 
   <!-- Create Club Modal -->
@@ -195,6 +224,21 @@
           </select>
           <select id="sessionPeriod" id="sessionPeriod"></select>
         </div>
+      </div>
+
+      <div class="form-group">
+        <label for="clubLocation">Location <span class="label-opt">(optional — city, state or zip code)</span></label>
+        <input type="text" id="clubLocation" placeholder="e.g. Ann Arbor, MI or 48197" maxlength="100">
+      </div>
+
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;">
+          <input type="checkbox" id="clubDiscoverable" style="width:16px;height:16px;accent-color:var(--amethyst);cursor:pointer;">
+          <div>
+            <span style="font-weight:600;color:var(--deep-plum);">Make club discoverable</span>
+            <div style="font-size:12px;color:var(--terracotta);margin-top:2px;">Allow other WellRead Co. members to find and request to join this club.</div>
+          </div>
+        </label>
       </div>
 
       <div class="modal-actions">
@@ -333,8 +377,10 @@
       document.getElementById("createModal").classList.remove("open");
       document.body.style.overflow = "";
       document.getElementById("createError").classList.remove("show");
-      document.getElementById("clubName").value    = "";
-      document.getElementById("clubDetails").value = "";
+      document.getElementById("clubName").value         = "";
+      document.getElementById("clubDetails").value      = "";
+      document.getElementById("clubLocation").value     = "";
+      document.getElementById("clubDiscoverable").checked = false;
     }
 
     function handleOverlayClick(e) {
@@ -342,16 +388,17 @@
     }
 
     async function createClub() {
-      const user    = WR.getCurrentUser();
-      const name    = document.getElementById("clubName").value.trim();
-      const details = document.getElementById("clubDetails").value.trim();
-      const freq    = document.getElementById("sessionFreq").value;
-      const session = document.getElementById("sessionPeriod").value;
-      const errEl   = document.getElementById("createError");
-      const btn     = document.getElementById("createBtn");
+      const user         = WR.getCurrentUser();
+      const name         = document.getElementById("clubName").value.trim();
+      const details      = document.getElementById("clubDetails").value.trim();
+      const freq         = document.getElementById("sessionFreq").value;
+      const session      = document.getElementById("sessionPeriod").value;
+      const location     = document.getElementById("clubLocation").value.trim();
+      const discoverable = document.getElementById("clubDiscoverable").checked;
+      const errEl        = document.getElementById("createError");
+      const btn          = document.getElementById("createBtn");
 
       errEl.classList.remove("show");
-
       if (!name) {
         errEl.textContent = "Please enter a club name.";
         errEl.classList.add("show");
@@ -374,6 +421,8 @@
           adminUids:        [user.uid],
           memberUids:       [user.uid],
           sessionFrequency: freq,
+          location:         location || null,
+          discoverable,
           currentRead:      null,
           pastReads:        [],
           createdAt:        firebase.firestore.FieldValue.serverTimestamp(),
@@ -390,6 +439,9 @@
           joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        // Check for club_founded badge
+        setTimeout(() => WR.checkBadges({ foundedClub: true }).then(() => WR.showBadgePopupIfNeeded()), 500);
+
         closeCreateModal();
         WR.showToast("Club created! 🎉", "success");
         setTimeout(() => { location.href = `club.html?id=${clubRef.id}`; }, 600);
@@ -402,10 +454,103 @@
       }
     }
 
-    window.openCreateModal  = openCreateModal;
-    window.closeCreateModal = closeCreateModal;
-    window.handleOverlayClick = handleOverlayClick;
-    window.createClub       = createClub;
+    // ── Browse Discoverable Clubs ─────────────────────────────
+    let activeTab       = "my";
+    let discoverClubs   = [];
+    let locationFilter  = "";
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.getElementById("tabMy").classList.toggle("active", tab === "my");
+      document.getElementById("tabBrowse").classList.toggle("active", tab === "browse");
+      document.getElementById("myClubsSection").style.display  = tab === "my"     ? "" : "none";
+      document.getElementById("browseSection").style.display   = tab === "browse"  ? "" : "none";
+      if (tab === "browse" && !discoverClubs.length) loadDiscoverClubs();
+    }
+
+    async function loadDiscoverClubs() {
+      const el   = document.getElementById("browseGrid");
+      const user = WR.getCurrentUser();
+      el.innerHTML = `<p style="padding:2rem;text-align:center;font-size:14px;color:var(--terracotta);">Loading clubs...</p>`;
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs")
+          .where("discoverable", "==", true)
+          .limit(50)
+          .get();
+
+        discoverClubs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(c => !c.memberUids?.includes(user.uid) && !c.deleted);
+
+        renderDiscoverClubs();
+      } catch (e) {
+        console.error("Discover clubs error:", e);
+        el.innerHTML = `<p style="padding:2rem;text-align:center;font-size:14px;color:var(--terracotta);">Error loading clubs.</p>`;
+      }
+    }
+
+    function filterDiscoverClubs(val) {
+      locationFilter = val.toLowerCase().trim();
+      renderDiscoverClubs();
+    }
+
+    function renderDiscoverClubs() {
+      const el   = document.getElementById("browseGrid");
+      const user = WR.getCurrentUser();
+      let clubs  = discoverClubs;
+
+      if (locationFilter) {
+        clubs = clubs.filter(c =>
+          (c.location || "").toLowerCase().includes(locationFilter)
+        );
+      }
+
+      if (!clubs.length) {
+        el.innerHTML = `
+          <div class="empty-state" style="padding:3rem 1rem;">
+            <span class="empty-icon">🔍</span>
+            <h2 class="empty-title">No clubs found</h2>
+            <p class="empty-desc">${locationFilter ? "Try a different location or clear the filter." : "No discoverable clubs yet — be the first to create one!"}</p>
+          </div>`;
+        return;
+      }
+
+      el.innerHTML = `<div class="clubs-grid">${clubs.map(c => buildDiscoverCard(c)).join("")}</div>`;
+    }
+
+    function buildDiscoverCard(club) {
+      const members     = club.memberUids?.length || 0;
+      const headerStyle = club.headerImageURL ? `style="background:none;"` : "";
+      const headerImg   = club.headerImageURL
+        ? `<img class="club-card-header-img" src="${WR.escapeHTML(club.headerImageURL)}" alt="">` : "";
+
+      return `
+        <div class="club-card" style="cursor:default;">
+          <div class="club-card-header" ${headerStyle}>${headerImg}</div>
+          <div class="club-card-body">
+            <div class="club-card-name">${WR.escapeHTML(club.name || "")}</div>
+            <div class="club-card-meta">
+              ${members} member${members === 1 ? "" : "s"} ·
+              ${club.sessionFrequency === "quarterly" ? "Quarterly" : "Monthly"} reads
+              ${club.location ? ` · 📍 ${WR.escapeHTML(club.location)}` : ""}
+            </div>
+            ${club.details ? `<p style="font-size:12px;color:var(--terracotta);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${WR.escapeHTML(club.details)}</p>` : ""}
+            ${club.currentRead?.title ? `<div class="club-current-read"><div class="club-read-dot"></div><span class="club-read-text">Reading: <strong>${WR.escapeHTML(club.currentRead.title)}</strong></span></div>` : ""}
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <a href="club.html?id=${club.id}" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--deep-plum);text-decoration:none;">View Club</a>
+            </div>
+          </div>
+        </div>`;
+        </div>`;
+    }
+
+    window.openCreateModal      = openCreateModal;
+    window.closeCreateModal     = closeCreateModal;
+    window.handleOverlayClick   = handleOverlayClick;
+    window.createClub           = createClub;
+    window.switchTab            = switchTab;
+    window.filterDiscoverClubs  = filterDiscoverClubs;
   </script>
 
   <script>

@@ -438,6 +438,19 @@
           <option value="quarterly">Quarterly</option>
         </select>
       </div>
+      <div class="form-group">
+        <label for="editLocation">Location <span class="label-opt">(optional — city, state or zip code)</span></label>
+        <input type="text" id="editLocation" placeholder="e.g. Ann Arbor, MI or 48197" maxlength="100">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;">
+          <input type="checkbox" id="editDiscoverable" style="width:16px;height:16px;accent-color:var(--amethyst);cursor:pointer;">
+          <div>
+            <span style="font-weight:600;color:var(--deep-plum);">Make club discoverable</span>
+            <div style="font-size:12px;color:var(--terracotta);margin-top:2px;">Allow other WellRead Co. members to find and request to join this club.</div>
+          </div>
+        </label>
+      </div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" onclick="closeModal('editModal')">Cancel</button>
         <button class="modal-btn btn-save" id="editSaveBtn" onclick="saveClubEdit()">
@@ -619,6 +632,7 @@
               ${isAdmin ? `
                 <button class="action-btn btn-primary" onclick="openModal('eventModal')">+ Add Event</button>
                 <button class="action-btn btn-outline" onclick="openEditModal()">✏️ Edit Club</button>
+                <button class="action-btn btn-danger" onclick="closeTheChapter()" style="margin-left:auto;" title="Permanently delete this club">📕 Close the Chapter</button>
               ` : ""}
               ${isMember ? `
                 <button class="action-btn btn-outline" onclick="openModal('inviteModal');loadFriends()">👤 Invite</button>
@@ -650,7 +664,11 @@
             <div class="cr-title">${WR.escapeHTML(club.currentRead.title)}</div>
             <div class="cr-author">${WR.escapeHTML(club.currentRead.author || "")}</div>
           </div>
-          ${isAdmin ? `<button class="set-read-btn" onclick="openModal('readModal')">Change Read</button>` : ""}
+          ${isAdmin ? `
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+              <button class="set-read-btn" onclick="closeOutRead()" style="background:var(--faded-moss);color:#1A3D2E;">✓ Close Out Read</button>
+              <button class="set-read-btn" onclick="openModal('readModal')" style="opacity:0.8;">Change Read</button>
+            </div>` : ""}
         </div>` : isAdmin ? `
         <div class="current-read-bar">
           <div class="cr-cover-placeholder">📖</div>
@@ -800,7 +818,7 @@
                         : `<div class="past-cover-ph">📖</div>`}
                       <div class="past-info">
                         <div class="past-title">${WR.escapeHTML(r.title || "")}</div>
-                        <div class="past-session">${WR.escapeHTML(r.session || "")}</div>
+                        <div class="past-session">${WR.escapeHTML(r.session || "")}${r.completedAt ? ` · Finished ${WR.formatDateInput(r.completedAt)}` : ""}</div>
                       </div>
                     </a>`).join("")}
                 </div>
@@ -1350,6 +1368,95 @@
       }
     }
 
+    // ── Close the Chapter (Delete Club) ──────────────────────
+    function closeTheChapter() {
+      // Custom confirm modal since we want a richer warning
+      const overlay = document.createElement("div");
+      overlay.style.cssText = "position:fixed;inset:0;background:rgba(45,27,78,0.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:1rem;";
+      overlay.innerHTML = `
+        <div style="background:var(--aged-paper);border-radius:20px;padding:2rem;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(45,27,78,0.25);">
+          <div style="text-align:center;margin-bottom:1.25rem;">
+            <span style="font-size:40px;">📕</span>
+          </div>
+          <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);margin-bottom:0.5rem;text-align:center;">Close the Chapter</h2>
+          <p style="font-size:13px;color:var(--terracotta);line-height:1.6;margin-bottom:0.75rem;text-align:center;">
+            You're about to permanently delete <strong>${WR.escapeHTML(club.name || "this club")}</strong>.
+          </p>
+          <p style="font-size:12px;color:#BDB5CC;line-height:1.6;margin-bottom:1.5rem;text-align:center;">
+            All posts, events, members, and history will be lost. This cannot be undone.
+          </p>
+          <div style="display:flex;gap:10px;">
+            <button id="cancelChapterBtn" style="flex:1;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:11px;border-radius:8px;border:1.5px solid var(--border);background:var(--aged-paper);color:var(--terracotta);cursor:pointer;">
+              Cancel
+            </button>
+            <button id="confirmChapterBtn" style="flex:1;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:11px;border-radius:8px;border:none;background:#C0392B;color:#fff;cursor:pointer;">
+              📕 Close the Chapter
+            </button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(overlay);
+
+      overlay.querySelector("#cancelChapterBtn").onclick  = () => overlay.remove();
+      overlay.querySelector("#confirmChapterBtn").onclick = async () => {
+        overlay.querySelector("#confirmChapterBtn").textContent = "Deleting...";
+        overlay.querySelector("#confirmChapterBtn").disabled = true;
+        overlay.querySelector("#cancelChapterBtn").disabled  = true;
+        try {
+          // Delete the club document
+          // Note: subcollections (members, posts, events, invites) are NOT
+          // automatically deleted — Firestore doesn't cascade deletes.
+          // Mark as deleted and let an admin/worker clean up subcollections.
+          await WR.getDb().collection("clubs").doc(clubId).update({
+            deleted:   true,
+            deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            deletedBy: WR.getCurrentUser().uid,
+            name:      `[Deleted] ${club.name}`,
+            memberUids: [],
+            adminUids:  []
+          });
+
+          overlay.remove();
+          WR.showToast("The chapter has been closed. 📕", "success");
+          setTimeout(() => { location.href = "clubs.html"; }, 1200);
+        } catch (e) {
+          console.error("Close the chapter error:", e);
+          overlay.querySelector("#confirmChapterBtn").textContent = "📕 Close the Chapter";
+          overlay.querySelector("#confirmChapterBtn").disabled = false;
+          overlay.querySelector("#cancelChapterBtn").disabled  = false;
+          WR.showToast("Error closing the chapter.", "error");
+        }
+      };
+    }
+
+    async function closeOutRead() {
+      if (!club.currentRead?.title) return;
+      if (!confirm(`Close out "${club.currentRead.title}"? It will move to Past Reads and a new read can be set.`)) return;
+
+      try {
+        const pastReads = [...(club.pastReads || [])];
+        pastReads.push({
+          ...club.currentRead,
+          completedAt: new Date().toISOString().split("T")[0]
+        });
+
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          currentRead: firebase.firestore.FieldValue.delete(),
+          pastReads
+        });
+
+        club.pastReads   = pastReads;
+        club.currentRead = null;
+
+        renderPage();
+        startPostsListener();
+        WR.showToast("Read closed out and moved to Past Reads! 📚", "success");
+      } catch (e) {
+        console.error("Close out read error:", e);
+        WR.showToast("Error closing out read.", "error");
+      }
+    }
+
     function to12h(time24) {
       if (!time24) return "";
       const [h, m] = time24.split(":").map(Number);
@@ -1809,18 +1916,22 @@
 
     // ── Edit Club ─────────────────────────────────────────────
     function openEditModal() {
-      document.getElementById("editName").value    = club.name    || "";
-      document.getElementById("editDetails").value = club.details || "";
-      document.getElementById("editFreq").value    = club.sessionFrequency || "monthly";
+      document.getElementById("editName").value         = club.name             || "";
+      document.getElementById("editDetails").value      = club.details          || "";
+      document.getElementById("editFreq").value         = club.sessionFrequency || "monthly";
+      document.getElementById("editLocation").value     = club.location         || "";
+      document.getElementById("editDiscoverable").checked = club.discoverable   || false;
       openModal("editModal");
     }
 
     async function saveClubEdit() {
-      const name    = document.getElementById("editName").value.trim();
-      const details = document.getElementById("editDetails").value.trim();
-      const freq    = document.getElementById("editFreq").value;
-      const errEl   = document.getElementById("editError");
-      const btn     = document.getElementById("editSaveBtn");
+      const name         = document.getElementById("editName").value.trim();
+      const details      = document.getElementById("editDetails").value.trim();
+      const freq         = document.getElementById("editFreq").value;
+      const location     = document.getElementById("editLocation").value.trim();
+      const discoverable = document.getElementById("editDiscoverable").checked;
+      const errEl        = document.getElementById("editError");
+      const btn          = document.getElementById("editSaveBtn");
 
       errEl.classList.remove("show");
       if (!name) { errEl.textContent = "Club name is required."; errEl.classList.add("show"); return; }
@@ -1829,11 +1940,14 @@
       try {
         await WR.getDb().collection("clubs").doc(clubId).update({
           name, details: details || null, sessionFrequency: freq,
+          location: location || null, discoverable,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        club.name    = name;
-        club.details = details;
-        club.sessionFrequency = freq;
+        club.name              = name;
+        club.details           = details;
+        club.sessionFrequency  = freq;
+        club.location          = location;
+        club.discoverable      = discoverable;
         closeModal("editModal");
         WR.showToast("Club updated!", "success");
         renderPage();
@@ -1974,6 +2088,8 @@
     window.searchFriends       = searchFriends;
     window.inviteFriend          = inviteFriend;
     window.cancelInvite          = cancelInvite;
+    window.closeTheChapter       = closeTheChapter;
+    window.closeOutRead          = closeOutRead;
     window.toggleRsvpList        = toggleRsvpList;
     window.editEvent             = editEvent;
     window.deleteEvent           = deleteEvent;
