@@ -766,6 +766,16 @@
       `;
     }
 
+    function showReactionTip(btn) {
+      const tip = btn.nextElementSibling;
+      if (tip) tip.style.display = "block";
+    }
+
+    function hideReactionTip(btn) {
+      const tip = btn.nextElementSibling;
+      if (tip) tip.style.display = "none";
+    }
+
     // ── Posts ─────────────────────────────────────────────────
     function renderPosts() {
       const list = document.getElementById("postsList");
@@ -787,16 +797,36 @@
         ? `<img class="post-img" src="${WR.escapeHTML(post.imageURL)}" alt="">`
         : "";
 
-      // Build reactions
+      // Build reactions with name tooltips
       const reactions = post.reactions || {};
       const reactionHTML = REACTIONS.map(emoji => {
         const users = reactions[emoji] || [];
         if (!users.length) return "";
         const reacted = users.includes(uid);
-        return `<button class="reaction-btn${reacted ? " reacted" : ""}"
-          onclick="toggleReaction('${post.id}','${emoji}')">
-          ${emoji} <span class="reaction-count">${users.length}</span>
-        </button>`;
+
+        // Build tooltip: look up display names from members list
+        const names = users.map(u => {
+          if (u === uid) return "You";
+          const member = members.find(m => m.uid === u);
+          return member?.displayName || "Someone";
+        });
+        const tooltip = names.length <= 3
+          ? names.join(", ")
+          : names.slice(0, 3).join(", ") + " +" + (names.length - 3) + " more";
+
+        return `<div class="reaction-wrap" style="position:relative;display:inline-block;">
+          <button class="reaction-btn${reacted ? " reacted" : ""}"
+            onclick="toggleReaction('${post.id}','${emoji}')"
+            onmouseenter="showReactionTip(this)"
+            onmouseleave="hideReactionTip(this)"
+            data-tip="${WR.escapeHTML(tooltip)}">
+            ${emoji} <span class="reaction-count">${users.length}</span>
+          </button>
+          <div class="reaction-tip" style="display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--deep-plum);color:#F7F3FF;font-size:11px;font-family:'Nunito Sans',sans-serif;padding:5px 10px;border-radius:8px;white-space:nowrap;z-index:50;pointer-events:none;box-shadow:0 2px 8px rgba(45,27,78,0.2);">
+            ${WR.escapeHTML(tooltip)}
+            <div style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--deep-plum);"></div>
+          </div>
+        </div>`;
       }).filter(Boolean).join("");
 
       // Comment count
@@ -885,24 +915,32 @@
         post.reactions[emoji] = [...users, uid];
       }
 
-      // Re-render just this post's reactions without rebuilding the whole list
+      // Re-render just this post's reactions with updated data
       const postEl = document.getElementById("post-" + postId);
       if (postEl) {
         const reactionsEl = postEl.querySelector(".post-reactions");
         if (reactionsEl) {
-          const REACTIONS = ["❤️","😂","😮","👍","😢","😡"];
-          const reactions = post.reactions || {};
+          const picker = reactionsEl.querySelector(".reaction-picker");
           const reactionHTML = REACTIONS.map(e => {
-            const u = reactions[e] || [];
+            const u = (post.reactions?.[e] || []);
             if (!u.length) return "";
             const reacted = u.includes(uid);
-            return `<button class="reaction-btn${reacted ? " reacted" : ""}"
-              onclick="toggleReaction('${postId}','${e}')">
-              ${e} <span class="reaction-count">${u.length}</span>
-            </button>`;
+            const names = u.map(id => id === uid ? "You" : (members.find(m => m.uid === id)?.displayName || "Someone"));
+            const tooltip = names.length <= 3 ? names.join(", ") : names.slice(0,3).join(", ") + " +" + (names.length-3) + " more";
+            return `<div class="reaction-wrap" style="position:relative;display:inline-block;">
+              <button class="reaction-btn${reacted ? " reacted" : ""}"
+                onclick="toggleReaction('${postId}','${e}')"
+                onmouseenter="showReactionTip(this)"
+                onmouseleave="hideReactionTip(this)"
+                data-tip="${WR.escapeHTML(tooltip)}">
+                ${e} <span class="reaction-count">${u.length}</span>
+              </button>
+              <div class="reaction-tip" style="display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--deep-plum);color:#F7F3FF;font-size:11px;font-family:'Nunito Sans',sans-serif;padding:5px 10px;border-radius:8px;white-space:nowrap;z-index:50;pointer-events:none;box-shadow:0 2px 8px rgba(45,27,78,0.2);">
+                ${WR.escapeHTML(tooltip)}
+                <div style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--deep-plum);"></div>
+              </div>
+            </div>`;
           }).filter(Boolean).join("");
-          // Keep the picker button, replace reaction buttons before it
-          const picker = reactionsEl.querySelector(".reaction-picker");
           reactionsEl.innerHTML = reactionHTML;
           if (picker) reactionsEl.appendChild(picker);
         }
@@ -1632,7 +1670,9 @@
     window.handleModalOverlay  = handleModalOverlay;
     window.submitPost          = submitPost;
     window.handlePostKey       = handlePostKey;
-    window.toggleReaction      = toggleReaction;
+    window.showReactionTip      = showReactionTip;
+    window.hideReactionTip      = hideReactionTip;
+    window.toggleReaction       = toggleReaction;
     window.toggleReactionPicker = toggleReactionPicker;
     window.closeAllPickers     = closeAllPickers;
     window.toggleComments      = toggleComments;
