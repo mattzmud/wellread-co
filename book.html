@@ -1147,6 +1147,11 @@
         closeReadModal();
         const msg = endDate ? "Reading logged! ✅" : "Started reading! 📖";
         WR.showToast(msg, "success");
+
+        // Check for newly earned badges after logging a completed read
+        if (endDate && !dnf) {
+          setTimeout(() => WR.checkBadges().then(() => WR.showBadgePopupIfNeeded()), 500);
+        }
         document.querySelector(".action-buttons").innerHTML = buildActionButtons();
         const notesBody = document.getElementById("notes-body");
         if (notesBody && notesBody.classList.contains("open")) {
@@ -1344,6 +1349,7 @@
         }
 
         WR.showToast("Review saved! 📖", "success");
+        setTimeout(() => WR.checkBadges().then(() => WR.showBadgePopupIfNeeded()), 500);
 
       } catch (e) {
         console.error("Save review error:", e);

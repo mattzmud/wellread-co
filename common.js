@@ -135,6 +135,15 @@ function initAuth(onReady) {
     }
 
     if (onReady) onReady(user);
+
+    // After page is ready, check for new badges and show popup if needed
+    // Run async so it doesn't block page render
+    if (user && !isPublic) {
+      setTimeout(async () => {
+        await checkBadges();
+        await showBadgePopupIfNeeded();
+      }, 1500);
+    }
   });
 }
 
@@ -1430,6 +1439,274 @@ window.dismissNotif         = dismissNotif;
 window.signOut            = signOut;
 
 // ─── Exported API ────────────────────────────────────────────
+// ─── Badge System ─────────────────────────────────────────────
+
+const BADGE_DEFS = {
+  // Monthly goal badges (generated dynamically for each YYYY-MM)
+  goal_met:       { name: "On Track",         icon: "🎯", desc: "Met your monthly reading goal",           rarity: "common"    },
+  goal_surpassed: { name: "Overachiever",      icon: "🏆", desc: "Surpassed your monthly reading goal",    rarity: "rare"      },
+  // Streak badges
+  streak_3:       { name: "Hat Trick",         icon: "🔥", desc: "Met your goal 3 months in a row",        rarity: "uncommon"  },
+  streak_6:       { name: "On a Roll",         icon: "🚀", desc: "Met your goal 6 months in a row",        rarity: "rare"      },
+  streak_12:      { name: "Year of Reading",   icon: "🌟", desc: "Met your goal 12 months in a row",       rarity: "legendary" },
+  // Books read
+  read_10:        { name: "Getting Cozy",      icon: "📖", desc: "Read 10 books",                          rarity: "common"    },
+  read_25:        { name: "Bookworm",          icon: "🪱", desc: "Read 25 books",                          rarity: "uncommon"  },
+  read_50:        { name: "Page Turner",       icon: "📚", desc: "Read 50 books",                          rarity: "rare"      },
+  read_100:       { name: "Literary Legend",   icon: "👑", desc: "Read 100 books",                         rarity: "legendary" },
+  // Reviews
+  review_5:       { name: "Critic's Corner",   icon: "✍️", desc: "Wrote 5 book reviews",                   rarity: "common"    },
+  review_25:      { name: "The Reviewer",      icon: "📝", desc: "Wrote 25 book reviews",                  rarity: "uncommon"  },
+  review_50:      { name: "Voice of the People", icon: "📣", desc: "Wrote 50 book reviews",                rarity: "rare"      },
+  // Social
+  club_joined:    { name: "Social Reader",     icon: "👥", desc: "Joined your first book club",            rarity: "common"    },
+  club_founded:   { name: "Club Founder",      icon: "🏛️", desc: "Created a book club",                   rarity: "uncommon"  },
+  friend_5:       { name: "Well-Connected",    icon: "🤝", desc: "Made 5 friends on WellRead Co.",         rarity: "common"    },
+  // Library
+  wishlist_10:    { name: "Ambitious Reader",  icon: "⭐", desc: "Added 10 books to your wishlist",        rarity: "common"    },
+  dnf_3:          { name: "Life's Too Short",  icon: "🚪", desc: "DNF'd 3 books — no shame in that!",     rarity: "common"    },
+};
+
+const RARITY_COLORS = {
+  common:    { bg: "#EDE4F7", text: "#5B3E8A", border: "#C9B8E8" },
+  uncommon:  { bg: "#DCF0E8", text: "#2E6B50", border: "#9DC4B0" },
+  rare:      { bg: "#FEF3CD", text: "#8B6914", border: "#E8D88A" },
+  legendary: { bg: "#FCE8E8", text: "#8B2020", border: "#F5C6C6" },
+};
+
+function getBadgeDef(badgeId) {
+  // Handle dynamic goal badges like "goal_met_2025_06"
+  if (badgeId.startsWith("goal_met_"))       return { ...BADGE_DEFS.goal_met,       id: badgeId };
+  if (badgeId.startsWith("goal_surpassed_")) return { ...BADGE_DEFS.goal_surpassed, id: badgeId };
+  return BADGE_DEFS[badgeId] ? { ...BADGE_DEFS[badgeId], id: badgeId } : null;
+}
+
+function getBadgeMonthLabel(badgeId) {
+  const parts = badgeId.split("_");
+  if (parts.length < 5) return "";
+  const year  = parts[parts.length - 2];
+  const month = parts[parts.length - 1];
+  try {
+    return new Date(year, parseInt(month) - 1, 1)
+      .toLocaleString("default", { month: "long", year: "numeric" });
+  } catch { return ""; }
+}
+
+async function checkBadges(context = {}) {
+  if (!_currentUser) return [];
+  const uid = _currentUser.uid;
+
+  try {
+    // Load current badge state and user data
+    const userSnap   = await _db.collection("users").doc(uid).get();
+    const userData   = userSnap.exists ? userSnap.data() : {};
+    const existing   = new Set((userData.badges || []).map(b => b.id));
+    const newBadges  = [];
+
+    // Load books for count-based badges
+    const booksSnap  = await _db.collection("users").doc(uid).collection("books").get();
+    const books      = booksSnap.docs.map(d => d.data());
+
+    const totalRead  = books.filter(b => b.readingSessions?.some(s => s.completed)).length;
+    const totalDNF   = books.reduce((acc, b) => acc + (b.readingSessions?.filter(s => s.dnf).length || 0), 0);
+    const totalWish  = books.filter(b => b.onWishlist).length;
+    const totalReviews = books.filter(b => b.readingSessions?.some(s => s.review)).length;
+
+    // Books read thresholds
+    for (const [id, threshold] of [["read_10",10],["read_25",25],["read_50",50],["read_100",100]]) {
+      if (totalRead >= threshold && !existing.has(id)) newBadges.push(id);
+    }
+
+    // Reviews
+    for (const [id, threshold] of [["review_5",5],["review_25",25],["review_50",50]]) {
+      if (totalReviews >= threshold && !existing.has(id)) newBadges.push(id);
+    }
+
+    // Wishlist
+    if (totalWish >= 10 && !existing.has("wishlist_10")) newBadges.push("wishlist_10");
+
+    // DNF
+    if (totalDNF >= 3 && !existing.has("dnf_3")) newBadges.push("dnf_3");
+
+    // Club badges from context
+    if (context.joinedClub && !existing.has("club_joined")) newBadges.push("club_joined");
+    if (context.foundedClub && !existing.has("club_founded")) newBadges.push("club_founded");
+
+    // Friend count
+    if (context.friendCount >= 5 && !existing.has("friend_5")) newBadges.push("friend_5");
+
+    // Monthly goal and streak badges from goalHistory
+    const history = userData.goalHistory || {};
+    const metMonths = Object.entries(history)
+      .filter(([, v]) => v.met)
+      .map(([k]) => k)
+      .sort();
+
+    for (const [month, entry] of Object.entries(history)) {
+      const metId  = `goal_met_${month.replace("-","_")}`;
+      const surpId = `goal_surpassed_${month.replace("-","_")}`;
+      if (entry.met       && !existing.has(metId))  newBadges.push(metId);
+      if (entry.surpassed && !existing.has(surpId)) newBadges.push(surpId);
+    }
+
+    // Streak badges — check for consecutive months
+    const streak = longestCurrentStreak(metMonths);
+    if (streak >= 3  && !existing.has("streak_3"))  newBadges.push("streak_3");
+    if (streak >= 6  && !existing.has("streak_6"))  newBadges.push("streak_6");
+    if (streak >= 12 && !existing.has("streak_12")) newBadges.push("streak_12");
+
+    if (!newBadges.length) return [];
+
+    // Award new badges
+    const now        = firebase.firestore.FieldValue.serverTimestamp();
+    const newEntries = newBadges.map(id => ({ id, earnedAt: new Date().toISOString(), seen: false }));
+
+    await _db.collection("users").doc(uid).update({
+      badges: firebase.firestore.FieldValue.arrayUnion(...newEntries)
+    });
+
+    // Create friend activity notifications for each new badge
+    try {
+      const friendsSnap = await _db.collection("friends")
+        .where("users", "array-contains", uid)
+        .where("status", "==", "accepted")
+        .get();
+
+      const friendUids = friendsSnap.docs
+        .map(d => d.data().users.find(u => u !== uid))
+        .filter(Boolean);
+
+      const profile  = _currentUser._profile;
+      const name     = profile?.displayName || "A reader";
+
+      await Promise.all(newBadges.flatMap(badgeId => {
+        const def = getBadgeDef(badgeId);
+        if (!def) return [];
+        return friendUids.map(fuid => createNotification(fuid, {
+          type:    "badge_earned",
+          title:   `${name} earned a badge!`,
+          body:    `${def.icon} ${def.name} — ${def.desc}`,
+          linkedId: uid
+        }));
+      }));
+    } catch (e) { console.error("Badge friend notify error:", e); }
+
+    return newBadges;
+  } catch (e) {
+    console.error("Badge check error:", e);
+    return [];
+  }
+}
+
+function longestCurrentStreak(sortedMonths) {
+  if (!sortedMonths.length) return 0;
+  // Walk backwards from most recent month checking consecutive months
+  let streak = 1;
+  for (let i = sortedMonths.length - 1; i > 0; i--) {
+    const curr = sortedMonths[i];
+    const prev = sortedMonths[i - 1];
+    const [cy, cm] = curr.split("-").map(Number);
+    const [py, pm] = prev.split("-").map(Number);
+    const expectedPrev = cm === 1
+      ? `${cy - 1}-12`
+      : `${cy}-${String(cm - 1).padStart(2, "0")}`;
+    if (prev === expectedPrev) { streak++; }
+    else break;
+  }
+  return streak;
+}
+
+// Show a popup for newly earned badges (called on login)
+async function showBadgePopupIfNeeded() {
+  if (!_currentUser) return;
+  const uid = _currentUser.uid;
+  try {
+    const snap = await _db.collection("users").doc(uid).get();
+    if (!snap.exists) return;
+    const unseen = (snap.data().badges || []).filter(b => !b.seen);
+    if (!unseen.length) return;
+
+    // Mark all as seen
+    const allBadges = (snap.data().badges || []).map(b => ({ ...b, seen: true }));
+    await _db.collection("users").doc(uid).update({ badges: allBadges });
+
+    // Build popup HTML
+    const badgeItems = unseen.map(b => {
+      const def    = getBadgeDef(b.id);
+      if (!def) return "";
+      const rarity = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
+      const monthLabel = (b.id.startsWith("goal_met_") || b.id.startsWith("goal_surpassed_"))
+        ? ` <span style="font-size:10px;opacity:0.7;">${getBadgeMonthLabel(b.id)}</span>` : "";
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:${rarity.bg};border:1.5px solid ${rarity.border};margin-bottom:8px;">
+          <span style="font-size:28px;flex-shrink:0;">${def.icon}</span>
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:15px;color:${rarity.text};font-weight:600;">${def.name}${monthLabel}</div>
+            <div style="font-size:12px;color:${rarity.text};opacity:0.85;margin-top:2px;">${def.desc}</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    const overlay = document.createElement("div");
+    overlay.id    = "badgePopupOverlay";
+    overlay.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(45,27,78,0.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div style="background:var(--aged-paper);border-radius:20px;padding:2rem;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(45,27,78,0.25);text-align:center;">
+          <div style="font-size:48px;margin-bottom:0.5rem;">🎉</div>
+          <h2 style="font-family:'Playfair Display',serif;font-size:22px;color:var(--deep-plum);margin-bottom:0.25rem;">
+            ${unseen.length === 1 ? "You earned a badge!" : `You earned ${unseen.length} badges!`}
+          </h2>
+          <p style="font-size:13px;color:var(--terracotta);margin-bottom:1.25rem;">Keep up the great reading!</p>
+          <div style="text-align:left;margin-bottom:1.25rem;">${badgeItems}</div>
+          <button onclick="document.getElementById('badgePopupOverlay').remove()"
+            style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:12px 32px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;width:100%;">
+            Claim ${unseen.length === 1 ? "Badge" : "Badges"} 🏅
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  } catch (e) {
+    console.error("Badge popup error:", e);
+  }
+}
+
+function buildBadgeGrid(badges, allDefs) {
+  // badges = array of {id, earnedAt, seen} from user doc
+  const earnedIds = new Set(badges.map(b => b.id));
+
+  // Build list of all possible badge defs including earned monthly ones
+  const allIds = [
+    ...Object.keys(BADGE_DEFS),
+    ...badges.map(b => b.id).filter(id =>
+      id.startsWith("goal_met_") || id.startsWith("goal_surpassed_"))
+  ];
+  const uniqueIds = [...new Set(allIds)];
+
+  return uniqueIds.map(id => {
+    const def     = getBadgeDef(id);
+    if (!def) return "";
+    const earned  = earnedIds.has(id);
+    const entry   = badges.find(b => b.id === id);
+    const rarity  = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
+    const monthLabel = (id.startsWith("goal_met_") || id.startsWith("goal_surpassed_"))
+      ? getBadgeMonthLabel(id) : "";
+
+    return `
+      <div title="${def.name}: ${def.desc}" style="
+        display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;
+        border-radius:12px;border:1.5px solid ${earned ? rarity.border : "var(--border)"};
+        background:${earned ? rarity.bg : "#F5F3F8"};
+        opacity:${earned ? "1" : "0.45"};
+        cursor:${earned ? "default" : "default"};
+        text-align:center;">
+        <span style="font-size:24px;${earned ? "" : "filter:grayscale(1);"}">${def.icon}</span>
+        <span style="font-size:10px;font-weight:600;color:${earned ? rarity.text : "#BDB5CC"};line-height:1.3;">${def.name}</span>
+        ${monthLabel ? `<span style="font-size:9px;color:${earned ? rarity.text : "#BDB5CC"};opacity:0.7;">${monthLabel}</span>` : ""}
+        ${earned && entry?.earnedAt ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;">Earned</span>` : ""}
+      </div>`;
+  }).join("");
+}
+
 window.WR = {
   // Auth
   initAuth,
@@ -1441,6 +1718,14 @@ window.WR = {
 
   // Notifications
   createNotification,
+
+  // Badges
+  checkBadges,
+  showBadgePopupIfNeeded,
+  buildBadgeGrid,
+  getBadgeDef,
+  BADGE_DEFS,
+  RARITY_COLORS,
 
   // Books
   lookupBook,

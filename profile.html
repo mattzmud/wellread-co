@@ -848,6 +848,8 @@
         </div>` : ""}
 
         ${isOwnProfile ? buildGoalSection(profileData) : ""}
+
+        ${buildBadgesSection(profileData, isOwnProfile)}
       `;
     }
 
@@ -922,6 +924,35 @@
             ${historyEntries.length ? `
             <p style="font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Past Goals</p>
             ${historyHTML}` : historyHTML}
+          </div>
+        </div>`;
+    }
+
+    function buildBadgesSection(profile, isOwn) {
+      const badges  = profile?.badges || [];
+      const earned  = badges.filter(b => b.id);
+
+      if (!earned.length && !isOwn) return ""; // don't show empty section on other profiles
+
+      const gridHTML = WR.buildBadgeGrid(earned);
+      const count    = earned.length;
+
+      return `
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('badges', this)">
+            <span class="section-title">🏅 Earned Badges
+              <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${count}</span>
+            </span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="badges-body">
+            ${count ? `
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">
+              ${gridHTML}
+            </div>` : `
+            <div style="text-align:center;padding:1rem;">
+              <p style="font-size:13px;color:#BDB5CC;">No badges earned yet — keep reading!</p>
+            </div>`}
           </div>
         </div>`;
     }
