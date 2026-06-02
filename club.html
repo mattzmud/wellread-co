@@ -1187,15 +1187,19 @@
     function renderFriendResults(friends) {
       const el = document.getElementById("friendResults");
       if (!friends.length) {
-        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">No friends found.</p>`;
+        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">No members found.</p>`;
         return;
       }
       el.innerHTML = friends.map(f => {
         const alreadyMember = club.memberUids?.includes(f.uid);
+        const fullName      = [f.firstName, f.lastName].filter(Boolean).join(" ");
         return `
           <div class="friend-result">
             ${f.photoURL ? `<img class="friend-result-photo" src="${WR.escapeHTML(f.photoURL)}" alt="">` : `<div class="friend-result-ph">👤</div>`}
-            <div class="friend-result-name">${WR.escapeHTML(f.displayName||"")}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="friend-result-name">${WR.escapeHTML(f.displayName||"")}</div>
+              ${fullName ? `<div style="font-size:11px;color:var(--terracotta);">${WR.escapeHTML(fullName)}</div>` : ""}
+            </div>
             ${alreadyMember
               ? `<span class="friend-result-invited">Already a member</span>`
               : `<button class="friend-result-invite" onclick="inviteFriend('${f.uid}','${WR.escapeHTML(f.displayName||"")}',this)">Invite</button>`}
