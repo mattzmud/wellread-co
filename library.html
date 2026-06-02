@@ -281,7 +281,7 @@
         📚 Library <span class="tab-count" id="count-library">0</span>
       </button>
       <button class="tab-btn" id="tab-readlist" onclick="switchTab('readlist')">
-        ✅ Read List <span class="tab-count" id="count-readlist">0</span>
+        📖 Reading Log <span class="tab-count" id="count-readlist">0</span>
       </button>
       <button class="tab-btn" id="tab-tbr"      onclick="switchTab('tbr')">
         🔖 TBR <span class="tab-count" id="count-tbr">0</span>
@@ -371,7 +371,7 @@
 
     function updateCounts() {
       const library  = allBooks.filter(b => b.inLibrary).length;
-      const readlist = allBooks.filter(b => b.onReadList).length;
+      const readlist = allBooks.filter(b => b.readingSessions?.length > 0).length;
       const tbr      = allBooks.filter(b => b.onTBR).length;
       const wishlist = allBooks.filter(b => b.onWishlist).length;
       document.getElementById("count-library").textContent  = library;
@@ -694,10 +694,13 @@
     // ── READ LIST TAB ────────────────────────────────────────
     // ════════════════════════════════════════════════════════
     function renderReadList() {
-      let books = allBooks.filter(b => b.onReadList);
-      document.getElementById("pageTitle").textContent    = "✅ My Read List";
-      document.getElementById("pageSubtitle").textContent = `${books.length} book${books.length === 1 ? "" : "s"} read`;
+      // Books with any reading session (in progress or completed)
+      let books = allBooks.filter(b => b.readingSessions?.length > 0);
+      document.getElementById("pageTitle").textContent    = "📖 Reading Log";
+      document.getElementById("pageSubtitle").textContent = `${books.length} book${books.length === 1 ? "" : "s"} logged`;
 
+      const completed = books.filter(b => b.readingSessions?.[0]?.completed).length;
+      const inProgress = books.filter(b => b.readingSessions?.[0]?.startDate && !b.readingSessions?.[0]?.completed && !b.readingSessions?.[0]?.dnf).length;
       const thisYear = books.filter(b => {
         const end = b.readingSessions?.[0]?.endDate;
         return end && new Date(end).getFullYear() === new Date().getFullYear();
@@ -708,9 +711,9 @@
 
       document.getElementById("contentArea").innerHTML = `
         <div class="stats-bar" style="margin-bottom:1.25rem;">
-          <div class="stat-card"><span class="stat-num">${books.length}</span><span class="stat-label">Total Read</span></div>
+          <div class="stat-card"><span class="stat-num">${inProgress}</span><span class="stat-label">In Progress</span></div>
+          <div class="stat-card"><span class="stat-num">${completed}</span><span class="stat-label">Completed</span></div>
           <div class="stat-card"><span class="stat-num">${thisYear}</span><span class="stat-label">This Year</span></div>
-          <div class="stat-card"><span class="stat-num">${dnf}</span><span class="stat-label">DNF</span></div>
           <div class="stat-card"><span class="stat-num">${avg !== "—" ? "★ " + avg : "—"}</span><span class="stat-label">Avg Rating</span></div>
         </div>
         <div class="controls-bar">
@@ -721,9 +724,10 @@
             <option value="rating-desc">Highest Rated</option>
           </select>
           <div class="filter-row">
-            <button class="filter-pill active" id="pill-all"  onclick="setReadFilter('all')">All</button>
-            <button class="filter-pill"        id="pill-read" onclick="setReadFilter('read')">Completed</button>
-            <button class="filter-pill"        id="pill-dnf"  onclick="setReadFilter('dnf')">DNF</button>
+            <button class="filter-pill active" id="pill-all"        onclick="setReadFilter('all')">All</button>
+            <button class="filter-pill"        id="pill-inprogress" onclick="setReadFilter('inprogress')">In Progress</button>
+            <button class="filter-pill"        id="pill-completed"  onclick="setReadFilter('completed')">Completed</button>
+            <button class="filter-pill"        id="pill-dnf"        onclick="setReadFilter('dnf')">DNF</button>
           </div>
         </div>
         <div id="readListBooks">${buildReadListBooks(books)}</div>`;
@@ -739,9 +743,10 @@
     function applyReadSort() {
       const val  = document.getElementById("readSort")?.value || "dateCompleted-desc";
       const [field, dir] = val.split("-");
-      let books = allBooks.filter(b => b.onReadList);
-      if (activeFilter === "read") books = books.filter(b => b.readingSessions?.[0]?.completed);
-      if (activeFilter === "dnf")  books = books.filter(b => b.readingSessions?.[0]?.dnf);
+      let books = allBooks.filter(b => b.readingSessions?.length > 0);
+      if (activeFilter === "inprogress") books = books.filter(b => b.readingSessions?.[0]?.startDate && !b.readingSessions?.[0]?.completed && !b.readingSessions?.[0]?.dnf);
+      if (activeFilter === "completed")  books = books.filter(b => b.readingSessions?.[0]?.completed);
+      if (activeFilter === "dnf")        books = books.filter(b => b.readingSessions?.[0]?.dnf);
       books.sort((a, b) => {
         const sa = a.readingSessions?.[0] || {}, sb = b.readingSessions?.[0] || {};
         if (field === "dateCompleted") { const av = sa.endDate||"", bv = sb.endDate||""; return dir === "desc" ? bv.localeCompare(av) : av.localeCompare(bv); }
@@ -850,15 +855,38 @@
     async function markReading(bookId) {
       const user = WR.getCurrentUser();
       try {
-        const session = { sessionId: WR.generateId(), startDate: new Date().toISOString().split("T")[0], endDate: null, completed: false, dnf: false, format: "read", review: null, rating: null, reviewPublished: false };
+        const today   = new Date().toISOString().split("T")[0];
+        const session = {
+          sessionId:       WR.generateId(),
+          startDate:       today,
+          endDate:         null,
+          completed:       false,
+          dnf:             false,
+          format:          "read",
+          review:          null,
+          rating:          null,
+          reviewPublished: false
+        };
         await WR.getDb().collection("users").doc(user.uid).collection("books").doc(bookId)
-          .set({ onReadList: true, readingSessions: firebase.firestore.FieldValue.arrayUnion(session), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+          .set({
+            onTBR:           false,
+            readingSessions: firebase.firestore.FieldValue.arrayUnion(session),
+            updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+
         const idx = allBooks.findIndex(b => b.id === bookId);
-        if (idx !== -1) { allBooks[idx].onTBR = false; allBooks[idx].onReadList = true; }
+        if (idx !== -1) {
+          allBooks[idx].onTBR = false;
+          if (!allBooks[idx].readingSessions) allBooks[idx].readingSessions = [];
+          allBooks[idx].readingSessions.unshift(session);
+        }
         updateCounts();
         renderTBR();
         WR.showToast("Happy reading! 📖", "success");
-      } catch (e) { WR.showToast("Something went wrong.", "error"); }
+      } catch (e) {
+        console.error("Start reading error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
     }
 
     async function removeFromTBR(bookId) {

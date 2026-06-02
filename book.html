@@ -186,6 +186,7 @@
     .btn-wishlist { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
     .btn-view     { background: var(--lavender-mist); color: var(--amethyst); border: 1.5px solid var(--amethyst); }
     .btn-greyed   { background: #F0EAF8; color: #BDB5CC; cursor: default; }
+    .btn-remove   { background: transparent; color: var(--terracotta); border: 1.5px solid var(--border); }
 
     /* ── Content Sections ── */
     .content-section {
@@ -863,7 +864,8 @@
         html += `<button class="action-btn btn-wishlist" onclick="openQuickAdd('wishlist')">⭐ Add to Wishlist</button>`;
       } else {
         if (userBook.inLibrary) {
-          html += `<button class="action-btn btn-view" onclick="location.href='library.html'">📚 View in My Library</button>`;
+          html += `<button class="action-btn btn-view" onclick="location.href='library.html'">📚 In My Library</button>`;
+          html += `<button class="action-btn btn-remove" onclick="removeFromLibrary()">🗑 Remove</button>`;
         } else {
           html += `<button class="action-btn btn-library" onclick="openQuickAdd('library')">📚 Add to Library</button>`;
         }
@@ -1029,6 +1031,26 @@
       } catch (e) {
         console.error("Quick add error:", e);
         WR.showToast("Something went wrong. Please try again.", "error");
+      }
+    }
+
+    // ── Remove From Library ───────────────────────────────────
+    async function removeFromLibrary() {
+      if (!confirm("Remove this book from your library? Your reading history and reviews will be kept.")) return;
+      const user   = WR.getCurrentUser();
+      const bookId = book.bookId || book.isbn13 || book.id;
+      try {
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .set({ inLibrary: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        if (userBook) userBook.inLibrary = false;
+        document.querySelector(".action-buttons").innerHTML = buildActionButtons();
+        renderLendingSection();
+        WR.showToast("Removed from library.", "success");
+      } catch (e) {
+        console.error("Remove from library error:", e);
+        WR.showToast("Something went wrong.", "error");
       }
     }
 
@@ -1377,12 +1399,13 @@
     }
 
     // ── Expose for HTML handlers ──────────────────────────────
-    window.toggleSection  = toggleSection;
-    window.toggleDesc     = toggleDesc;
-    window.openQuickAdd   = openQuickAdd;
-    window.saveMyReview   = saveMyReview;
-    window.editMyReview   = editMyReview;
-    window.openReadModal  = openReadModal;
+    window.toggleSection   = toggleSection;
+    window.toggleDesc      = toggleDesc;
+    window.openQuickAdd    = openQuickAdd;
+    window.saveMyReview    = saveMyReview;
+    window.editMyReview    = editMyReview;
+    window.removeFromLibrary = removeFromLibrary;
+    window.openReadModal   = openReadModal;
     window.closeReadModal = closeReadModal;
     window.selectFormat   = selectFormat;
     window.confirmMarkRead = confirmMarkRead;
