@@ -61,7 +61,25 @@ function initFirebase() {
   _app  = firebase.initializeApp(FIREBASE_CONFIG);
   _auth = firebase.auth();
   _db   = firebase.firestore();
+
+  // Enable Firestore offline persistence so cached data loads instantly
+  // on subsequent page navigations
+  _db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+    if (err.code === "failed-precondition") {
+      // Multiple tabs — persistence only works in one tab at a time
+      console.warn("Firestore persistence unavailable (multiple tabs)");
+    } else if (err.code === "unimplemented") {
+      // Browser doesn't support it
+      console.warn("Firestore persistence not supported in this browser");
+    }
+  });
 }
+
+// Pre-initialize Firebase immediately so Firestore is ready
+// before initAuth is called — prevents timing issues on page navigation
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof firebase !== "undefined") initFirebase();
+});
 
 // ─── Auth State ──────────────────────────────────────────────
 // Call this on every authenticated page.
@@ -940,52 +958,72 @@ function renderStars(rating, maxStars = 5) {
 
 // Interactive star picker — returns HTML, call initStarPicker() after inserting
 function renderStarPicker(containerId, initialRating = 0, onSelect) {
-  const html = `
-    <div class="wr-star-picker" id="${containerId}">
-      ${[1,2,3,4,5].map(i => `
-        <span class="wr-star-pick${i <= initialRating ? " filled" : ""}"
-              data-val="${i}"
-              onmouseover="hoverStarPicker('${containerId}',${i})"
-              onmouseout="resetStarPicker('${containerId}',${_starPickerValues[containerId] || initialRating})"
-              onclick="selectStarPicker('${containerId}',${i})">★</span>
-      `).join("")}
-    </div>
-  `;
-
   if (!document.getElementById("wrStarPickerStyle")) {
     const s = document.createElement("style");
     s.id = "wrStarPickerStyle";
     s.textContent = `
-      .wr-star-picker { display:inline-flex; gap:4px; cursor:pointer; }
-      .wr-star-pick { font-size:24px; color:#E8DFC8; transition:color 0.1s; }
-      .wr-star-pick.filled, .wr-star-pick.hover { color:#C9A84C; }
+      .wr-star-picker { display:inline-flex; gap:4px; cursor:pointer; user-select:none; }
+      .wr-star-pick { font-size:24px; color:#E8DFC8; transition:color 0.1s; line-height:1; }
+      .wr-star-pick.filled { color:#C9A84C; }
+      .wr-star-pick.hover  { color:#C9A84C; }
     `;
     document.head.appendChild(s);
   }
 
+  // Store callback and current value
   _starPickerCallbacks[containerId] = onSelect;
+  _starPickerValues[containerId]    = initialRating;
+
+  const html = `
+    <div class="wr-star-picker" id="${containerId}" data-rating="${initialRating}">
+      ${[1,2,3,4,5].map(i => `
+        <span class="wr-star-pick${i <= initialRating ? " filled" : ""}"
+              data-val="${i}">★</span>
+      `).join("")}
+    </div>
+  `;
+
+  // Attach listeners after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.querySelectorAll(".wr-star-pick").forEach(star => {
+      const val = parseInt(star.dataset.val);
+
+      star.addEventListener("mouseover", () => {
+        container.querySelectorAll(".wr-star-pick").forEach(s => {
+          s.classList.toggle("hover", parseInt(s.dataset.val) <= val);
+        });
+      });
+
+      star.addEventListener("mouseout", () => {
+        const current = _starPickerValues[containerId] || 0;
+        container.querySelectorAll(".wr-star-pick").forEach(s => {
+          s.classList.remove("hover");
+          s.classList.toggle("filled", parseInt(s.dataset.val) <= current);
+        });
+      });
+
+      star.addEventListener("click", () => {
+        _starPickerValues[containerId] = val;
+        container.dataset.rating       = val;
+        container.querySelectorAll(".wr-star-pick").forEach(s => {
+          s.classList.remove("hover");
+          s.classList.toggle("filled", parseInt(s.dataset.val) <= val);
+        });
+        if (_starPickerCallbacks[containerId]) {
+          _starPickerCallbacks[containerId](val);
+        }
+      });
+    });
+  }, 0);
+
   return html;
 }
 
 const _starPickerValues    = {};
 const _starPickerCallbacks = {};
-
-function hoverStarPicker(id, val) {
-  document.querySelectorAll(`#${id} .wr-star-pick`).forEach(el => {
-    el.classList.toggle("hover", parseInt(el.dataset.val) <= val);
-  });
-}
-function resetStarPicker(id, val) {
-  document.querySelectorAll(`#${id} .wr-star-pick`).forEach(el => {
-    el.classList.remove("hover");
-    el.classList.toggle("filled", parseInt(el.dataset.val) <= val);
-  });
-}
-function selectStarPicker(id, val) {
-  _starPickerValues[id] = val;
-  resetStarPicker(id, val);
-  if (_starPickerCallbacks[id]) _starPickerCallbacks[id](val);
-}
 
 // ─── Collapsible Sections ────────────────────────────────────
 function initCollapsibles() {
@@ -1291,9 +1329,6 @@ window.closeNotifTray     = closeNotifTray;
 window.switchNotifTab     = switchNotifTab;
 window.openNotifDetail    = openNotifDetail;
 window.closeNotifModal    = closeNotifModal;
-window.hoverStarPicker    = hoverStarPicker;
-window.resetStarPicker    = resetStarPicker;
-window.selectStarPicker   = selectStarPicker;
 window.acceptFriendRequest = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;
 window.acceptClubInvite   = acceptClubInvite;
