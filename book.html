@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Book Detail</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+    }
+
+    /* ── Page Layout ── */
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 6rem;
+    }
+
+    /* ── Back Link ── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--amethyst);
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+      padding: 6px 0;
+    }
+
+    .back-link:hover { text-decoration: underline; }
+
+    /* ── Hero Section ── */
+    .book-hero {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      align-items: flex-start;
+    }
+
+    .book-cover-col { flex-shrink: 0; }
+
+    .book-cover-large {
+      width: 160px;
+      height: 230px;
+      object-fit: cover;
+      border-radius: 8px;
+      box-shadow: 4px 6px 24px rgba(45,27,78,0.22);
+      display: block;
+    }
+
+    .book-cover-placeholder-large {
+      width: 160px;
+      height: 230px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      box-shadow: 4px 6px 24px rgba(45,27,78,0.22);
+    }
+
+    .book-meta-col { flex: 1; min-width: 0; }
+
+    .book-club-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 0.75rem;
+    }
+
+    .club-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: #EDE4F7;
+      color: #5B3E8A;
+      border: 1px solid #D4C8F0;
+    }
+
+    .book-title-large {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+
+    .book-author-large {
+      font-size: 16px;
+      color: var(--terracotta);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Rating Display ── */
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .stars-large { font-size: 20px; color: var(--warm-gold); letter-spacing: 2px; }
+    .rating-num  { font-size: 20px; font-weight: 600; color: var(--deep-plum); }
+    .rating-cnt  { font-size: 13px; color: #BDB5CC; }
+
+    /* ── Book Details Grid ── */
+    .book-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      margin-bottom: 1.25rem;
+    }
+
+    .detail-item { }
+
+    .detail-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #BDB5CC;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      color: var(--deep-plum);
+      margin-top: 1px;
+    }
+
+    /* ── Action Buttons ── */
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .action-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .action-btn:hover  { opacity: 0.85; }
+    .action-btn:active { transform: scale(0.97); }
+    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-library  { background: var(--amethyst); color: #FAF6EE; }
+    .btn-read     { background: var(--faded-moss); color: #1A3D2E; }
+    .btn-tbr      { background: var(--warm-gold); color: #FAF6EE; }
+    .btn-wishlist { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+    .btn-view     { background: var(--lavender-mist); color: var(--amethyst); border: 1.5px solid var(--amethyst); }
+    .btn-greyed   { background: #F0EAF8; color: #BDB5CC; cursor: default; }
+
+    /* ── Content Sections ── */
+    .content-section {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .section-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .section-toggle:hover { background: var(--lavender-mist); }
+
+    .section-toggle-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      color: var(--deep-plum);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-count {
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--lavender-mist);
+      color: var(--amethyst);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .section-arrow {
+      font-size: 12px;
+      color: var(--terracotta);
+      transition: transform 0.2s;
+    }
+
+    .section-toggle.open .section-arrow { transform: rotate(180deg); }
+
+    .section-body {
+      display: none;
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-body.open { display: block; }
+
+    /* ── Description ── */
+    .description-text {
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--deep-plum);
+      padding-top: 1rem;
+    }
+
+    .description-text.clamped {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .read-more-btn {
+      background: none;
+      border: none;
+      color: var(--amethyst);
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 0;
+      display: block;
+      margin-top: 6px;
+    }
+
+    /* ── Reviews ── */
+    .review-card {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .review-card:last-child { border-bottom: none; }
+
+    .review-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0.5rem;
+    }
+
+    .reviewer-photo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .reviewer-placeholder {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--lavender-mist);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+
+    .reviewer-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      text-decoration: none;
+    }
+
+    .reviewer-name:hover { color: var(--amethyst); }
+
+    .review-date {
+      font-size: 11px;
+      color: #BDB5CC;
+      margin-left: auto;
+    }
+
+    .review-stars { font-size: 14px; color: var(--warm-gold); margin-bottom: 0.4rem; }
+
+    .review-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--deep-plum);
+    }
+
+    .review-club-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      background: #EDE4F7;
+      color: #5B3E8A;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-top: 6px;
+    }
+
+    .no-reviews {
+      padding: 1.5rem 0;
+      text-align: center;
+      font-size: 14px;
+      color: var(--terracotta);
+    }
+
+    /* ── Write a Review ── */
+    .write-review-section {
+      background: var(--lavender-mist);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .write-review-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      color: var(--deep-plum);
+      margin-bottom: 0.75rem;
+    }
+
+    .star-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .star-pick-label {
+      font-size: 12px;
+      color: var(--terracotta);
+    }
+
+    .review-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      color: var(--deep-plum);
+      background: #fff;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 0.75rem;
+    }
+
+    .review-textarea:focus { border-color: var(--amethyst); }
+
+    .review-submit-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .publish-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--terracotta);
+      cursor: pointer;
+    }
+
+    .publish-toggle input { cursor: pointer; accent-color: var(--amethyst); }
+
+    .submit-review-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .submit-review-btn:hover    { opacity: 0.85; }
+    .submit-review-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── My Notes section ── */
+    .my-notes-prompt {
+      padding: 1rem 0;
+      font-size: 14px;
+      color: var(--terracotta);
+      text-align: center;
+    }
+
+    .my-notes-prompt a {
+      color: var(--amethyst);
+      text-decoration: none;
+    }
+
+    .my-notes-prompt a:hover { text-decoration: underline; }
+
+    /* ── Loading State ── */
+    .skeleton-hero {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .skeleton-cover-lg {
+      width: 160px;
+      height: 230px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #ede8f5 25%, #e0d8ef 50%, #ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      flex-shrink: 0;
+    }
+
+    .skeleton-meta { flex: 1; display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+
+    .skeleton-line {
+      height: 14px;
+      border-radius: 7px;
+      background: linear-gradient(90deg, #ede8f5 25%, #e0d8ef 50%, #ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Not Found ── */
+    .not-found {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .not-found-icon  { font-size: 52px; margin-bottom: 1rem; display: block; }
+    .not-found-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: var(--deep-plum);
+      margin-bottom: 0.5rem;
+    }
+    .not-found-desc { font-size: 14px; color: var(--terracotta); margin-bottom: 1.5rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 580px) {
+      .book-hero {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .book-club-badges  { justify-content: center; }
+      .rating-row        { justify-content: center; }
+      .book-details-grid { grid-template-columns: 1fr; }
+      .action-buttons    { justify-content: center; }
+
+      .book-cover-large,
+      .book-cover-placeholder-large {
+        width: 130px;
+        height: 186px;
+      }
+
+      .skeleton-hero { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap" id="pageWrap">
+    <a href="javascript:history.back()" class="back-link">← Back</a>
+    <div id="bookContent">
+      <!-- Skeleton while loading -->
+      <div class="skeleton-hero">
+        <div class="skeleton-cover-lg"></div>
+        <div class="skeleton-meta">
+          <div class="skeleton-line" style="width:70%;height:28px;"></div>
+          <div class="skeleton-line" style="width:45%"></div>
+          <div class="skeleton-line" style="width:30%"></div>
+          <div class="skeleton-line" style="width:55%"></div>
+          <div class="skeleton-line" style="width:80%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let book        = null;
+    let userBook    = null;
+    let allReviews  = [];
+    let clubReviews = [];
+    let userClubs   = [];
+    let myRating    = 0;
+    let descExpanded = false;
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+
+      const params = new URLSearchParams(location.search);
+      const bookId = params.get("id");
+
+      if (!bookId) {
+        showNotFound();
+        return;
+      }
+
+      await Promise.all([
+        loadBook(bookId),
+        loadUserBook(bookId),
+        loadUserClubs()
+      ]);
+
+      if (!book) {
+        // Try fetching from Google Books API
+        await fetchFromAPI(bookId);
+      }
+
+      if (!book) {
+        showNotFound();
+        return;
+      }
+
+      // Update page title
+      document.title = `${book.title} — WellRead Co.`;
+
+      await Promise.all([
+        loadReviews(bookId),
+        loadClubReviews(bookId)
+      ]);
+
+      renderPage();
+    });
+
+    // ── Data Loaders ──────────────────────────────────────────
+    async function loadBook(bookId) {
+      try {
+        const snap = await WR.getDb().collection("books").doc(bookId).get();
+        if (snap.exists) book = { id: snap.id, ...snap.data() };
+      } catch (e) {
+        console.error("Error loading book:", e);
+      }
+    }
+
+    async function fetchFromAPI(bookId) {
+      try {
+        // Try ISBN first, then Google Books ID
+        let result = null;
+        if (bookId.length === 13 && /^\d+$/.test(bookId)) {
+          result = await WR.getGoogleBookByISBN(bookId);
+        }
+        if (!result) {
+          const res  = await fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
+          const data = await res.json();
+          if (data.id) result = WR.normalizeGoogleBook(data);
+        }
+        if (result) {
+          book = result;
+          await WR.saveBookToDb(result);
+        }
+      } catch (e) {
+        console.error("API fetch error:", e);
+      }
+    }
+
+    async function loadUserBook(bookId) {
+      userBook = await WR.getUserBook(bookId);
+    }
+
+    async function loadUserClubs() {
+      const user = WR.getCurrentUser();
+      if (!user) return;
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs")
+          .where("memberUids", "array-contains", user.uid)
+          .get();
+        userClubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.error("Error loading clubs:", e);
+      }
+    }
+
+    async function loadReviews(bookId) {
+      try {
+        const snap = await WR.getDb()
+          .collection("books").doc(bookId)
+          .collection("reviews")
+          .orderBy("createdAt", "desc")
+          .limit(50)
+          .get();
+        allReviews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.error("Error loading reviews:", e);
+      }
+    }
+
+    async function loadClubReviews(bookId) {
+      if (!userClubs.length) return;
+      const clubIds   = userClubs.map(c => c.id);
+      clubReviews     = allReviews.filter(r => r.clubId && clubIds.includes(r.clubId));
+    }
+
+    // ── Render ────────────────────────────────────────────────
+    function renderPage() {
+      const content = document.getElementById("bookContent");
+      const authors = Array.isArray(book.authors)
+        ? book.authors.join(", ")
+        : (book.author || "Unknown Author");
+
+      const avgRating    = book.averageRating ? Math.round(book.averageRating * 10) / 10 : null;
+      const ratingsCount = book.ratingsCount  || 0;
+
+      // Club badges
+      let clubBadgesHTML = "";
+      if (userBook?.clubReads?.length) {
+        clubBadgesHTML = `<div class="book-club-badges">` +
+          userBook.clubReads.map(cr =>
+            `<span class="club-badge">📖 ${WR.escapeHTML(cr.clubName)}'s ${WR.escapeHTML(cr.session)} Read</span>`
+          ).join("") +
+          `</div>`;
+      }
+
+      // Cover
+      const coverHTML = book.coverURL
+        ? `<img class="book-cover-large" src="${WR.escapeHTML(book.coverURL)}"
+               alt="Cover of ${WR.escapeHTML(book.title)}"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholderHTML = `<div class="book-cover-placeholder-large" ${book.coverURL ? 'style="display:none"' : ""}>📖</div>`;
+
+      // Rating display
+      const ratingHTML = avgRating
+        ? `<div class="rating-row">
+             <span class="stars-large">${"★".repeat(Math.round(avgRating))}${"☆".repeat(5 - Math.round(avgRating))}</span>
+             <span class="rating-num">${avgRating}</span>
+             <span class="rating-cnt">(${ratingsCount} rating${ratingsCount === 1 ? "" : "s"})</span>
+           </div>`
+        : `<div class="rating-row"><span class="rating-cnt">No ratings yet — be the first!</span></div>`;
+
+      // Details
+      const details = [
+        { label: "ISBN",      value: book.isbn13 || book.isbn10 || "—" },
+        { label: "Published", value: book.publishedDate ? book.publishedDate.substring(0,4) : "—" },
+        { label: "Publisher", value: book.publisher || "—" },
+        { label: "Pages",     value: book.pageCount ? book.pageCount + " pages" : "—" }
+      ];
+
+      const detailsHTML = details.map(d => `
+        <div class="detail-item">
+          <div class="detail-label">${d.label}</div>
+          <div class="detail-value">${WR.escapeHTML(String(d.value))}</div>
+        </div>`).join("");
+
+      // Action buttons
+      const actionsHTML = buildActionButtons();
+
+      // Public reviews (excluding club-only)
+      const publicReviews = allReviews.filter(r => !r.clubId || r.reviewPublished !== false);
+      const reviewCountHTML = publicReviews.length
+        ? `<span class="section-count">${publicReviews.length}</span>`
+        : "";
+
+      const clubReviewCountHTML = clubReviews.length
+        ? `<span class="section-count">${clubReviews.length}</span>`
+        : "";
+
+      content.innerHTML = `
+        <!-- Hero -->
+        <div class="book-hero">
+          <div class="book-cover-col">
+            ${coverHTML}
+            ${placeholderHTML}
+          </div>
+          <div class="book-meta-col">
+            ${clubBadgesHTML}
+            <h1 class="book-title-large">${WR.escapeHTML(book.title || "Unknown Title")}</h1>
+            <p class="book-author-large">by ${WR.escapeHTML(authors)}</p>
+            ${ratingHTML}
+            <div class="book-details-grid">${detailsHTML}</div>
+            <div class="action-buttons">${actionsHTML}</div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        ${book.description ? `
+        <div class="content-section">
+          <div class="section-toggle open" onclick="toggleSection('desc', this)">
+            <span class="section-toggle-title">📝 About this book</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body open" id="desc-body">
+            <p class="description-text clamped" id="descText">${WR.escapeHTML(book.description)}</p>
+            <button class="read-more-btn" id="readMoreBtn" onclick="toggleDesc()">Read more →</button>
+          </div>
+        </div>` : ""}
+
+        <!-- My Notes -->
+        <div class="content-section">
+          <div class="section-toggle" onclick="toggleSection('notes', this)">
+            <span class="section-toggle-title">🗒️ My Notes & Rating</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="notes-body">
+            ${renderMyNotes()}
+          </div>
+        </div>
+
+        <!-- All Reviews -->
+        <div class="content-section">
+          <div class="section-toggle" onclick="toggleSection('reviews', this)">
+            <span class="section-toggle-title">⭐ Reader Reviews ${reviewCountHTML}</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="reviews-body">
+            ${renderReviewsList(publicReviews)}
+          </div>
+        </div>
+
+        ${userClubs.length ? `
+        <!-- Book Club Reviews -->
+        <div class="content-section">
+          <div class="section-toggle" onclick="toggleSection('club-reviews', this)">
+            <span class="section-toggle-title">👥 My Book Club Reviews ${clubReviewCountHTML}</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="club-reviews-body">
+            ${clubReviews.length
+              ? renderReviewsList(clubReviews)
+              : `<p class="no-reviews">No club reviews yet for this book.</p>`}
+          </div>
+        </div>` : ""}
+      `;
+    }
+
+    function buildActionButtons() {
+      const bookId = book.bookId || book.isbn13 || book.id;
+      let html = "";
+
+      if (!userBook) {
+        html += `<button class="action-btn btn-library" onclick="openQuickAdd('library')">📚 Add to Library</button>`;
+        html += `<button class="action-btn btn-read"    onclick="openQuickAdd('read')">✅ Mark as Read</button>`;
+        html += `<button class="action-btn btn-tbr"     onclick="openQuickAdd('tbr')">🔖 To Be Read</button>`;
+        html += `<button class="action-btn btn-wishlist" onclick="openQuickAdd('wishlist')">⭐ Add to Wishlist</button>`;
+      } else {
+        if (userBook.inLibrary) {
+          html += `<button class="action-btn btn-view" onclick="location.href='library.html'">📚 View in My Library</button>`;
+        } else {
+          html += `<button class="action-btn btn-library" onclick="openQuickAdd('library')">📚 Add to Library</button>`;
+        }
+
+        if (userBook.onReadList) {
+          html += `<button class="action-btn btn-greyed" disabled>✅ Already Read</button>`;
+        } else {
+          html += `<button class="action-btn btn-read" onclick="openQuickAdd('read')">✅ Mark as Read</button>`;
+        }
+
+        if (userBook.onTBR) {
+          html += `<button class="action-btn btn-greyed" disabled>🔖 On TBR List</button>`;
+        } else {
+          html += `<button class="action-btn btn-tbr" onclick="openQuickAdd('tbr')">🔖 To Be Read</button>`;
+        }
+
+        if (userBook.onWishlist) {
+          html += `<button class="action-btn btn-view" onclick="location.href='wishlist.html'">⭐ View on Wishlist</button>`;
+        } else {
+          html += `<button class="action-btn btn-wishlist" onclick="openQuickAdd('wishlist')">⭐ Add to Wishlist</button>`;
+        }
+      }
+
+      return html;
+    }
+
+    function renderMyNotes() {
+      const bookId = book.bookId || book.isbn13 || book.id;
+      if (!userBook?.onReadList && !userBook?.inLibrary) {
+        return `<p class="my-notes-prompt">
+          Add this book to your <a href="#" onclick="openQuickAdd('library');return false;">library</a>
+          or <a href="#" onclick="openQuickAdd('read');return false;">read list</a> to leave a personal note and rating.
+        </p>`;
+      }
+
+      const session = userBook?.readingSessions?.[0];
+      const existingRating = session?.rating || 0;
+      const existingReview = session?.review || "";
+      myRating = existingRating;
+
+      return `
+        <div class="write-review-section" style="margin-top:1rem;">
+          <p class="write-review-title">Your Rating & Review</p>
+          <div class="star-picker-row">
+            <span class="star-pick-label">Rating:</span>
+            ${WR.renderStarPicker("myStarPicker", existingRating, (val) => { myRating = val; })}
+          </div>
+          <textarea class="review-textarea" id="myReviewText" rows="4"
+                    placeholder="Share your thoughts about this book...">${WR.escapeHTML(existingReview)}</textarea>
+          <div class="review-submit-row">
+            <label class="publish-toggle">
+              <input type="checkbox" id="publishReview" ${session?.reviewPublished ? "checked" : ""}>
+              Share publicly on this book's page
+            </label>
+            <button class="submit-review-btn" onclick="saveMyReview()">Save Review</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderReviewsList(reviews) {
+      if (!reviews.length) {
+        return `<p class="no-reviews">No reviews yet. Be the first to share your thoughts!</p>`;
+      }
+
+      return reviews.map(r => {
+        const stars  = r.rating ? "★".repeat(r.rating) + "☆".repeat(5 - r.rating) : "";
+        const date   = WR.formatRelativeTime(r.createdAt);
+        const photo  = r.photoURL
+          ? `<img class="reviewer-photo" src="${WR.escapeHTML(r.photoURL)}" alt="${WR.escapeHTML(r.displayName || "")}">`
+          : `<div class="reviewer-placeholder">👤</div>`;
+        const clubTag = r.clubName
+          ? `<span class="review-club-tag">📖 ${WR.escapeHTML(r.clubName)}</span>`
+          : "";
+
+        return `
+          <div class="review-card">
+            <div class="review-header">
+              ${photo}
+              <a class="reviewer-name" href="profile.html?uid=${WR.escapeHTML(r.uid || "")}">
+                ${WR.escapeHTML(r.displayName || "Anonymous")}
+              </a>
+              <span class="review-date">${date}</span>
+            </div>
+            ${stars ? `<div class="review-stars">${stars}</div>` : ""}
+            <p class="review-text">${WR.escapeHTML(r.review || "")}</p>
+            ${clubTag}
+          </div>`;
+      }).join("");
+    }
+
+    // ── Toggle Sections ───────────────────────────────────────
+    function toggleSection(id, toggle) {
+      const body = document.getElementById(id + "-body");
+      if (!body) return;
+      const isOpen = body.classList.contains("open");
+      toggle.classList.toggle("open", !isOpen);
+      body.classList.toggle("open", !isOpen);
+    }
+
+    function toggleDesc() {
+      const text = document.getElementById("descText");
+      const btn  = document.getElementById("readMoreBtn");
+      descExpanded = !descExpanded;
+      text.classList.toggle("clamped", !descExpanded);
+      btn.textContent = descExpanded ? "← Show less" : "Read more →";
+    }
+
+    // ── Quick Add ─────────────────────────────────────────────
+    async function openQuickAdd(type) {
+      const bookId = book.bookId || book.isbn13 || book.id;
+
+      const flags = {
+        inLibrary:           type === "library",
+        onReadList:          type === "read",
+        onTBR:               type === "tbr",
+        onWishlist:          type === "wishlist",
+        tbrNeedsAcquisition: type === "tbr" && !userBook?.inLibrary
+      };
+
+      try {
+        await WR.addBookToUserCollection(book, flags);
+        userBook = await WR.getUserBook(bookId);
+
+        const labels = {
+          library: "Added to your library! 📚",
+          read:    "Added to your read list! ✅",
+          tbr:     "Added to your TBR list! 🔖",
+          wishlist:"Added to your wishlist! ⭐"
+        };
+
+        WR.showToast(labels[type] || "Added!", "success");
+
+        // Re-render action buttons
+        document.querySelector(".action-buttons").innerHTML = buildActionButtons();
+        // Re-render my notes section
+        const notesBody = document.getElementById("notes-body");
+        if (notesBody && notesBody.classList.contains("open")) {
+          notesBody.innerHTML = renderMyNotes();
+        }
+
+      } catch (e) {
+        console.error("Quick add error:", e);
+        WR.showToast("Something went wrong. Please try again.", "error");
+      }
+    }
+
+    // ── Save Review ───────────────────────────────────────────
+    async function saveMyReview() {
+      const user    = WR.getCurrentUser();
+      const bookId  = book.bookId || book.isbn13 || book.id;
+      const text    = document.getElementById("myReviewText")?.value.trim() || "";
+      const publish = document.getElementById("publishReview")?.checked || false;
+
+      if (!myRating && !text) {
+        WR.showToast("Add a rating or review before saving.", "error");
+        return;
+      }
+
+      try {
+        const db = WR.getDb();
+
+        // Update reading session in user's book doc
+        const userBookRef = db.collection("users").doc(user.uid).collection("books").doc(bookId);
+        const snap        = await userBookRef.get();
+        if (snap.exists) {
+          const data     = snap.data();
+          let sessions   = data.readingSessions || [];
+          if (sessions.length === 0) {
+            sessions = [{ sessionId: WR.generateId(), startDate: null, endDate: null,
+              completed: false, dnf: false, format: "read" }];
+          }
+          sessions[0].rating          = myRating || null;
+          sessions[0].review          = text || null;
+          sessions[0].reviewPublished = publish;
+          await userBookRef.update({ readingSessions: sessions, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+
+        // Write / update public review if published
+        if (publish && (myRating || text)) {
+          const profile = WR.getCurrentUser()._profile;
+          await db.collection("books").doc(bookId)
+            .collection("reviews").doc(user.uid)
+            .set({
+              uid:         user.uid,
+              displayName: profile?.displayName || "Anonymous",
+              photoURL:    profile?.photoURL    || null,
+              rating:      myRating || null,
+              review:      text || null,
+              clubId:      null,
+              clubName:    null,
+              reviewPublished: true,
+              createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+              updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+          // Recompute aggregate rating
+          await updateAggregateRating(bookId);
+          await loadReviews(bookId);
+          const publicReviews = allReviews.filter(r => !r.clubId || r.reviewPublished !== false);
+          const reviewsBody   = document.getElementById("reviews-body");
+          if (reviewsBody) reviewsBody.innerHTML = renderReviewsList(publicReviews);
+        }
+
+        WR.showToast("Review saved! 📖", "success");
+
+      } catch (e) {
+        console.error("Save review error:", e);
+        WR.showToast("Something went wrong saving your review.", "error");
+      }
+    }
+
+    async function updateAggregateRating(bookId) {
+      try {
+        const snap = await WR.getDb()
+          .collection("books").doc(bookId)
+          .collection("reviews")
+          .where("rating", ">", 0)
+          .get();
+        const ratings = snap.docs.map(d => d.data().rating).filter(Boolean);
+        if (!ratings.length) return;
+        const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+        await WR.getDb().collection("books").doc(bookId).update({
+          averageRating: Math.round(avg * 10) / 10,
+          ratingsCount:  ratings.length
+        });
+      } catch (e) {
+        console.error("Rating update error:", e);
+      }
+    }
+
+    // ── Not Found ─────────────────────────────────────────────
+    function showNotFound() {
+      document.getElementById("bookContent").innerHTML = `
+        <div class="not-found">
+          <span class="not-found-icon">📭</span>
+          <h2 class="not-found-title">Book not found</h2>
+          <p class="not-found-desc">We couldn't find that book in our database or the Google Books catalog.</p>
+          <button class="action-btn btn-library" onclick="location.href='search.html'">🔍 Search for a Book</button>
+        </div>`;
+    }
+
+    // ── Expose for HTML handlers ──────────────────────────────
+    window.toggleSection = toggleSection;
+    window.toggleDesc    = toggleDesc;
+    window.openQuickAdd  = openQuickAdd;
+    window.saveMyReview  = saveMyReview;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>
