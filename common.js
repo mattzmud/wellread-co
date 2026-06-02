@@ -143,6 +143,7 @@ function renderNav() {
   const page = location.pathname.split("/").pop() || "index.html";
 
   const navItems = [
+    { icon: "🏠", label: "Home",     href: "index.html"    },
     { icon: "📚", label: "Library",  href: "library.html"  },
     { icon: "🔍", label: "Discover", href: "search.html"   },
     { icon: "👥", label: "Clubs",    href: "clubs.html"    },
@@ -194,10 +195,6 @@ function renderNav() {
           <span class="wr-bell-badge wr-bell-badge-mobile" id="wrBellBadgeMobile" style="display:none;">0</span>
         </span>
         <span class="wr-tab-label">Alerts</span>
-      </button>
-      <button class="wr-tab-item" onclick="signOut()" aria-label="Sign out">
-        <span class="wr-tab-icon">🚪</span>
-        <span class="wr-tab-label">Sign Out</span>
       </button>
     </nav>
 
@@ -356,19 +353,24 @@ function getNavStyles() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
+      gap: 1px;
       text-decoration: none;
       background: none;
       border: none;
       cursor: pointer;
-      padding: 8px 4px;
+      padding: 6px 2px;
       position: relative;
+      min-width: 0;
     }
-    .wr-tab-icon { font-size: 20px; line-height: 1; }
+    .wr-tab-icon { font-size: 18px; line-height: 1; }
     .wr-tab-label {
       font-family: 'Nunito Sans', sans-serif;
-      font-size: 9px;
+      font-size: 8px;
       color: #BDB5CC;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .wr-tab-item.active .wr-tab-label { color: #C9A84C; }
 
@@ -668,7 +670,11 @@ function getNavStyles() {
     @media (max-width: 768px) {
       .wr-nav { display: none; }
       .wr-nav-spacer { height: 0; }
-      .wr-tab-bar { display: flex; }
+      .wr-tab-bar { display: flex; z-index: 950; }
+      .wr-notif-overlay {
+        bottom: 64px; /* don't cover tab bar */
+        z-index: 940;
+      }
       .wr-notif-tray {
         top: auto;
         bottom: 64px;
@@ -677,6 +683,7 @@ function getNavStyles() {
         border-radius: 16px 16px 0 0;
         max-height: 70vh;
         transform: translateY(110%);
+        z-index: 945;
       }
       .wr-notif-tray.open { transform: translateY(0); }
       .wr-modal-footer { flex-direction: column; }
