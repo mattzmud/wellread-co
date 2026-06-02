@@ -1202,7 +1202,7 @@
             </div>
             ${alreadyMember
               ? `<span class="friend-result-invited">Already a member</span>`
-              : `<button class="friend-result-invite" onclick="inviteFriend('${f.uid}','${WR.escapeHTML(f.displayName||"")}',this)">Invite</button>`}
+              : `<button class="friend-result-invite" id="invite-btn-${f.uid}" onclick="inviteFriend('${f.uid}','${WR.escapeHTML(f.displayName||"")}')">Invite</button>`}
           </div>`;
       }).join("");
     }
@@ -1210,10 +1210,15 @@
     // Track pending invites: uid → { inviteId, notifId }
     const pendingInvites = {};
 
-    async function inviteFriend(uid, name, btn) {
+    async function inviteFriend(uid, name) {
+      const btn = document.getElementById(`invite-btn-${uid}`);
+      if (!btn) return;
+
       btn.textContent   = "Sending...";
       btn.disabled      = true;
       btn.style.opacity = "0.6";
+      btn.removeAttribute("onclick");
+
       try {
         // Create invite doc and capture its ID
         const inviteRef = await WR.getDb()
@@ -1249,7 +1254,7 @@
         btn.style.border     = "1.5px solid var(--border)";
         btn.style.opacity    = "1";
         btn.disabled         = false;
-        btn.onclick          = () => cancelInvite(uid, name, btn);
+        btn.setAttribute("onclick", `cancelInvite('${uid}','${WR.escapeHTML(name)}')`);
 
         WR.showToast(`Invite sent to ${name}!`, "success");
 
@@ -1271,28 +1276,30 @@
         }
       } catch (e) {
         console.error("Invite error:", e);
-        btn.textContent   = "Error";
+        btn.textContent   = "Invite";
         btn.style.opacity = "1";
         btn.disabled      = false;
+        btn.setAttribute("onclick", `inviteFriend('${uid}','${WR.escapeHTML(name)}')`);
         WR.showToast("Error sending invite.", "error");
       }
     }
 
-    async function cancelInvite(uid, name, btn) {
-      btn.textContent   = "Cancelling...";
-      btn.disabled      = true;
-      btn.style.opacity = "0.6";
+    async function cancelInvite(uid, name) {
+      const btn = document.getElementById(`invite-btn-${uid}`);
+      if (btn) {
+        btn.textContent   = "Cancelling...";
+        btn.disabled      = true;
+        btn.style.opacity = "0.6";
+        btn.removeAttribute("onclick");
+      }
 
       const invite = pendingInvites[uid];
       try {
-        // Delete the invite document
         if (invite?.inviteId) {
           await WR.getDb()
             .collection("clubs").doc(clubId)
             .collection("invites").doc(invite.inviteId).delete();
         }
-
-        // Dismiss the notification
         if (invite?.notifId) {
           await WR.getDb()
             .collection("notifications").doc(uid)
@@ -1302,21 +1309,25 @@
 
         delete pendingInvites[uid];
 
-        // Switch back to Invite button
-        btn.textContent      = "Invite";
-        btn.style.background = "var(--amethyst)";
-        btn.style.color      = "#FAF6EE";
-        btn.style.border     = "none";
-        btn.style.opacity    = "1";
-        btn.disabled         = false;
-        btn.onclick          = () => inviteFriend(uid, name, btn);
+        if (btn) {
+          btn.textContent      = "Invite";
+          btn.style.background = "var(--amethyst)";
+          btn.style.color      = "#FAF6EE";
+          btn.style.border     = "none";
+          btn.style.opacity    = "1";
+          btn.disabled         = false;
+          btn.setAttribute("onclick", `inviteFriend('${uid}','${WR.escapeHTML(name)}')`);
+        }
 
         WR.showToast(`Invite to ${name} cancelled.`);
       } catch (e) {
         console.error("Cancel invite error:", e);
-        btn.textContent   = "Cancel Invite";
-        btn.style.opacity = "1";
-        btn.disabled      = false;
+        if (btn) {
+          btn.textContent   = "Cancel Invite";
+          btn.style.opacity = "1";
+          btn.disabled      = false;
+          btn.setAttribute("onclick", `cancelInvite('${uid}','${WR.escapeHTML(name)}')`);
+        }
         WR.showToast("Error cancelling invite.", "error");
       }
     }
