@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — My Clubs</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+    html, body { min-height: 100%; font-family: 'Nunito Sans', sans-serif; background: var(--lavender-mist); color: var(--deep-plum); }
+
+    .page-wrap { max-width: 860px; margin: 0 auto; padding: 2rem 1.25rem 6rem; }
+
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
+    .page-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; color: var(--deep-plum); margin-bottom: 0.25rem; }
+    .page-subtitle { font-size: 14px; color: var(--terracotta); }
+
+    .new-club-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 11px 20px; border-radius: 8px; border: none;
+      background: var(--amethyst); color: #FAF6EE;
+      cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .new-club-btn:hover { opacity: 0.85; }
+
+    /* ── Club Cards ── */
+    .clubs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+    .club-card {
+      background: #fff; border-radius: 16px; border: 1px solid var(--border);
+      overflow: hidden; text-decoration: none; color: inherit;
+      transition: box-shadow 0.2s, transform 0.15s; display: flex; flex-direction: column;
+    }
+    .club-card:hover { box-shadow: 0 6px 24px rgba(45,27,78,0.12); transform: translateY(-3px); }
+
+    .club-card-header {
+      height: 80px; background: linear-gradient(135deg, var(--faded-moss), #6BA090);
+      position: relative; overflow: hidden;
+    }
+    .club-card-header-img { width: 100%; height: 100%; object-fit: cover; }
+    .club-admin-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+      background: var(--warm-gold); color: #FAF6EE;
+    }
+
+    .club-card-body { padding: 1rem; flex: 1; }
+    .club-card-name { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--deep-plum); margin-bottom: 4px; }
+    .club-card-meta { font-size: 12px; color: var(--terracotta); margin-bottom: 10px; }
+
+    .club-current-read {
+      background: var(--lavender-mist); border-radius: 8px; padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .club-read-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warm-gold); flex-shrink: 0; }
+    .club-read-text { font-size: 12px; color: var(--deep-plum); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+    .club-next-event { font-size: 12px; color: var(--terracotta); display: flex; align-items: center; gap: 6px; }
+
+    /* ── Empty ── */
+    .empty-state { text-align: center; padding: 4rem 2rem; }
+    .empty-icon  { font-size: 56px; margin-bottom: 1rem; display: block; }
+    .empty-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .empty-desc  { font-size: 14px; color: var(--terracotta); margin-bottom: 1.5rem; line-height: 1.6; }
+
+    /* ── Skeleton ── */
+    .skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .skeleton-card { background: #fff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+    .skeleton-header { height: 80px; background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    .skeleton-body   { padding: 1rem; display: flex; flex-direction: column; gap: 10px; }
+    .skeleton-line   { height: 12px; border-radius: 6px; background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Create Club Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(45,27,78,0.45); z-index: 500;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    @media (min-width: 640px) { .modal-overlay { align-items: center; } }
+
+    .create-modal {
+      background: var(--aged-paper); border-radius: 20px 20px 0 0;
+      padding: 1.75rem; width: 100%; max-width: 540px;
+      max-height: 92vh; overflow-y: auto;
+      box-shadow: 0 -4px 32px rgba(45,27,78,0.18);
+    }
+    @media (min-width: 640px) { .create-modal { border-radius: 20px; max-height: 88vh; } }
+
+    .modal-drag { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 1.25rem; }
+    @media (min-width: 640px) { .modal-drag { display: none; } }
+
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--deep-plum); margin-bottom: 0.25rem; }
+    .modal-desc  { font-size: 13px; color: var(--terracotta); margin-bottom: 1.5rem; }
+
+    .form-group { margin-bottom: 1.1rem; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .label-opt { font-weight: 400; text-transform: none; letter-spacing: 0; color: #BDB5CC; margin-left: 4px; font-size: 10px; }
+
+    input[type="text"], select, textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: #fff; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--amethyst); box-shadow: 0 0 0 3px rgba(123,94,167,0.12);
+    }
+    textarea { resize: none; }
+
+    .freq-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.5rem; }
+
+    .modal-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 11px 22px; border-radius: 8px; border: none; cursor: pointer; transition: opacity 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .modal-btn:hover { opacity: 0.85; }
+    .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-cancel  { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+    .btn-create  { background: var(--amethyst); color: #FAF6EE; }
+
+    .btn-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .modal-btn.loading .btn-spinner { display: block; }
+    .modal-btn.loading .btn-label  { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner { background: #FDECEC; border: 1px solid #F5C6C6; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #922B21; margin-bottom: 1rem; display: none; }
+    .error-banner.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">👥 My Book Clubs</h1>
+        <p class="page-subtitle" id="clubsSubtitle">Your reading communities</p>
+      </div>
+      <button class="new-club-btn" onclick="openCreateModal()">+ Start a New Club</button>
+    </div>
+
+    <div id="clubsArea">
+      <div class="skeleton-grid">
+        <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:60%;height:18px;"></div><div class="skeleton-line" style="width:40%"></div><div class="skeleton-line" style="width:80%"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:70%;height:18px;"></div><div class="skeleton-line" style="width:35%"></div><div class="skeleton-line" style="width:75%"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-header"></div><div class="skeleton-body"><div class="skeleton-line" style="width:55%;height:18px;"></div><div class="skeleton-line" style="width:45%"></div><div class="skeleton-line" style="width:70%"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Club Modal -->
+  <div class="modal-overlay" id="createModal" onclick="handleOverlayClick(event)">
+    <div class="create-modal">
+      <div class="modal-drag"></div>
+      <h2 class="modal-title">Start a New Book Club</h2>
+      <p class="modal-desc">Fill in the details below. You can add members, set your current read, and upload a header image after creating the club.</p>
+
+      <div class="error-banner" id="createError"></div>
+
+      <div class="form-group">
+        <label for="clubName">Club Name</label>
+        <input type="text" id="clubName" placeholder="e.g. The Midnight Readers" maxlength="60">
+      </div>
+
+      <div class="form-group">
+        <label for="clubDetails">Club Details <span class="label-opt">(optional)</span></label>
+        <textarea id="clubDetails" rows="4"
+          placeholder="Describe your club — meeting schedule, what you read, contact info, social links..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Reading Session Frequency</label>
+        <div class="freq-row">
+          <select id="sessionFreq">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+          </select>
+          <select id="sessionPeriod" id="sessionPeriod"></select>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeCreateModal()">Cancel</button>
+        <button class="modal-btn btn-create" id="createBtn" onclick="createClub()">
+          <div class="btn-spinner"></div>
+          <span class="btn-label">Create Club</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    let myClubs = [];
+
+    WR.initAuth(async (user) => {
+      if (!user) return;
+      await loadClubs();
+      populateSessionPeriod();
+      document.getElementById("sessionFreq").addEventListener("change", populateSessionPeriod);
+    });
+
+    async function loadClubs() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs")
+          .where("memberUids", "array-contains", user.uid)
+          .get();
+        myClubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderClubs();
+      } catch (e) {
+        console.error("Clubs load error:", e);
+        WR.showToast("Error loading clubs.", "error");
+      }
+    }
+
+    function renderClubs() {
+      const area = document.getElementById("clubsArea");
+      document.getElementById("clubsSubtitle").textContent =
+        myClubs.length
+          ? `${myClubs.length} club${myClubs.length === 1 ? "" : "s"}`
+          : "Your reading communities";
+
+      if (!myClubs.length) {
+        area.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">👥</span>
+            <h2 class="empty-title">No clubs yet</h2>
+            <p class="empty-desc">Start your own book club or ask a friend to invite you to theirs.</p>
+          </div>`;
+        return;
+      }
+
+      const user = WR.getCurrentUser();
+      area.innerHTML = `<div class="clubs-grid">${myClubs.map(c => buildClubCard(c, user.uid)).join("")}</div>`;
+    }
+
+    function buildClubCard(club, currentUid) {
+      const isAdmin   = club.adminUids?.includes(currentUid);
+      const members   = club.memberUids?.length || 0;
+      const headerStyle = club.headerImageURL
+        ? `style="background:none;"`
+        : "";
+      const headerImg = club.headerImageURL
+        ? `<img class="club-card-header-img" src="${WR.escapeHTML(club.headerImageURL)}" alt="">`
+        : "";
+
+      const currentRead = club.currentRead?.title
+        ? `<div class="club-current-read">
+             <div class="club-read-dot"></div>
+             <span class="club-read-text">${WR.escapeHTML(club.currentRead.session || "Current")}: <strong>${WR.escapeHTML(club.currentRead.title)}</strong></span>
+           </div>`
+        : "";
+
+      return `
+        <a class="club-card" href="club.html?id=${club.id}">
+          <div class="club-card-header" ${headerStyle}>
+            ${headerImg}
+            ${isAdmin ? `<span class="club-admin-badge">Admin</span>` : ""}
+          </div>
+          <div class="club-card-body">
+            <div class="club-card-name">${WR.escapeHTML(club.name || "")}</div>
+            <div class="club-card-meta">${members} member${members === 1 ? "" : "s"} · ${club.sessionFrequency === "quarterly" ? "Quarterly" : "Monthly"} reads</div>
+            ${currentRead}
+          </div>
+        </a>`;
+    }
+
+    // ── Session Period Dropdown ────────────────────────────────
+    function populateSessionPeriod() {
+      const freq   = document.getElementById("sessionFreq").value;
+      const select = document.getElementById("sessionPeriod");
+      const now    = new Date();
+      select.innerHTML = "";
+
+      if (freq === "monthly") {
+        for (let i = 0; i < 12; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+          const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+          const value = `${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
+          const opt   = document.createElement("option");
+          opt.value   = value;
+          opt.textContent = label;
+          select.appendChild(opt);
+        }
+      } else {
+        const quarter = Math.floor(now.getMonth() / 3);
+        for (let i = 0; i < 6; i++) {
+          const q    = ((quarter + i) % 4) + 1;
+          const yr   = now.getFullYear() + Math.floor((quarter + i) / 4);
+          const val  = `Q${q} ${yr}`;
+          const opt  = document.createElement("option");
+          opt.value  = val;
+          opt.textContent = val;
+          select.appendChild(opt);
+        }
+      }
+    }
+
+    // ── Create Modal ──────────────────────────────────────────
+    function openCreateModal() {
+      document.getElementById("createModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+      document.getElementById("clubName").focus();
+    }
+
+    function closeCreateModal() {
+      document.getElementById("createModal").classList.remove("open");
+      document.body.style.overflow = "";
+      document.getElementById("createError").classList.remove("show");
+      document.getElementById("clubName").value    = "";
+      document.getElementById("clubDetails").value = "";
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById("createModal")) closeCreateModal();
+    }
+
+    async function createClub() {
+      const user    = WR.getCurrentUser();
+      const name    = document.getElementById("clubName").value.trim();
+      const details = document.getElementById("clubDetails").value.trim();
+      const freq    = document.getElementById("sessionFreq").value;
+      const session = document.getElementById("sessionPeriod").value;
+      const errEl   = document.getElementById("createError");
+      const btn     = document.getElementById("createBtn");
+
+      errEl.classList.remove("show");
+
+      if (!name) {
+        errEl.textContent = "Please enter a club name.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        const profile = user._profile;
+        const clubRef = WR.getDb().collection("clubs").doc();
+
+        await clubRef.set({
+          clubId:           clubRef.id,
+          name,
+          details:          details || null,
+          headerImageURL:   null,
+          createdByUid:     user.uid,
+          adminUids:        [user.uid],
+          memberUids:       [user.uid],
+          sessionFrequency: freq,
+          currentRead:      null,
+          pastReads:        [],
+          createdAt:        firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt:        firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Add creator as member doc
+        await clubRef.collection("members").doc(user.uid).set({
+          uid:         user.uid,
+          displayName: profile?.displayName || "",
+          photoURL:    profile?.photoURL    || null,
+          role:        "admin",
+          status:      "active",
+          joinedAt:    firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        closeCreateModal();
+        WR.showToast("Club created! 🎉", "success");
+        setTimeout(() => { location.href = `club.html?id=${clubRef.id}`; }, 600);
+      } catch (e) {
+        console.error("Create club error:", e);
+        errEl.textContent = "Something went wrong. Please try again.";
+        errEl.classList.add("show");
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    window.openCreateModal  = openCreateModal;
+    window.closeCreateModal = closeCreateModal;
+    window.handleOverlayClick = handleOverlayClick;
+    window.createClub       = createClub;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+  </script>
+</body>
+</html>

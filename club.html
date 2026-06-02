@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Book Club</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+    html, body { min-height: 100%; font-family: 'Nunito Sans', sans-serif; background: var(--lavender-mist); color: var(--deep-plum); }
+
+    .page-wrap { max-width: 860px; margin: 0 auto; padding: 0 0 6rem; }
+
+    /* ── Header Image ── */
+    .club-header-img {
+      width: 100%; height: 200px; object-fit: cover;
+      display: block; background: linear-gradient(135deg, var(--faded-moss), #4A8070);
+    }
+    .club-header-placeholder { width: 100%; height: 200px; background: linear-gradient(135deg, var(--faded-moss), #4A8070); }
+
+    /* ── Club Info Panel ── */
+    .club-info-panel {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 1.5rem 1.25rem 1.25rem;
+    }
+    .club-info-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .club-name { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; color: var(--deep-plum); margin-bottom: 4px; }
+    .club-meta { font-size: 13px; color: var(--terracotta); }
+    .admin-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .action-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 13px; font-weight: 600;
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      transition: opacity 0.15s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .action-btn:hover { opacity: 0.85; }
+    .btn-primary  { background: var(--amethyst); color: #FAF6EE; }
+    .btn-moss     { background: var(--faded-moss); color: #1A3D2E; }
+    .btn-gold     { background: var(--warm-gold); color: #FAF6EE; }
+    .btn-outline  { background: transparent; color: var(--amethyst); border: 1.5px solid var(--amethyst); }
+    .btn-danger   { background: transparent; color: #922B21; border: 1.5px solid #F5C6C6; }
+
+    /* Header image upload (admin only) */
+    .header-upload-btn {
+      position: absolute; bottom: 10px; right: 10px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 12px; font-weight: 600;
+      padding: 6px 12px; border-radius: 6px; border: none;
+      background: rgba(45,27,78,0.7); color: #fff; cursor: pointer; display: none;
+    }
+    .club-header-wrap { position: relative; }
+    .club-header-wrap:hover .header-upload-btn { display: block; }
+
+    /* ── Current Read ── */
+    .current-read-bar {
+      background: var(--deep-plum); padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .cr-cover { width: 48px; height: 68px; object-fit: cover; border-radius: 4px; box-shadow: 2px 2px 8px rgba(0,0,0,0.3); flex-shrink: 0; }
+    .cr-cover-placeholder { width: 48px; height: 68px; border-radius: 4px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .cr-info { flex: 1; min-width: 0; }
+    .cr-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--warm-gold); margin-bottom: 3px; }
+    .cr-title  { font-family: 'Playfair Display', serif; font-size: 16px; color: #F7F3FF; }
+    .cr-author { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .set-read-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 12px; font-weight: 600;
+      padding: 7px 14px; border-radius: 7px; border: 1.5px solid rgba(255,255,255,0.3);
+      background: transparent; color: #F7F3FF; cursor: pointer; white-space: nowrap; transition: background 0.15s;
+    }
+    .set-read-btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Main Body ── */
+    .club-body { padding: 1.25rem; display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem; }
+    @media (max-width: 700px) { .club-body { grid-template-columns: 1fr; } }
+
+    /* ── Section Card ── */
+    .section-card { background: #fff; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 1.25rem; overflow: hidden; }
+    .section-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .section-title { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--deep-plum); }
+    .section-body  { padding: 1.25rem; }
+    .section-body-tight { padding: 0.75rem 1.25rem; }
+
+    /* ── Message Wall ── */
+    .post-composer {
+      background: var(--lavender-mist); border-radius: 10px; padding: 0.875rem;
+      margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .composer-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .composer-avatar-ph { width: 36px; height: 36px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .composer-input {
+      flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: #fff; outline: none; resize: none; transition: border-color 0.2s;
+      min-height: 44px;
+    }
+    .composer-input:focus { border-color: var(--amethyst); }
+    .composer-post-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 13px; font-weight: 600;
+      padding: 8px 16px; border-radius: 8px; border: none; background: var(--amethyst);
+      color: #FAF6EE; cursor: pointer; transition: opacity 0.15s; align-self: flex-end;
+    }
+    .composer-post-btn:hover { opacity: 0.85; }
+    .composer-post-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .posts-list { display: flex; flex-direction: column; gap: 1rem; }
+
+    .post-card { background: var(--lavender-mist); border-radius: 12px; padding: 1rem; }
+    .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem; }
+    .post-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    .post-avatar-ph { width: 36px; height: 36px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .post-author { font-size: 14px; font-weight: 600; color: var(--deep-plum); text-decoration: none; }
+    .post-author:hover { color: var(--amethyst); }
+    .post-time   { font-size: 11px; color: #BDB5CC; margin-left: auto; }
+    .post-text   { font-size: 14px; color: var(--deep-plum); line-height: 1.6; margin-bottom: 0.75rem; }
+    .post-img    { width: 100%; border-radius: 8px; margin-bottom: 0.75rem; max-height: 300px; object-fit: cover; }
+
+    .post-reactions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.75rem; }
+    .reaction-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 13px; padding: 4px 10px; border-radius: 20px;
+      border: 1.5px solid var(--border); background: #fff; cursor: pointer;
+      transition: all 0.15s; font-family: 'Nunito Sans', sans-serif;
+    }
+    .reaction-btn:hover { border-color: var(--amethyst); }
+    .reaction-btn.reacted { background: #EDE4F7; border-color: var(--amethyst); }
+    .reaction-count { font-size: 12px; color: var(--terracotta); font-weight: 600; }
+    .add-reaction-btn {
+      font-size: 16px; padding: 4px 8px; border-radius: 20px;
+      border: 1.5px solid var(--border); background: #fff; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .add-reaction-btn:hover { background: var(--lavender-mist); }
+
+    .reaction-picker {
+      position: relative; display: inline-block;
+    }
+    .reaction-picker-dropdown {
+      position: absolute; bottom: 36px; left: 0;
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 6px; display: none; gap: 4px; box-shadow: 0 4px 16px rgba(45,27,78,0.12);
+      z-index: 10;
+    }
+    .reaction-picker-dropdown.open { display: flex; }
+    .reaction-emoji-btn { font-size: 20px; padding: 4px; border-radius: 6px; border: none; background: none; cursor: pointer; transition: background 0.1s; }
+    .reaction-emoji-btn:hover { background: var(--lavender-mist); }
+
+    .comments-toggle { font-size: 12px; color: var(--amethyst); background: none; border: none; cursor: pointer; font-family: 'Nunito Sans', sans-serif; font-weight: 600; padding: 0; }
+    .comments-toggle:hover { text-decoration: underline; }
+
+    .comments-section { margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.75rem; display: none; }
+    .comments-section.open { display: block; }
+
+    .comment-item { display: flex; gap: 8px; margin-bottom: 8px; }
+    .comment-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .comment-avatar-ph { width: 28px; height: 28px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+    .comment-bubble { background: #fff; border-radius: 8px; padding: 8px 10px; flex: 1; }
+    .comment-author { font-size: 12px; font-weight: 600; color: var(--deep-plum); margin-bottom: 2px; }
+    .comment-text   { font-size: 13px; color: var(--deep-plum); line-height: 1.5; }
+
+    .comment-input-row { display: flex; gap: 8px; margin-top: 8px; }
+    .comment-input {
+      flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 13px; color: var(--deep-plum);
+      background: #fff; outline: none;
+    }
+    .comment-input:focus { border-color: var(--amethyst); }
+    .comment-send-btn {
+      padding: 8px 14px; border-radius: 8px; border: none; background: var(--amethyst);
+      color: #FAF6EE; font-family: 'Nunito Sans', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+    }
+
+    .posts-empty { text-align: center; padding: 2rem; font-size: 14px; color: var(--terracotta); }
+
+    /* ── Events ── */
+    .event-item { padding: 0.875rem 0; border-bottom: 1px solid var(--border); }
+    .event-item:last-child { border-bottom: none; }
+    .event-row { display: flex; align-items: flex-start; gap: 12px; }
+    .event-date-box { background: var(--deep-plum); border-radius: 8px; padding: 6px 10px; text-align: center; flex-shrink: 0; min-width: 48px; }
+    .event-month { font-size: 9px; font-weight: 600; color: var(--warm-gold); text-transform: uppercase; letter-spacing: 0.06em; }
+    .event-day   { font-family: 'Playfair Display', serif; font-size: 18px; color: #F7F3FF; line-height: 1; }
+    .event-info  { flex: 1; min-width: 0; }
+    .event-name  { font-size: 14px; font-weight: 600; color: var(--deep-plum); margin-bottom: 2px; }
+    .event-detail { font-size: 12px; color: var(--terracotta); margin-bottom: 4px; }
+    .event-desc  { font-size: 12px; color: #BDB5CC; margin-bottom: 6px; }
+
+    .rsvp-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .rsvp-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 6px; border: 1.5px solid var(--border);
+      background: #fff; cursor: pointer; transition: all 0.15s;
+    }
+    .rsvp-btn:hover { border-color: var(--amethyst); }
+    .rsvp-btn.rsvp-yes   { background: #DCF0E8; border-color: #9DC4B0; color: #2E6B50; }
+    .rsvp-btn.rsvp-no    { background: #FCE8E8; border-color: #F5C6C6; color: #8B2020; }
+    .rsvp-btn.rsvp-maybe { background: #FEF3CD; border-color: #E8D88A; color: #8B6914; }
+
+    .event-past { opacity: 0.55; }
+
+    /* ── Members ── */
+    .members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px; }
+    .member-item { text-align: center; text-decoration: none; color: inherit; }
+    .member-photo { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; margin: 0 auto 5px; display: block; border: 2px solid var(--border); }
+    .member-photo-ph { width: 52px; height: 52px; border-radius: 50%; background: var(--lavender-mist); margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid var(--border); }
+    .member-name { font-size: 10px; color: var(--deep-plum); line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .member-admin-tag { font-size: 9px; color: var(--warm-gold); font-weight: 600; }
+
+    /* ── Past Reads ── */
+    .past-reads-list { display: flex; flex-direction: column; gap: 8px; }
+    .past-read-item { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 8px; text-decoration: none; color: inherit; transition: background 0.15s; }
+    .past-read-item:hover { background: var(--lavender-mist); }
+    .past-cover { width: 36px; height: 52px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+    .past-cover-ph { width: 36px; height: 52px; border-radius: 3px; background: linear-gradient(135deg, var(--amethyst), #4A2D7A); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .past-info { flex: 1; min-width: 0; }
+    .past-title  { font-size: 13px; font-weight: 600; color: var(--deep-plum); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .past-session { font-size: 11px; color: var(--terracotta); }
+
+    /* ── Sidebar ── */
+    .sidebar { }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(45,27,78,0.45); z-index: 500;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    @media (min-width: 640px) { .modal-overlay { align-items: center; } }
+
+    .modal {
+      background: var(--aged-paper); border-radius: 20px 20px 0 0; padding: 1.75rem;
+      width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 -4px 32px rgba(45,27,78,0.18);
+    }
+    @media (min-width: 640px) { .modal { border-radius: 20px; } }
+
+    .modal-drag { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 1.25rem; }
+    @media (min-width: 640px) { .modal-drag { display: none; } }
+
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--deep-plum); margin-bottom: 0.25rem; }
+    .modal-desc  { font-size: 13px; color: var(--terracotta); margin-bottom: 1.25rem; }
+
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .label-opt { font-weight: 400; text-transform: none; letter-spacing: 0; color: #BDB5CC; margin-left: 4px; font-size: 10px; }
+
+    input[type="text"], input[type="date"], input[type="time"], select, textarea {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: #fff; outline: none; transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--amethyst); }
+    textarea { resize: none; }
+
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.25rem; }
+    .modal-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; transition: opacity 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .modal-btn:hover { opacity: 0.85; }
+    .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-cancel { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+    .btn-save   { background: var(--amethyst); color: #FAF6EE; }
+    .btn-moss   { background: var(--faded-moss); color: #1A3D2E; }
+
+    .btn-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .modal-btn.loading .btn-spinner { display: block; }
+    .modal-btn.loading .btn-label  { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner { background: #FDECEC; border: 1px solid #F5C6C6; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #922B21; margin-bottom: 1rem; display: none; }
+    .error-banner.show { display: block; }
+
+    /* ── Invite ── */
+    .invite-search-input {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: #fff; outline: none; margin-bottom: 0.75rem;
+    }
+    .invite-search-input:focus { border-color: var(--amethyst); }
+    .friend-result { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+    .friend-result:hover { background: var(--lavender-mist); }
+    .friend-result-photo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .friend-result-ph    { width: 36px; height: 36px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .friend-result-name  { font-size: 14px; font-weight: 600; color: var(--deep-plum); }
+    .friend-result-invite { margin-left: auto; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 6px; border: none; background: var(--amethyst); color: #FAF6EE; cursor: pointer; }
+    .friend-result-invited { margin-left: auto; font-size: 12px; color: var(--faded-moss); font-weight: 600; }
+
+    /* Skeleton */
+    .skeleton-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .not-found { text-align: center; padding: 4rem 2rem; }
+    .not-found-icon { font-size: 52px; display: block; margin-bottom: 1rem; }
+    .not-found-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .not-found-desc  { font-size: 14px; color: var(--terracotta); }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap" id="pageWrap">
+    <!-- Skeleton -->
+    <div class="club-header-placeholder"></div>
+    <div style="background:#fff;padding:1.5rem 1.25rem;">
+      <div class="skeleton-line" style="width:50%;height:24px;margin-bottom:10px;"></div>
+      <div class="skeleton-line" style="width:30%"></div>
+    </div>
+  </div>
+
+  <!-- ── Event Modal ── -->
+  <div class="modal-overlay" id="eventModal" onclick="handleModalOverlay('eventModal',event)">
+    <div class="modal">
+      <div class="modal-drag"></div>
+      <h2 class="modal-title" id="eventModalTitle">Add Club Event</h2>
+      <p class="modal-desc">Events are visible to all club members and they'll be notified.</p>
+      <div class="error-banner" id="eventError"></div>
+      <div class="form-group">
+        <label for="evName">Event Name</label>
+        <input type="text" id="evName" placeholder="e.g. Monthly Book Discussion" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label for="evDate">Date</label>
+        <input type="date" id="evDate">
+      </div>
+      <div class="form-group">
+        <label>Time</label>
+        <div class="time-row">
+          <div><label style="text-transform:none;letter-spacing:0;font-size:11px;">Start</label><input type="time" id="evStart"></div>
+          <div><label style="text-transform:none;letter-spacing:0;font-size:11px;">End</label><input type="time" id="evEnd"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="evLocation">Location <span class="label-opt">(optional)</span></label>
+        <input type="text" id="evLocation" placeholder="Address or video link" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label for="evDesc">Description <span class="label-opt">(optional)</span></label>
+        <textarea id="evDesc" rows="3" placeholder="Bring a dish to pass, come with book ideas..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeModal('eventModal')">Cancel</button>
+        <button class="modal-btn btn-save" id="eventSaveBtn" onclick="saveEvent()">
+          <div class="btn-spinner"></div>
+          <span class="btn-label">Save Event</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Set Current Read Modal ── -->
+  <div class="modal-overlay" id="readModal" onclick="handleModalOverlay('readModal',event)">
+    <div class="modal">
+      <div class="modal-drag"></div>
+      <h2 class="modal-title">Set Current Read</h2>
+      <p class="modal-desc">Search for the book your club is reading now.</p>
+      <div class="error-banner" id="readError"></div>
+      <div class="form-group">
+        <label for="readSearch">Search for a Book</label>
+        <input type="text" id="readSearch" placeholder="Title or author..." oninput="onReadSearch(this.value)">
+      </div>
+      <div id="readSearchResults" style="margin-bottom:1rem;"></div>
+      <div id="selectedReadPreview" style="display:none;background:var(--lavender-mist);border-radius:10px;padding:10px;margin-bottom:1rem;"></div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeModal('readModal')">Cancel</button>
+        <button class="modal-btn btn-moss" id="readSaveBtn" onclick="saveCurrentRead()" disabled>
+          <div class="btn-spinner"></div>
+          <span class="btn-label">Set as Current Read</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Invite Members Modal ── -->
+  <div class="modal-overlay" id="inviteModal" onclick="handleModalOverlay('inviteModal',event)">
+    <div class="modal">
+      <div class="modal-drag"></div>
+      <h2 class="modal-title">Invite Members</h2>
+      <p class="modal-desc">Search your friends to invite them to the club.</p>
+      <input type="text" class="invite-search-input" id="inviteSearch"
+             placeholder="Search friends by name..." oninput="searchFriends(this.value)">
+      <div id="friendResults"></div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeModal('inviteModal')">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Edit Club Modal ── -->
+  <div class="modal-overlay" id="editModal" onclick="handleModalOverlay('editModal',event)">
+    <div class="modal">
+      <div class="modal-drag"></div>
+      <h2 class="modal-title">Edit Club</h2>
+      <div class="error-banner" id="editError"></div>
+      <div class="form-group">
+        <label for="editName">Club Name</label>
+        <input type="text" id="editName" maxlength="60">
+      </div>
+      <div class="form-group">
+        <label for="editDetails">Club Details <span class="label-opt">(optional)</span></label>
+        <textarea id="editDetails" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="editFreq">Session Frequency</label>
+        <select id="editFreq">
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+        <button class="modal-btn btn-save" id="editSaveBtn" onclick="saveClubEdit()">
+          <div class="btn-spinner"></div>
+          <span class="btn-label">Save Changes</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let club        = null;
+    let clubId      = null;
+    let members     = [];
+    let events      = [];
+    let posts       = [];
+    let myFriends   = [];
+    let isAdmin     = false;
+    let isMember    = false;
+    let selectedRead = null;
+    let postsUnsub  = null;
+    let readSearchTimeout = null;
+
+    const REACTIONS = ["❤️","😂","😮","👍","😢","😡"];
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+      const params = new URLSearchParams(location.search);
+      clubId = params.get("id");
+      if (!clubId) { showNotFound(); return; }
+
+      await Promise.all([
+        loadClub(),
+        loadMembers(),
+        loadEvents()
+      ]);
+
+      if (!club) { showNotFound(); return; }
+
+      const uid = user.uid;
+      isAdmin  = club.adminUids?.includes(uid);
+      isMember = club.memberUids?.includes(uid);
+
+      document.title = `${club.name} — WellRead Co.`;
+      renderPage();
+      startPostsListener();
+    });
+
+    // ── Loaders ───────────────────────────────────────────────
+    async function loadClub() {
+      try {
+        const snap = await WR.getDb().collection("clubs").doc(clubId).get();
+        if (snap.exists) club = { id: snap.id, ...snap.data() };
+      } catch (e) { console.error("Club load error:", e); }
+    }
+
+    async function loadMembers() {
+      try {
+        const snap = await WR.getDb().collection("clubs").doc(clubId).collection("members").get();
+        members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.error("Members load error:", e); }
+    }
+
+    async function loadEvents() {
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("events")
+          .orderBy("date", "desc")
+          .get();
+        events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.error("Events load error:", e); }
+    }
+
+    function startPostsListener() {
+      if (postsUnsub) postsUnsub();
+      postsUnsub = WR.getDb()
+        .collection("clubs").doc(clubId)
+        .collection("posts")
+        .orderBy("createdAt", "desc")
+        .limit(30)
+        .onSnapshot(snap => {
+          posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderPosts();
+        }, e => console.error("Posts listener error:", e));
+    }
+
+    // ── Render Page ───────────────────────────────────────────
+    function renderPage() {
+      const wrap = document.getElementById("pageWrap");
+      const uid  = WR.getCurrentUser().uid;
+      const now  = new Date().toISOString().split("T")[0];
+
+      const upcomingEvents = events.filter(e => e.date >= now).reverse();
+      const pastEvents     = events.filter(e => e.date < now);
+
+      wrap.innerHTML = `
+        <!-- Header Image -->
+        <div class="club-header-wrap">
+          ${club.headerImageURL
+            ? `<img class="club-header-img" src="${WR.escapeHTML(club.headerImageURL)}" alt="Club header">`
+            : `<div class="club-header-placeholder"></div>`}
+          ${isAdmin ? `<button class="header-upload-btn" onclick="triggerHeaderUpload()">📷 Change Header</button>
+            <input type="file" id="headerUploadInput" accept="image/*" style="display:none" onchange="uploadHeader(event)">` : ""}
+        </div>
+
+        <!-- Club Info -->
+        <div class="club-info-panel">
+          <div class="club-info-top">
+            <div>
+              <h1 class="club-name">${WR.escapeHTML(club.name || "")}</h1>
+              <p class="club-meta">
+                ${club.memberUids?.length || 0} members ·
+                ${club.sessionFrequency === "quarterly" ? "Quarterly" : "Monthly"} reads
+              </p>
+              ${club.details ? `<p style="font-size:13px;color:var(--terracotta);margin-top:8px;line-height:1.6;">${WR.escapeHTML(club.details)}</p>` : ""}
+            </div>
+            <div class="admin-actions">
+              ${isAdmin ? `
+                <button class="action-btn btn-primary" onclick="openModal('eventModal')">+ Add Event</button>
+                <button class="action-btn btn-outline" onclick="openModal('inviteModal');loadFriends()">👤 Invite</button>
+                <button class="action-btn btn-outline" onclick="openEditModal()">✏️ Edit Club</button>
+              ` : ""}
+              ${isMember ? `<button class="action-btn btn-danger" onclick="leaveClub()">Leave Club</button>` : ""}
+            </div>
+          </div>
+          <!-- Admins -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <span style="font-size:12px;color:var(--terracotta);font-weight:600;">Admins:</span>
+            ${members.filter(m => m.role === "admin").map(m => `
+              <a href="profile.html?uid=${m.uid}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+                ${m.photoURL
+                  ? `<img src="${WR.escapeHTML(m.photoURL)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">`
+                  : `<div style="width:24px;height:24px;border-radius:50%;background:var(--lavender-mist);display:flex;align-items:center;justify-content:center;font-size:12px;">👤</div>`}
+                <span style="font-size:12px;color:var(--amethyst);font-weight:600;">${WR.escapeHTML(m.displayName || "")}</span>
+              </a>`).join("")}
+          </div>
+        </div>
+
+        <!-- Current Read Bar -->
+        ${club.currentRead?.title ? `
+        <div class="current-read-bar">
+          ${club.currentRead.coverURL
+            ? `<img class="cr-cover" src="${WR.escapeHTML(club.currentRead.coverURL)}" alt="">`
+            : `<div class="cr-cover-placeholder">📖</div>`}
+          <div class="cr-info">
+            <div class="cr-label">${WR.escapeHTML(club.currentRead.session || "Current Read")}</div>
+            <div class="cr-title">${WR.escapeHTML(club.currentRead.title)}</div>
+            <div class="cr-author">${WR.escapeHTML(club.currentRead.author || "")}</div>
+          </div>
+          ${isAdmin ? `<button class="set-read-btn" onclick="openModal('readModal')">Change Read</button>` : ""}
+        </div>` : isAdmin ? `
+        <div class="current-read-bar">
+          <div class="cr-cover-placeholder">📖</div>
+          <div class="cr-info">
+            <div class="cr-label">No current read set</div>
+            <div class="cr-title" style="color:rgba(255,255,255,0.5);">Set a book for your club to read</div>
+          </div>
+          <button class="set-read-btn" onclick="openModal('readModal')">Set Current Read</button>
+        </div>` : ""}
+
+        <!-- Main Body -->
+        <div class="club-body">
+          <!-- Left: Posts + Events -->
+          <div>
+            <!-- Message Wall -->
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">💬 Club Wall</h2>
+              </div>
+              <div class="section-body">
+                <!-- Post Composer -->
+                <div class="post-composer">
+                  ${WR.getCurrentUser()._profile?.photoURL
+                    ? `<img class="composer-avatar" src="${WR.escapeHTML(WR.getCurrentUser()._profile.photoURL)}" alt="">`
+                    : `<div class="composer-avatar-ph">👤</div>`}
+                  <textarea class="composer-input" id="postInput" rows="2"
+                    placeholder="Share something with the club..." onkeydown="handlePostKey(event)"></textarea>
+                  <button class="composer-post-btn" onclick="submitPost()">Post</button>
+                </div>
+                <div id="postsList" class="posts-list">
+                  <div class="posts-empty">Loading posts...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upcoming Events -->
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">📅 Upcoming Events</h2>
+              </div>
+              <div class="section-body-tight" id="upcomingEventsArea">
+                ${upcomingEvents.length
+                  ? upcomingEvents.map(ev => buildEventItem(ev, false, uid)).join("")
+                  : `<p style="text-align:center;padding:1rem;font-size:13px;color:var(--terracotta);">No upcoming events.</p>`}
+              </div>
+            </div>
+
+            <!-- Past Events -->
+            ${pastEvents.length ? `
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">🗓️ Past Events</h2>
+              </div>
+              <div class="section-body-tight">
+                ${pastEvents.map(ev => buildEventItem(ev, true, uid)).join("")}
+              </div>
+            </div>` : ""}
+          </div>
+
+          <!-- Right: Members, Past Reads -->
+          <div class="sidebar">
+            <!-- Members -->
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">👥 Members <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:6px;">${members.length}</span></h2>
+              </div>
+              <div class="section-body">
+                <div class="members-grid">
+                  ${members.map(m => `
+                    <a class="member-item" href="profile.html?uid=${WR.escapeHTML(m.uid)}">
+                      ${m.photoURL
+                        ? `<img class="member-photo" src="${WR.escapeHTML(m.photoURL)}" alt="">`
+                        : `<div class="member-photo-ph">👤</div>`}
+                      <div class="member-name">${WR.escapeHTML(m.displayName || "")}</div>
+                      ${m.role === "admin" ? `<div class="member-admin-tag">Admin</div>` : ""}
+                    </a>`).join("")}
+                </div>
+                ${isAdmin ? `
+                  <div style="margin-top:1rem;">
+                    <button class="action-btn btn-outline" style="width:100%;justify-content:center;" onclick="openModal('inviteModal');loadFriends()">+ Invite Members</button>
+                  </div>` : ""}
+              </div>
+            </div>
+
+            <!-- Past Reads -->
+            ${club.pastReads?.length ? `
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">📚 Past Reads</h2>
+              </div>
+              <div class="section-body">
+                <div class="past-reads-list">
+                  ${[...club.pastReads].reverse().map(r => `
+                    <a class="past-read-item" href="book.html?id=${encodeURIComponent(r.bookId || "")}">
+                      ${r.coverURL
+                        ? `<img class="past-cover" src="${WR.escapeHTML(r.coverURL)}" alt="">`
+                        : `<div class="past-cover-ph">📖</div>`}
+                      <div class="past-info">
+                        <div class="past-title">${WR.escapeHTML(r.title || "")}</div>
+                        <div class="past-session">${WR.escapeHTML(r.session || "")}</div>
+                      </div>
+                    </a>`).join("")}
+                </div>
+              </div>
+            </div>` : ""}
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Posts ─────────────────────────────────────────────────
+    function renderPosts() {
+      const list = document.getElementById("postsList");
+      if (!list) return;
+      if (!posts.length) {
+        list.innerHTML = `<div class="posts-empty">Be the first to post something! 👋</div>`;
+        return;
+      }
+      const uid = WR.getCurrentUser().uid;
+      list.innerHTML = posts.map(p => buildPostCard(p, uid)).join("");
+    }
+
+    function buildPostCard(post, uid) {
+      const photo   = post.photoURL
+        ? `<img class="post-avatar" src="${WR.escapeHTML(post.photoURL)}" alt="">`
+        : `<div class="post-avatar-ph">👤</div>`;
+      const time    = WR.formatRelativeTime(post.createdAt);
+      const imgHTML = post.imageURL
+        ? `<img class="post-img" src="${WR.escapeHTML(post.imageURL)}" alt="">`
+        : "";
+
+      // Build reactions
+      const reactions = post.reactions || {};
+      const reactionHTML = REACTIONS.map(emoji => {
+        const users = reactions[emoji] || [];
+        if (!users.length) return "";
+        const reacted = users.includes(uid);
+        return `<button class="reaction-btn${reacted ? " reacted" : ""}"
+          onclick="toggleReaction('${post.id}','${emoji}')">
+          ${emoji} <span class="reaction-count">${users.length}</span>
+        </button>`;
+      }).filter(Boolean).join("");
+
+      // Comment count
+      const commentCount = post._commentCount || 0;
+
+      return `
+        <div class="post-card" id="post-${post.id}">
+          <div class="post-header">
+            ${photo}
+            <a class="post-author" href="profile.html?uid=${WR.escapeHTML(post.authorUid || "")}">${WR.escapeHTML(post.displayName || "")}</a>
+            <span class="post-time">${time}</span>
+          </div>
+          <p class="post-text">${WR.escapeHTML(post.text || "")}</p>
+          ${imgHTML}
+          <div class="post-reactions">
+            ${reactionHTML}
+            <div class="reaction-picker">
+              <button class="add-reaction-btn" onclick="toggleReactionPicker('picker-${post.id}')">😊</button>
+              <div class="reaction-picker-dropdown" id="picker-${post.id}">
+                ${REACTIONS.map(e => `<button class="reaction-emoji-btn" onclick="toggleReaction('${post.id}','${e}');closeAllPickers()">${e}</button>`).join("")}
+              </div>
+            </div>
+          </div>
+          <button class="comments-toggle" onclick="toggleComments('${post.id}')">
+            💬 ${commentCount ? `${commentCount} comment${commentCount === 1 ? "" : "s"}` : "Add a comment"}
+          </button>
+          <div class="comments-section" id="comments-${post.id}">
+            <div id="comments-list-${post.id}">Loading...</div>
+            <div class="comment-input-row">
+              <input class="comment-input" id="comment-input-${post.id}"
+                     placeholder="Write a comment..." onkeydown="handleCommentKey(event,'${post.id}')">
+              <button class="comment-send-btn" onclick="submitComment('${post.id}')">Send</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function handlePostKey(e) {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitPost();
+    }
+
+    async function submitPost() {
+      const user    = WR.getCurrentUser();
+      const input   = document.getElementById("postInput");
+      const text    = input?.value.trim();
+      if (!text) return;
+
+      input.value   = "";
+      const profile = user._profile;
+
+      try {
+        await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("posts").add({
+            authorUid:   user.uid,
+            displayName: profile?.displayName || "Anonymous",
+            photoURL:    profile?.photoURL    || null,
+            text,
+            imageURL:    null,
+            reactions:   {},
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+          });
+      } catch (e) {
+        console.error("Post error:", e);
+        WR.showToast("Error posting. Please try again.", "error");
+        input.value = text;
+      }
+    }
+
+    async function toggleReaction(postId, emoji) {
+      const uid  = WR.getCurrentUser().uid;
+      const ref  = WR.getDb().collection("clubs").doc(clubId).collection("posts").doc(postId);
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+
+      const users   = (post.reactions?.[emoji] || []);
+      const hasIt   = users.includes(uid);
+      const field   = `reactions.${emoji}`;
+      const update  = hasIt
+        ? { [field]: firebase.firestore.FieldValue.arrayRemove(uid) }
+        : { [field]: firebase.firestore.FieldValue.arrayUnion(uid) };
+
+      try { await ref.update(update); }
+      catch (e) { console.error("Reaction error:", e); }
+    }
+
+    function toggleReactionPicker(id) {
+      closeAllPickers();
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle("open");
+    }
+
+    function closeAllPickers() {
+      document.querySelectorAll(".reaction-picker-dropdown.open")
+        .forEach(el => el.classList.remove("open"));
+    }
+
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".reaction-picker")) closeAllPickers();
+    });
+
+    async function toggleComments(postId) {
+      const section = document.getElementById("comments-" + postId);
+      if (!section) return;
+      const isOpen  = section.classList.toggle("open");
+      if (isOpen) await loadComments(postId);
+    }
+
+    async function loadComments(postId) {
+      const listEl = document.getElementById("comments-list-" + postId);
+      if (!listEl) return;
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("posts").doc(postId)
+          .collection("comments")
+          .orderBy("createdAt", "asc")
+          .get();
+
+        const comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (!comments.length) {
+          listEl.innerHTML = `<p style="font-size:12px;color:#BDB5CC;padding:4px 0;">No comments yet.</p>`;
+          return;
+        }
+
+        listEl.innerHTML = comments.map(c => `
+          <div class="comment-item">
+            ${c.photoURL
+              ? `<img class="comment-avatar" src="${WR.escapeHTML(c.photoURL)}" alt="">`
+              : `<div class="comment-avatar-ph">👤</div>`}
+            <div class="comment-bubble">
+              <div class="comment-author">${WR.escapeHTML(c.displayName || "")}</div>
+              <div class="comment-text">${WR.escapeHTML(c.text || "")}</div>
+            </div>
+          </div>`).join("");
+      } catch (e) {
+        console.error("Comments load error:", e);
+        listEl.innerHTML = `<p style="font-size:12px;color:#BDB5CC;">Error loading comments.</p>`;
+      }
+    }
+
+    function handleCommentKey(e, postId) {
+      if (e.key === "Enter") submitComment(postId);
+    }
+
+    async function submitComment(postId) {
+      const user  = WR.getCurrentUser();
+      const input = document.getElementById("comment-input-" + postId);
+      const text  = input?.value.trim();
+      if (!text) return;
+      input.value = "";
+
+      const profile = user._profile;
+      try {
+        await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("posts").doc(postId)
+          .collection("comments").add({
+            authorUid:   user.uid,
+            displayName: profile?.displayName || "Anonymous",
+            photoURL:    profile?.photoURL    || null,
+            text,
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+          });
+        await loadComments(postId);
+      } catch (e) {
+        console.error("Comment error:", e);
+        WR.showToast("Error adding comment.", "error");
+        input.value = text;
+      }
+    }
+
+    // ── Events ────────────────────────────────────────────────
+    function buildEventItem(ev, isPast, uid) {
+      const date  = ev.date ? new Date(ev.date + "T00:00:00") : null;
+      const month = date ? date.toLocaleString("default", { month: "short" }).toUpperCase() : "";
+      const day   = date ? date.getDate() : "?";
+
+      const userRsvp = getUserRsvp(ev, uid);
+      const rsvpBtns = isPast ? "" : `
+        <div class="rsvp-row">
+          <button class="rsvp-btn${userRsvp === "yes"   ? " rsvp-yes"   : ""}" onclick="rsvp('${ev.id}','yes')">✓ Going</button>
+          <button class="rsvp-btn${userRsvp === "maybe" ? " rsvp-maybe" : ""}" onclick="rsvp('${ev.id}','maybe')">? Maybe</button>
+          <button class="rsvp-btn${userRsvp === "no"    ? " rsvp-no"    : ""}" onclick="rsvp('${ev.id}','no')">✗ Can't Go</button>
+        </div>`;
+
+      const rsvpCounts = ev.rsvps
+        ? `<div style="font-size:11px;color:#BDB5CC;margin-bottom:6px;">
+            ✓ ${(ev.rsvps.yes||[]).length} going · ? ${(ev.rsvps.maybe||[]).length} maybe · ✗ ${(ev.rsvps.no||[]).length} not going
+           </div>`
+        : "";
+
+      return `
+        <div class="event-item${isPast ? " event-past" : ""}">
+          <div class="event-row">
+            <div class="event-date-box">
+              <div class="event-month">${month}</div>
+              <div class="event-day">${day}</div>
+            </div>
+            <div class="event-info">
+              <div class="event-name">${WR.escapeHTML(ev.name || "Club Event")}</div>
+              <div class="event-detail">
+                ${ev.startTime ? `${WR.escapeHTML(ev.startTime)}${ev.endTime ? " – " + WR.escapeHTML(ev.endTime) : ""}` : ""}
+                ${ev.location ? ` · ${WR.escapeHTML(ev.location)}` : ""}
+              </div>
+              ${ev.description ? `<div class="event-desc">${WR.escapeHTML(ev.description)}</div>` : ""}
+              ${rsvpCounts}
+              ${rsvpBtns}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function getUserRsvp(ev, uid) {
+      if (!ev.rsvps) return null;
+      if ((ev.rsvps.yes   || []).includes(uid)) return "yes";
+      if ((ev.rsvps.maybe || []).includes(uid)) return "maybe";
+      if ((ev.rsvps.no    || []).includes(uid)) return "no";
+      return null;
+    }
+
+    async function rsvp(eventId, status) {
+      const uid = WR.getCurrentUser().uid;
+      const ref = WR.getDb().collection("clubs").doc(clubId).collection("events").doc(eventId);
+      try {
+        const remove = {};
+        ["yes","no","maybe"].forEach(s => {
+          remove[`rsvps.${s}`] = firebase.firestore.FieldValue.arrayRemove(uid);
+        });
+        await ref.update(remove);
+        await ref.update({ [`rsvps.${status}`]: firebase.firestore.FieldValue.arrayUnion(uid) });
+
+        const ev = events.find(e => e.id === eventId);
+        if (ev) {
+          if (!ev.rsvps) ev.rsvps = { yes:[], no:[], maybe:[] };
+          ["yes","no","maybe"].forEach(s => { ev.rsvps[s] = (ev.rsvps[s]||[]).filter(u => u !== uid); });
+          ev.rsvps[status].push(uid);
+        }
+
+        // Re-render events section
+        const uid2 = uid;
+        const now  = new Date().toISOString().split("T")[0];
+        const upcoming = events.filter(e => e.date >= now).reverse();
+        const upEl = document.getElementById("upcomingEventsArea");
+        if (upEl) upEl.innerHTML = upcoming.length
+          ? upcoming.map(ev => buildEventItem(ev, false, uid2)).join("")
+          : `<p style="text-align:center;padding:1rem;font-size:13px;color:var(--terracotta);">No upcoming events.</p>`;
+
+        WR.showToast(status === "yes" ? "You're going! 🎉" : status === "maybe" ? "Marked as maybe." : "Marked as not going.");
+      } catch (e) {
+        console.error("RSVP error:", e);
+        WR.showToast("Error saving RSVP.", "error");
+      }
+    }
+
+    // ── Save Event ────────────────────────────────────────────
+    async function saveEvent() {
+      const name  = document.getElementById("evName").value.trim();
+      const date  = document.getElementById("evDate").value;
+      const start = document.getElementById("evStart").value;
+      const end   = document.getElementById("evEnd").value;
+      const loc   = document.getElementById("evLocation").value.trim();
+      const desc  = document.getElementById("evDesc").value.trim();
+      const errEl = document.getElementById("eventError");
+      const btn   = document.getElementById("eventSaveBtn");
+
+      errEl.classList.remove("show");
+      if (!name || !date) {
+        errEl.textContent = "Event name and date are required.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      btn.classList.add("loading"); btn.disabled = true;
+
+      try {
+        const ref = await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("events").add({
+            name, date, startTime: start || null, endTime: end || null,
+            location: loc || null, description: desc || null,
+            rsvps: { yes: [], no: [], maybe: [] },
+            notificationSent: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+        // Notify all members
+        const profile = WR.getCurrentUser()._profile;
+        const memberUids = club.memberUids || [];
+        await Promise.all(memberUids.map(uid =>
+          uid !== WR.getCurrentUser().uid
+            ? WR.createNotification(uid, {
+                type:     "club_event",
+                title:    `New event in ${club.name}`,
+                body:     `${name} · ${date}${loc ? " · " + loc : ""}`,
+                linkedId: clubId
+              })
+            : Promise.resolve()
+        ));
+
+        events.unshift({ id: ref.id, name, date, startTime: start||null, endTime: end||null, location: loc||null, description: desc||null, rsvps: {yes:[],no:[],maybe:[]} });
+        closeModal("eventModal");
+        WR.showToast("Event added! 📅", "success");
+
+        // Refresh upcoming events
+        const uid = WR.getCurrentUser().uid;
+        const now = new Date().toISOString().split("T")[0];
+        const upcoming = events.filter(e => e.date >= now).reverse();
+        const upEl = document.getElementById("upcomingEventsArea");
+        if (upEl) upEl.innerHTML = upcoming.map(ev => buildEventItem(ev, false, uid)).join("");
+      } catch (e) {
+        console.error("Save event error:", e);
+        errEl.textContent = "Something went wrong. Please try again.";
+        errEl.classList.add("show");
+      } finally {
+        btn.classList.remove("loading"); btn.disabled = false;
+      }
+    }
+
+    // ── Set Current Read ──────────────────────────────────────
+    let readSearchTimeout2 = null;
+    function onReadSearch(val) {
+      clearTimeout(readSearchTimeout2);
+      if (!val || val.length < 2) {
+        document.getElementById("readSearchResults").innerHTML = "";
+        return;
+      }
+      readSearchTimeout2 = setTimeout(async () => {
+        const results = await WR.lookupBook(val, "text");
+        const el = document.getElementById("readSearchResults");
+        if (!results.length) { el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">No results found.</p>`; return; }
+        el.innerHTML = results.slice(0, 5).map((b,i) => `
+          <div class="friend-result" onclick="selectRead(${i})">
+            ${b.coverURL ? `<img src="${WR.escapeHTML(b.coverURL)}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0;">` : `<div style="width:36px;height:52px;border-radius:3px;background:var(--amethyst);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📖</div>`}
+            <div style="flex:1;min-width:0;">
+              <div class="friend-result-name" style="font-size:13px;">${WR.escapeHTML(b.title||"")}</div>
+              <div style="font-size:11px;color:var(--terracotta);">${WR.escapeHTML(Array.isArray(b.authors)?b.authors.join(", "):(b.author||""))}</div>
+            </div>
+            <button class="friend-result-invite">Select</button>
+          </div>`).join("");
+        window._readResults = results;
+      }, 500);
+    }
+
+    function selectRead(index) {
+      const book = window._readResults?.[index];
+      if (!book) return;
+      selectedRead = book;
+      const authors = Array.isArray(book.authors) ? book.authors.join(", ") : (book.author||"");
+      document.getElementById("selectedReadPreview").style.display = "flex";
+      document.getElementById("selectedReadPreview").innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;">
+          ${book.coverURL ? `<img src="${WR.escapeHTML(book.coverURL)}" style="width:40px;height:58px;object-fit:cover;border-radius:3px;">` : "📖"}
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--deep-plum);">${WR.escapeHTML(book.title||"")}</div>
+            <div style="font-size:12px;color:var(--terracotta);">${WR.escapeHTML(authors)}</div>
+          </div>
+        </div>`;
+      document.getElementById("readSearchResults").innerHTML = "";
+      document.getElementById("readSaveBtn").disabled = false;
+    }
+
+    async function saveCurrentRead() {
+      if (!selectedRead) return;
+      const btn    = document.getElementById("readSaveBtn");
+      const freq   = club.sessionFrequency || "monthly";
+      const now    = new Date();
+      const session = freq === "quarterly"
+        ? `Q${Math.floor(now.getMonth()/3)+1} ${now.getFullYear()}`
+        : `${now.toLocaleString("default",{month:"long"})} ${now.getFullYear()}`;
+
+      btn.classList.add("loading"); btn.disabled = true;
+
+      try {
+        await WR.saveBookToDb(selectedRead);
+
+        const pastReads = club.pastReads || [];
+        if (club.currentRead?.title) pastReads.push(club.currentRead);
+
+        const authors = Array.isArray(selectedRead.authors)
+          ? selectedRead.authors.join(", ")
+          : (selectedRead.author || "");
+
+        const newRead = {
+          bookId:   selectedRead.bookId || selectedRead.isbn13 || "",
+          title:    selectedRead.title || "",
+          author:   authors,
+          coverURL: selectedRead.coverURL || null,
+          session
+        };
+
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          currentRead: newRead,
+          pastReads,
+          updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        club.currentRead = newRead;
+        closeModal("readModal");
+        WR.showToast("Current read updated! 📖", "success");
+        renderPage();
+        startPostsListener();
+      } catch (e) {
+        console.error("Save read error:", e);
+        WR.showToast("Error saving current read.", "error");
+      } finally {
+        btn.classList.remove("loading"); btn.disabled = false;
+      }
+    }
+
+    // ── Invite Members ────────────────────────────────────────
+    async function loadFriends() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("friends")
+          .where("users", "array-contains", user.uid)
+          .where("status", "==", "accepted")
+          .get();
+
+        const friendUids = snap.docs
+          .map(d => d.data().users.find(u => u !== user.uid))
+          .filter(Boolean);
+
+        if (!friendUids.length) {
+          document.getElementById("friendResults").innerHTML =
+            `<p style="font-size:13px;color:var(--terracotta);padding:8px 0;">You don't have any friends to invite yet.</p>`;
+          return;
+        }
+
+        const profileSnaps = await Promise.all(
+          friendUids.slice(0,20).map(uid => WR.getDb().collection("users").doc(uid).get())
+        );
+        myFriends = profileSnaps.filter(s => s.exists).map(s => ({ uid: s.id, ...s.data() }));
+        renderFriendResults(myFriends);
+      } catch (e) {
+        console.error("Load friends error:", e);
+      }
+    }
+
+    function searchFriends(val) {
+      const q = val.toLowerCase().trim();
+      const filtered = q
+        ? myFriends.filter(f => (f.displayName||"").toLowerCase().includes(q))
+        : myFriends;
+      renderFriendResults(filtered);
+    }
+
+    function renderFriendResults(friends) {
+      const el = document.getElementById("friendResults");
+      if (!friends.length) {
+        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">No friends found.</p>`;
+        return;
+      }
+      el.innerHTML = friends.map(f => {
+        const alreadyMember = club.memberUids?.includes(f.uid);
+        return `
+          <div class="friend-result">
+            ${f.photoURL ? `<img class="friend-result-photo" src="${WR.escapeHTML(f.photoURL)}" alt="">` : `<div class="friend-result-ph">👤</div>`}
+            <div class="friend-result-name">${WR.escapeHTML(f.displayName||"")}</div>
+            ${alreadyMember
+              ? `<span class="friend-result-invited">Already a member</span>`
+              : `<button class="friend-result-invite" onclick="inviteFriend('${f.uid}','${WR.escapeHTML(f.displayName||"")}',this)">Invite</button>`}
+          </div>`;
+      }).join("");
+    }
+
+    async function inviteFriend(uid, name, btn) {
+      btn.textContent = "Sending...";
+      btn.disabled    = true;
+      try {
+        await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("invites").add({
+            invitedUid:   uid,
+            invitedByUid: WR.getCurrentUser().uid,
+            status:       "pending",
+            createdAt:    firebase.firestore.FieldValue.serverTimestamp()
+          });
+        await WR.createNotification(uid, {
+          type:     "club_invite",
+          title:    `You're invited to ${club.name}!`,
+          body:     `${WR.getCurrentUser()._profile?.displayName || "Someone"} invited you to join the book club.`,
+          linkedId: clubId
+        });
+        btn.textContent = "Invited ✓";
+        btn.style.background = "var(--faded-moss)";
+        WR.showToast(`Invite sent to ${name}!`, "success");
+      } catch (e) {
+        console.error("Invite error:", e);
+        btn.textContent = "Error";
+        btn.disabled    = false;
+        WR.showToast("Error sending invite.", "error");
+      }
+    }
+
+    // ── Edit Club ─────────────────────────────────────────────
+    function openEditModal() {
+      document.getElementById("editName").value    = club.name    || "";
+      document.getElementById("editDetails").value = club.details || "";
+      document.getElementById("editFreq").value    = club.sessionFrequency || "monthly";
+      openModal("editModal");
+    }
+
+    async function saveClubEdit() {
+      const name    = document.getElementById("editName").value.trim();
+      const details = document.getElementById("editDetails").value.trim();
+      const freq    = document.getElementById("editFreq").value;
+      const errEl   = document.getElementById("editError");
+      const btn     = document.getElementById("editSaveBtn");
+
+      errEl.classList.remove("show");
+      if (!name) { errEl.textContent = "Club name is required."; errEl.classList.add("show"); return; }
+
+      btn.classList.add("loading"); btn.disabled = true;
+      try {
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          name, details: details || null, sessionFrequency: freq,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        club.name    = name;
+        club.details = details;
+        club.sessionFrequency = freq;
+        closeModal("editModal");
+        WR.showToast("Club updated!", "success");
+        renderPage();
+        startPostsListener();
+      } catch (e) {
+        errEl.textContent = "Error saving changes."; errEl.classList.add("show");
+      } finally {
+        btn.classList.remove("loading"); btn.disabled = false;
+      }
+    }
+
+    // ── Leave Club ────────────────────────────────────────────
+    async function leaveClub() {
+      const uid     = WR.getCurrentUser().uid;
+      const admins  = club.adminUids || [];
+      const isLastAdmin = admins.length === 1 && admins[0] === uid;
+
+      if (isLastAdmin) {
+        WR.showToast("You're the last admin. Please make someone else an admin before leaving.", "error");
+        return;
+      }
+
+      if (!confirm("Are you sure you want to leave this club?")) return;
+
+      try {
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          memberUids: firebase.firestore.FieldValue.arrayRemove(uid),
+          adminUids:  firebase.firestore.FieldValue.arrayRemove(uid)
+        });
+        await WR.getDb().collection("clubs").doc(clubId).collection("members").doc(uid).delete();
+        WR.showToast("You've left the club.");
+        setTimeout(() => { location.href = "clubs.html"; }, 800);
+      } catch (e) {
+        console.error("Leave club error:", e);
+        WR.showToast("Error leaving club.", "error");
+      }
+    }
+
+    // ── Header Upload ─────────────────────────────────────────
+    function triggerHeaderUpload() {
+      document.getElementById("headerUploadInput")?.click();
+    }
+
+    async function uploadHeader(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { WR.showToast("Image must be under 10MB.", "error"); return; }
+      WR.showToast("Uploading header image...");
+      try {
+        const ref  = firebase.storage().ref(`clubs/${clubId}/header.jpg`);
+        await ref.put(file);
+        const url  = await ref.getDownloadURL();
+        await WR.getDb().collection("clubs").doc(clubId).update({ headerImageURL: url });
+        club.headerImageURL = url;
+        renderPage();
+        startPostsListener();
+        WR.showToast("Header image updated! 🎨", "success");
+      } catch (e) {
+        console.error("Header upload error:", e);
+        WR.showToast("Error uploading image.", "error");
+      }
+    }
+
+    // ── Modal Helpers ─────────────────────────────────────────
+    function openModal(id) {
+      document.getElementById(id)?.classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id)?.classList.remove("open");
+      document.body.style.overflow = "";
+      // Reset read modal
+      if (id === "readModal") {
+        selectedRead = null;
+        document.getElementById("readSearch").value = "";
+        document.getElementById("readSearchResults").innerHTML = "";
+        document.getElementById("selectedReadPreview").style.display = "none";
+        document.getElementById("readSaveBtn").disabled = true;
+      }
+    }
+
+    function handleModalOverlay(id, e) {
+      if (e.target === document.getElementById(id)) closeModal(id);
+    }
+
+    function showNotFound() {
+      document.getElementById("pageWrap").innerHTML = `
+        <div class="not-found">
+          <span class="not-found-icon">👥</span>
+          <h2 class="not-found-title">Club not found</h2>
+          <p class="not-found-desc">This club doesn't exist or you don't have access to it.</p>
+        </div>`;
+    }
+
+    // ── Expose ────────────────────────────────────────────────
+    window.openModal           = openModal;
+    window.closeModal          = closeModal;
+    window.handleModalOverlay  = handleModalOverlay;
+    window.submitPost          = submitPost;
+    window.handlePostKey       = handlePostKey;
+    window.toggleReaction      = toggleReaction;
+    window.toggleReactionPicker = toggleReactionPicker;
+    window.closeAllPickers     = closeAllPickers;
+    window.toggleComments      = toggleComments;
+    window.handleCommentKey    = handleCommentKey;
+    window.submitComment       = submitComment;
+    window.rsvp                = rsvp;
+    window.saveEvent           = saveEvent;
+    window.onReadSearch        = onReadSearch;
+    window.selectRead          = selectRead;
+    window.saveCurrentRead     = saveCurrentRead;
+    window.loadFriends         = loadFriends;
+    window.searchFriends       = searchFriends;
+    window.inviteFriend        = inviteFriend;
+    window.openEditModal       = openEditModal;
+    window.saveClubEdit        = saveClubEdit;
+    window.leaveClub           = leaveClub;
+    window.triggerHeaderUpload = triggerHeaderUpload;
+    window.uploadHeader        = uploadHeader;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+  </script>
+</body>
+</html>
