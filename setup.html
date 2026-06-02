@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Set Up Your Profile</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Header ── */
+    .setup-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .setup-brand {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+
+    .setup-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      color: var(--deep-plum);
+      margin-bottom: 0.5rem;
+    }
+
+    .setup-subtitle {
+      font-size: 14px;
+      color: var(--terracotta);
+      line-height: 1.5;
+    }
+
+    /* ── Progress Steps ── */
+    .steps-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 2rem;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      flex: 1;
+    }
+
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      color: #BDB5CC;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s;
+    }
+
+    .step.active .step-circle {
+      background: var(--amethyst);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(123,94,167,0.18);
+    }
+
+    .step.done .step-circle {
+      background: var(--faded-moss);
+      color: #1A3D2E;
+    }
+
+    .step-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #BDB5CC;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .step.active .step-label { color: var(--amethyst); }
+    .step.done .step-label   { color: var(--faded-moss); }
+
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      margin-bottom: 22px;
+      transition: background 0.3s;
+    }
+
+    .step-line.done { background: var(--faded-moss); }
+
+    /* ── Card ── */
+    .setup-card {
+      width: 100%;
+      max-width: 500px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 4px 32px rgba(45,27,78,0.10);
+      border: 1px solid var(--border);
+    }
+
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .step-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--deep-plum);
+      margin-bottom: 0.25rem;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--terracotta);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    /* ── Form Fields ── */
+    .form-group { margin-bottom: 1.1rem; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--terracotta);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .label-optional {
+      font-size: 10px;
+      font-weight: 400;
+      color: #BDB5CC;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-left: 4px;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 15px;
+      color: var(--deep-plum);
+      background: var(--aged-paper);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      resize: none;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--amethyst);
+      box-shadow: 0 0 0 3px rgba(123,94,167,0.12);
+      background: #fff;
+    }
+
+    input.error { border-color: #C0392B; }
+
+    .field-error {
+      font-size: 12px;
+      color: #C0392B;
+      margin-top: 5px;
+      display: none;
+    }
+    .field-error.show { display: block; }
+
+    .char-count {
+      font-size: 11px;
+      color: #BDB5CC;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* ── Display Name Availability ── */
+    .display-name-wrap { position: relative; }
+
+    .dn-status {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      display: none;
+    }
+
+    .dn-status.show { display: block; }
+
+    /* ── Photo Upload ── */
+    .photo-upload-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      background: var(--aged-paper);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: center;
+    }
+
+    .photo-upload-area:hover {
+      border-color: var(--amethyst);
+      background: var(--lavender-mist);
+    }
+
+    .photo-upload-area.has-photo {
+      border-style: solid;
+      border-color: var(--faded-moss);
+      padding: 1rem;
+    }
+
+    .photo-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--faded-moss);
+      display: none;
+    }
+
+    .photo-preview.show { display: block; }
+
+    .photo-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--lavender-mist);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      border: 2px solid var(--border);
+    }
+
+    .photo-upload-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--amethyst);
+    }
+
+    .photo-upload-hint {
+      font-size: 12px;
+      color: #BDB5CC;
+    }
+
+    .photo-change-btn {
+      font-size: 12px;
+      color: var(--amethyst);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      font-family: 'Nunito Sans', sans-serif;
+    }
+
+    #photoInput { display: none; }
+
+    /* ── Social Links ── */
+    .social-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0.75rem;
+    }
+
+    .social-icon {
+      font-size: 20px;
+      width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .social-row input { margin-bottom: 0; }
+
+    /* ── Error Banner ── */
+    .error-banner {
+      background: #FDECEC;
+      border: 1px solid #F5C6C6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #922B21;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .error-banner.show { display: block; }
+
+    /* ── Navigation Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 1.75rem;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover { opacity: 0.88; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary   { background: var(--amethyst); color: #FAF6EE; }
+    .btn-secondary { background: transparent; color: var(--amethyst); border: 1.5px solid var(--amethyst); }
+    .btn-moss      { background: var(--faded-moss); color: #1A3D2E; }
+
+    .btn .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn.loading .spinner { display: block; }
+    .btn.loading .btn-label { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Skip link ── */
+    .skip-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 13px;
+      color: #BDB5CC;
+      cursor: pointer;
+    }
+
+    .skip-link:hover { color: var(--terracotta); }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .form-row { grid-template-columns: 1fr; }
+      .setup-card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="setup-header">
+    <span class="setup-brand">📖</span>
+    <h1 class="setup-title">Welcome to WellRead Co.</h1>
+    <p class="setup-subtitle">Let's set up your reader profile. Only your name is required — everything else can be added later.</p>
+  </div>
+
+  <!-- Progress Steps -->
+  <div class="steps-row" id="stepsRow">
+    <div class="step active" id="step1Indicator">
+      <div class="step-circle">1</div>
+      <span class="step-label">Your Name</span>
+    </div>
+    <div class="step-line" id="line1"></div>
+    <div class="step" id="step2Indicator">
+      <div class="step-circle">2</div>
+      <span class="step-label">Photo & Bio</span>
+    </div>
+    <div class="step-line" id="line2"></div>
+    <div class="step" id="step3Indicator">
+      <div class="step-circle">3</div>
+      <span class="step-label">Social</span>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="setup-card">
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- ── Step 1: Names ── -->
+    <div class="step-panel active" id="panel1">
+      <h2 class="step-heading">What's your name?</h2>
+      <p class="step-desc">Your first and last name are private. Your display name is what other readers will see.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" placeholder="Jane" maxlength="50" autocomplete="given-name">
+          <span class="field-error" id="firstNameErr">First name is required.</span>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" placeholder="Austen" maxlength="50" autocomplete="family-name">
+          <span class="field-error" id="lastNameErr">Last name is required.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="displayName">Display Name</label>
+        <div class="display-name-wrap">
+          <input type="text" id="displayName" placeholder="e.g. janeausten_reads" maxlength="30"
+                 oninput="onDisplayNameInput(this.value)" autocomplete="off">
+          <span class="dn-status" id="dnStatus"></span>
+        </div>
+        <span class="field-error" id="displayNameErr">Display name is required.</span>
+        <span class="field-error" id="displayNameTakenErr">That display name is already taken.</span>
+        <span class="field-error" id="displayNameFormatErr">Only letters, numbers, underscores and hyphens allowed.</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="goToStep(2)">
+          <span class="btn-label">Next — Photo & Bio</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Step 2: Photo & Bio ── -->
+    <div class="step-panel" id="panel2">
+      <h2 class="step-heading">Add a photo & bio</h2>
+      <p class="step-desc">Help other readers recognize you. Both are completely optional.</p>
+
+      <div class="form-group">
+        <label>Profile Photo <span class="label-optional">(optional)</span></label>
+        <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('photoInput').click()">
+          <img class="photo-preview" id="photoPreview" alt="Profile photo preview">
+          <div class="photo-placeholder" id="photoPlaceholder">👤</div>
+          <div>
+            <p class="photo-upload-label">Upload a photo</p>
+            <p class="photo-upload-hint">JPG or PNG · Max 5MB</p>
+          </div>
+        </div>
+        <button class="photo-change-btn" id="photoChangeBtn" style="display:none;margin-top:8px;"
+                onclick="document.getElementById('photoInput').click()">Change photo</button>
+        <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp"
+               onchange="handlePhotoSelect(event)">
+      </div>
+
+      <div class="form-group">
+        <label for="bio">Bio <span class="label-optional">(optional)</span></label>
+        <textarea id="bio" rows="4" maxlength="300"
+                  placeholder="Tell fellow readers a little about yourself, your favorite genres, or your go-to reading spot..."
+                  oninput="updateCharCount(this, 'bioCount', 300)"></textarea>
+        <p class="char-count"><span id="bioCount">0</span> / 300</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goToStep(3)">
+          <span class="btn-label">Next — Social Links</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Step 3: Social Links ── -->
+    <div class="step-panel" id="panel3">
+      <h2 class="step-heading">Social links</h2>
+      <p class="step-desc">Connect your social profiles so other readers can find you. All optional.</p>
+
+      <div class="form-group">
+        <label>Instagram <span class="label-optional">(optional)</span></label>
+        <div class="social-row">
+          <span class="social-icon">📸</span>
+          <input type="text" id="instagram" placeholder="@yourusername" maxlength="60">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Facebook <span class="label-optional">(optional)</span></label>
+        <div class="social-row">
+          <span class="social-icon">👥</span>
+          <input type="text" id="facebook" placeholder="facebook.com/yourname" maxlength="100">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>X (Twitter) <span class="label-optional">(optional)</span></label>
+        <div class="social-row">
+          <span class="social-icon">🐦</span>
+          <input type="text" id="xtwitter" placeholder="@yourusername" maxlength="60">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Bluesky <span class="label-optional">(optional)</span></label>
+        <div class="social-row">
+          <span class="social-icon">🦋</span>
+          <input type="text" id="bluesky" placeholder="@you.bsky.social" maxlength="100">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+        <button class="btn btn-moss" id="finishBtn" onclick="handleFinish()">
+          <div class="spinner"></div>
+          <span class="btn-label">🎉 Complete Setup</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="skip-link" id="skipLink" onclick="handleSkip()">I'll finish my profile later →</p>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let currentStep    = 1;
+    let selectedPhoto  = null;   // File object
+    let photoURL       = null;   // Uploaded URL
+    let dnCheckTimeout = null;
+    let dnAvailable    = null;   // null = unchecked, true/false
+
+    // ── Init ──────────────────────────────────────────────────
+    // setup.html is semi-public — user must be signed in but
+    // may not have a profile yet. We don't redirect away.
+    WR.initAuth((user) => {
+      if (!user) {
+        location.href = "login.html";
+        return;
+      }
+      // Pre-fill display name from Google if available
+      if (user.displayName) {
+        const parts = user.displayName.split(" ");
+        if (parts[0]) document.getElementById("firstName").value = parts[0];
+        if (parts[1]) document.getElementById("lastName").value  = parts[1];
+        // Suggest a display name
+        const suggested = user.displayName.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+        document.getElementById("displayName").value = suggested;
+        onDisplayNameInput(suggested);
+      }
+      // Pre-fill photo from Google if available
+      if (user.photoURL) {
+        showPhotoPreview(user.photoURL);
+        photoURL = user.photoURL;
+      }
+    });
+
+    // ── Step Navigation ───────────────────────────────────────
+    function goToStep(step) {
+      // Validate before advancing
+      if (step > currentStep) {
+        if (!validateStep(currentStep)) return;
+      }
+
+      // Update indicators
+      for (let i = 1; i <= 3; i++) {
+        const indicator = document.getElementById("step" + i + "Indicator");
+        indicator.classList.remove("active", "done");
+        if (i < step)  indicator.classList.add("done");
+        if (i === step) indicator.classList.add("active");
+      }
+
+      // Update connector lines
+      document.getElementById("line1").classList.toggle("done", step > 1);
+      document.getElementById("line2").classList.toggle("done", step > 2);
+
+      // Update panels
+      document.querySelectorAll(".step-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("panel" + step).classList.add("active");
+
+      // Show/hide skip link
+      document.getElementById("skipLink").style.display = step === 3 ? "none" : "block";
+
+      currentStep = step;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── Step Validation ───────────────────────────────────────
+    function validateStep(step) {
+      clearErrors();
+      if (step === 1) return validateStep1();
+      return true;
+    }
+
+    function validateStep1() {
+      let valid = true;
+
+      const fn = document.getElementById("firstName").value.trim();
+      const ln = document.getElementById("lastName").value.trim();
+      const dn = document.getElementById("displayName").value.trim();
+
+      if (!fn) {
+        showErr("firstNameErr");
+        document.getElementById("firstName").classList.add("error");
+        valid = false;
+      }
+      if (!ln) {
+        showErr("lastNameErr");
+        document.getElementById("lastName").classList.add("error");
+        valid = false;
+      }
+      if (!dn) {
+        showErr("displayNameErr");
+        document.getElementById("displayName").classList.add("error");
+        valid = false;
+      } else if (dnAvailable === false) {
+        showErr("displayNameTakenErr");
+        valid = false;
+      } else if (!/^[a-zA-Z0-9_-]+$/.test(dn)) {
+        showErr("displayNameFormatErr");
+        valid = false;
+      }
+      return valid;
+    }
+
+    function clearErrors() {
+      document.querySelectorAll(".field-error").forEach(el => el.classList.remove("show"));
+      document.querySelectorAll("input.error").forEach(el => el.classList.remove("error"));
+      document.getElementById("errorBanner").classList.remove("show");
+    }
+
+    function showErr(id) {
+      document.getElementById(id).classList.add("show");
+    }
+
+    function showBanner(msg) {
+      const el = document.getElementById("errorBanner");
+      el.textContent = msg;
+      el.classList.add("show");
+    }
+
+    // ── Display Name Check ────────────────────────────────────
+    function onDisplayNameInput(val) {
+      clearTimeout(dnCheckTimeout);
+      const status = document.getElementById("dnStatus");
+      status.classList.remove("show");
+      dnAvailable = null;
+
+      if (!val || val.length < 2) return;
+      if (!/^[a-zA-Z0-9_-]+$/.test(val)) {
+        status.textContent = "❌";
+        status.classList.add("show");
+        dnAvailable = false;
+        return;
+      }
+
+      status.textContent = "⏳";
+      status.classList.add("show");
+
+      dnCheckTimeout = setTimeout(async () => {
+        try {
+          const snap = await WR.getDb()
+            .collection("users")
+            .where("displayName", "==", val)
+            .limit(1)
+            .get();
+
+          const currentUid = WR.getCurrentUser()?.uid;
+          // Allow if only result is the current user (editing their own name)
+          const taken = !snap.empty &&
+            snap.docs.some(d => d.id !== currentUid);
+
+          dnAvailable = !taken;
+          status.textContent = taken ? "❌" : "✅";
+        } catch (e) {
+          status.textContent = "";
+          status.classList.remove("show");
+          dnAvailable = null;
+        }
+      }, 600);
+    }
+
+    // ── Photo Handling ────────────────────────────────────────
+    function handlePhotoSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        WR.showToast("Photo must be under 5MB.", "error");
+        return;
+      }
+
+      selectedPhoto = file;
+      const reader  = new FileReader();
+      reader.onload = (e) => showPhotoPreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+
+    function showPhotoPreview(src) {
+      const preview     = document.getElementById("photoPreview");
+      const placeholder = document.getElementById("photoPlaceholder");
+      const area        = document.getElementById("photoUploadArea");
+      const changeBtn   = document.getElementById("photoChangeBtn");
+
+      preview.src = src;
+      preview.classList.add("show");
+      placeholder.style.display  = "none";
+      area.classList.add("has-photo");
+      changeBtn.style.display    = "block";
+    }
+
+    async function uploadPhoto(uid) {
+      if (!selectedPhoto) return photoURL; // use existing (e.g. Google photo)
+
+      const storage  = firebase.storage();
+      const ref      = storage.ref(`users/${uid}/profile/avatar.jpg`);
+      await ref.put(selectedPhoto);
+      return await ref.getDownloadURL();
+    }
+
+    // ── Character Count ───────────────────────────────────────
+    function updateCharCount(textarea, countId, max) {
+      document.getElementById(countId).textContent = textarea.value.length;
+    }
+
+    // ── Finish ────────────────────────────────────────────────
+    async function handleFinish() {
+      if (!validateStep(1)) {
+        goToStep(1);
+        return;
+      }
+
+      const btn = document.getElementById("finishBtn");
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        const user = WR.getCurrentUser();
+        if (!user) throw new Error("Not authenticated");
+
+        // Upload photo if selected
+        let uploadedPhotoURL = null;
+        if (selectedPhoto) {
+          uploadedPhotoURL = await uploadPhoto(user.uid);
+        } else if (photoURL) {
+          uploadedPhotoURL = photoURL; // keep Google photo
+        }
+
+        // Build profile doc
+        const profile = {
+          uid:         user.uid,
+          email:       user.email,
+          firstName:   document.getElementById("firstName").value.trim(),
+          lastName:    document.getElementById("lastName").value.trim(),
+          displayName: document.getElementById("displayName").value.trim(),
+          photoURL:    uploadedPhotoURL || null,
+          bio:         document.getElementById("bio").value.trim() || null,
+          socialLinks: {
+            instagram: document.getElementById("instagram").value.trim() || null,
+            facebook:  document.getElementById("facebook").value.trim()  || null,
+            x:         document.getElementById("xtwitter").value.trim()  || null,
+            bluesky:   document.getElementById("bluesky").value.trim()   || null
+          },
+          authProvider: user.providerData[0]?.providerId === "google.com" ? "google" : "email",
+          joinedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+          monthlyGoal: null,
+          emailPreferences: {
+            accountCreated: true,
+            passwordReset:  true,
+            addedToClub:    true,
+            friendRequest:  true,
+            upcomingEvent:  true,
+            appFeatures:    true
+          },
+          profileVisibility: {
+            wishlist:         true,
+            currentlyReading: true,
+            recentlyFinished: true,
+            library:          true
+          },
+          suspended:  false,
+          deletedAt:  null
+        };
+
+        await WR.getDb()
+          .collection("users")
+          .doc(user.uid)
+          .set(profile, { merge: true });
+
+        // Update Firebase Auth display name
+        await user.updateProfile({
+          displayName: profile.displayName,
+          photoURL:    uploadedPhotoURL || user.photoURL || null
+        });
+
+        WR.showToast("Welcome to WellRead Co.! 🎉", "success");
+        setTimeout(() => { location.href = "index.html"; }, 1000);
+
+      } catch (e) {
+        console.error("Setup error:", e);
+        showBanner("Something went wrong saving your profile. Please try again.");
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    // ── Skip ──────────────────────────────────────────────────
+    async function handleSkip() {
+      // Save minimal profile so user isn't redirected back here
+      try {
+        const user = WR.getCurrentUser();
+        if (!user) { location.href = "login.html"; return; }
+
+        const fn = document.getElementById("firstName").value.trim();
+        const ln = document.getElementById("lastName").value.trim();
+        const dn = document.getElementById("displayName").value.trim();
+
+        // Require at minimum the three names before skipping
+        if (!fn || !ln || !dn) {
+          goToStep(1);
+          WR.showToast("Please complete your name before continuing.", "error");
+          return;
+        }
+
+        if (!validateStep1()) return;
+
+        await WR.getDb().collection("users").doc(user.uid).set({
+          uid:         user.uid,
+          email:       user.email,
+          firstName:   fn,
+          lastName:    ln,
+          displayName: dn,
+          photoURL:    photoURL || null,
+          bio:         null,
+          socialLinks: { instagram: null, facebook: null, x: null, bluesky: null },
+          authProvider: user.providerData[0]?.providerId === "google.com" ? "google" : "email",
+          joinedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+          monthlyGoal: null,
+          emailPreferences: {
+            accountCreated: true,
+            passwordReset:  true,
+            addedToClub:    true,
+            friendRequest:  true,
+            upcomingEvent:  true,
+            appFeatures:    true
+          },
+          profileVisibility: {
+            wishlist:         true,
+            currentlyReading: true,
+            recentlyFinished: true,
+            library:          true
+          },
+          suspended:  false,
+          deletedAt:  null
+        }, { merge: true });
+
+        location.href = "index.html";
+      } catch (e) {
+        console.error("Skip error:", e);
+        WR.showToast("Something went wrong. Please try again.", "error");
+      }
+    }
+
+    // ── Expose for HTML handlers ──────────────────────────────
+    window.goToStep            = goToStep;
+    window.onDisplayNameInput  = onDisplayNameInput;
+    window.handlePhotoSelect   = handlePhotoSelect;
+    window.updateCharCount     = updateCharCount;
+    window.handleFinish        = handleFinish;
+    window.handleSkip          = handleSkip;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>
