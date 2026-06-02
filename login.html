@@ -13,7 +13,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --lavender-mist: #F7F3FF;
       --aged-paper:    #FAF6EE;
@@ -23,491 +22,258 @@
       --warm-gold:     #C9A84C;
       --terracotta:    #A0674A;
       --border:        #E8DFC8;
-      --plum-mid:      #4A2D7A;
     }
-
     html, body {
-      height: 100%;
       font-family: 'Nunito Sans', sans-serif;
+      background: var(--deep-plum);
+      color: var(--deep-plum);
     }
 
-    body {
-      display: flex;
+    /* ── Hero Section ── */
+    .hero {
       min-height: 100vh;
-      background: var(--deep-plum);
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2rem 1rem;
-    }
-
-    /* ── Left Panel — Branding ── */
-    .left-panel {
-      display: none;
-      flex: 1;
-      background: var(--deep-plum);
+      padding: 3rem 1.25rem 4rem;
       position: relative;
       overflow: hidden;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      padding: 3rem;
     }
 
-    /* Decorative book spines background */
+    /* Decorative book spines at bottom */
     .spine-bg {
       position: absolute;
-      inset: 0;
+      bottom: 0; left: 0; right: 0;
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      gap: 6px;
-      padding: 0 2rem;
-      opacity: 0.18;
+      gap: 5px;
+      padding: 0 1rem;
+      opacity: 0.12;
+      pointer-events: none;
     }
-    .spine {
-      border-radius: 3px 3px 0 0;
-      flex-shrink: 0;
-    }
+    .spine { border-radius: 3px 3px 0 0; flex-shrink: 0; }
 
-    .left-content {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      max-width: 380px;
-    }
+    /* Branding */
+    .brand { text-align: center; margin-bottom: 2.5rem; }
+    .brand-icon { font-size: 52px; display: block; margin-bottom: 0.75rem; filter: drop-shadow(0 4px 16px rgba(201,168,76,0.4)); }
+    .brand-name { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 600; color: #F7F3FF; line-height: 1.1; margin-bottom: 0.4rem; }
+    .brand-tagline { font-family: 'Playfair Display', serif; font-style: italic; font-size: 16px; color: var(--warm-gold); }
 
-    .brand-icon {
-      font-size: 64px;
-      margin-bottom: 1.5rem;
-      display: block;
-      filter: drop-shadow(0 4px 16px rgba(201,168,76,0.4));
-    }
-
-    .brand-name {
-      font-family: 'Playfair Display', serif;
-      font-size: 42px;
-      font-weight: 600;
-      color: #F7F3FF;
-      line-height: 1.1;
-      margin-bottom: 0.5rem;
-    }
-
-    .brand-tagline {
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
-      font-size: 18px;
-      color: var(--warm-gold);
-      margin-bottom: 3rem;
-    }
-
-    .feature-list {
-      list-style: none;
-      text-align: left;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .feature-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      color: #C8BFD8;
-      font-size: 15px;
-      line-height: 1.4;
-    }
-
-    .feature-icon {
-      font-size: 20px;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    /* ── Right Panel — Form ── */
-    .right-panel {
-      width: 100%;
-      max-width: 460px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .mobile-brand {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .mobile-brand-icon { font-size: 44px; display: block; margin-bottom: 0.5rem; }
-
-    .mobile-brand-name {
-      font-family: 'Playfair Display', serif;
-      font-size: 28px;
-      color: #F7F3FF;
-    }
-
-    .mobile-brand-tagline {
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
-      font-size: 14px;
-      color: var(--warm-gold);
-      margin-top: 4px;
-    }
-
+    /* Auth Card */
     .auth-card {
       width: 100%;
       max-width: 420px;
       background: var(--aged-paper);
       border-radius: 20px;
       padding: 2rem;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.3);
       border: 1px solid var(--border);
+      position: relative;
+      z-index: 2;
     }
 
-    .tab-row {
-      display: flex;
-      background: var(--lavender-mist);
-      border-radius: 10px;
-      padding: 4px;
-      margin-bottom: 1.75rem;
-    }
+    .tab-row { display: flex; background: var(--lavender-mist); border-radius: 10px; padding: 4px; margin-bottom: 1.75rem; }
+    .tab-btn { flex: 1; padding: 9px; border: none; background: none; border-radius: 8px; font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--terracotta); cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background: var(--deep-plum); color: #F7F3FF; box-shadow: 0 2px 8px rgba(45,27,78,0.18); }
 
-    .tab-btn {
-      flex: 1;
-      padding: 9px;
-      border: none;
-      background: none;
-      border-radius: 8px;
-      font-family: 'Nunito Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--terracotta);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--deep-plum);
-      color: #F7F3FF;
-      box-shadow: 0 2px 8px rgba(45,27,78,0.18);
-    }
-
-    /* ── Form Fields ── */
     .form-section { display: none; }
     .form-section.active { display: block; }
 
-    .form-group {
-      margin-bottom: 1rem;
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    input[type="email"], input[type="password"], input[type="text"] {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 15px; color: var(--deep-plum);
+      background: var(--aged-paper); transition: border-color 0.2s, box-shadow 0.2s; outline: none;
     }
+    input:focus { border-color: var(--amethyst); box-shadow: 0 0 0 3px rgba(123,94,167,0.12); background: #fff; }
+    input.error { border-color: #C0392B; box-shadow: 0 0 0 3px rgba(192,57,43,0.10); }
 
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--terracotta);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 6px;
-    }
-
-    input[type="email"],
-    input[type="password"],
-    input[type="text"] {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-family: 'Nunito Sans', sans-serif;
-      font-size: 15px;
-      color: var(--deep-plum);
-      background: var(--aged-paper);
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: var(--amethyst);
-      box-shadow: 0 0 0 3px rgba(123,94,167,0.12);
-      background: #fff;
-    }
-
-    input.error {
-      border-color: #C0392B;
-      box-shadow: 0 0 0 3px rgba(192,57,43,0.10);
-    }
-
-    .field-error {
-      font-size: 12px;
-      color: #C0392B;
-      margin-top: 5px;
-      display: none;
-    }
-
+    .field-error { font-size: 12px; color: #C0392B; margin-top: 5px; display: none; }
     .field-error.show { display: block; }
 
-    /* ── Password Toggle ── */
-    .password-wrap {
-      position: relative;
-    }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; color: var(--terracotta); padding: 4px; line-height: 1; }
 
-    .password-wrap input {
-      padding-right: 44px;
-    }
-
-    .pw-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 18px;
-      color: var(--terracotta);
-      padding: 4px;
-      line-height: 1;
-    }
-
-    /* ── Forgot Password ── */
-    .forgot-link {
-      display: block;
-      text-align: right;
-      font-size: 12px;
-      color: var(--amethyst);
-      text-decoration: none;
-      margin-top: -6px;
-      margin-bottom: 1rem;
-    }
-
+    .forgot-link { display: block; text-align: right; font-size: 12px; color: var(--amethyst); text-decoration: none; margin-top: -6px; margin-bottom: 1rem; }
     .forgot-link:hover { text-decoration: underline; }
 
-    /* ── Submit Button ── */
-    .submit-btn {
-      width: 100%;
-      padding: 13px;
-      background: var(--amethyst);
-      color: #FAF6EE;
-      border: none;
-      border-radius: 8px;
-      font-family: 'Nunito Sans', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
+    .submit-btn { width: 100%; padding: 13px; background: var(--amethyst); color: #FAF6EE; border: none; border-radius: 8px; font-family: 'Nunito Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .submit-btn:hover { opacity: 0.88; }
     .submit-btn:active { transform: scale(0.98); }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .submit-btn .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: none;
-    }
-
+    .submit-btn .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
     .submit-btn.loading .spinner { display: block; }
     .submit-btn.loading .btn-text { display: none; }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Divider ── */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 1rem;
+    .divider { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+    .divider-line { flex: 1; height: 1px; background: var(--border); }
+    .divider-text { font-size: 12px; color: #BDB5CC; white-space: nowrap; }
+
+    .google-btn { width: 100%; padding: 12px; background: #fff; color: var(--deep-plum); border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Nunito Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .google-btn:hover { background: var(--lavender-mist); border-color: var(--amethyst); }
+    .google-logo { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .error-banner { background: #FDECEC; border: 1px solid #F5C6C6; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #922B21; margin-bottom: 1rem; display: none; }
+    .error-banner.show { display: block; }
+    .success-banner { background: #E8F5E9; border: 1px solid #C8E6C9; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #1B5E20; margin-bottom: 1rem; display: none; }
+    .success-banner.show { display: block; }
+
+    .pw-strength { margin-top: 6px; display: none; }
+    .pw-strength.show { display: block; }
+    .pw-strength-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; margin-bottom: 4px; }
+    .pw-strength-fill { height: 100%; border-radius: 2px; width: 0%; transition: width 0.3s, background 0.3s; }
+    .pw-strength-label { font-size: 11px; color: var(--terracotta); }
+
+    .terms-text { font-size: 11px; color: #BDB5CC; text-align: center; margin-top: 1rem; line-height: 1.5; }
+    .terms-text a { color: var(--amethyst); text-decoration: none; }
+
+    /* ── Feature Showcase ── */
+    .features-section {
+      background: var(--aged-paper);
+      padding: 5rem 1.25rem;
     }
 
-    .divider-line {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
+    .features-inner {
+      max-width: 900px;
+      margin: 0 auto;
     }
 
-    .divider-text {
-      font-size: 12px;
-      color: #BDB5CC;
-      white-space: nowrap;
-    }
-
-    /* ── Google Button ── */
-    .google-btn {
-      width: 100%;
-      padding: 12px;
-      background: #fff;
+    .features-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: 30px;
       color: var(--deep-plum);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .features-subheading {
+      font-size: 15px;
+      color: var(--terracotta);
+      text-align: center;
+      margin-bottom: 3.5rem;
+      font-style: italic;
+      font-family: 'Playfair Display', serif;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 24px rgba(45,27,78,0.08);
+    }
+
+    .feature-emoji {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 0.875rem;
+    }
+
+    .feature-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      color: var(--deep-plum);
+      margin-bottom: 0.4rem;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--terracotta);
+      line-height: 1.6;
+    }
+
+    /* ── Bottom CTA ── */
+    .bottom-cta {
+      background: var(--deep-plum);
+      padding: 4rem 1.25rem;
+      text-align: center;
+    }
+
+    .bottom-cta h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: #F7F3FF;
+      margin-bottom: 0.5rem;
+    }
+
+    .bottom-cta p {
+      font-size: 15px;
+      color: rgba(247,243,255,0.7);
+      margin-bottom: 2rem;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+    }
+
+    .bottom-cta-btn {
+      display: inline-block;
       font-family: 'Nunito Sans', sans-serif;
       font-size: 15px;
       font-weight: 600;
+      padding: 14px 36px;
+      border-radius: 10px;
+      border: none;
+      background: var(--warm-gold);
+      color: var(--deep-plum);
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .google-btn:hover {
-      background: var(--lavender-mist);
-      border-color: var(--amethyst);
-    }
-
-    .google-logo {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    /* ── Error Banner ── */
-    .error-banner {
-      background: #FDECEC;
-      border: 1px solid #F5C6C6;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #922B21;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    .error-banner.show { display: block; }
-
-    /* ── Success Banner ── */
-    .success-banner {
-      background: #E8F5E9;
-      border: 1px solid #C8E6C9;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #1B5E20;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    .success-banner.show { display: block; }
-
-    /* ── Password Strength ── */
-    .pw-strength {
-      margin-top: 6px;
-      display: none;
-    }
-
-    .pw-strength.show { display: block; }
-
-    .pw-strength-bar {
-      height: 4px;
-      border-radius: 2px;
-      background: var(--border);
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-
-    .pw-strength-fill {
-      height: 100%;
-      border-radius: 2px;
-      width: 0%;
-      transition: width 0.3s, background 0.3s;
-    }
-
-    .pw-strength-label {
-      font-size: 11px;
-      color: var(--terracotta);
-    }
-
-    /* ── Terms ── */
-    .terms-text {
-      font-size: 11px;
-      color: #BDB5CC;
-      text-align: center;
-      margin-top: 1rem;
-      line-height: 1.5;
-    }
-
-    .terms-text a {
-      color: var(--amethyst);
       text-decoration: none;
+      transition: opacity 0.15s;
     }
 
-    /* ── Responsive ── */
-    /* Mobile brand always visible */
-    .mobile-brand { display: block; }
+    .bottom-cta-btn:hover { opacity: 0.88; }
+
+    /* ── Footer ── */
+    .page-footer {
+      background: var(--deep-plum);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(247,243,255,0.35);
+    }
   </style>
 </head>
 <body>
 
-  <!-- ── Left Branding Panel ── -->
-  <div class="left-panel">
+  <!-- ── Hero + Auth ── -->
+  <div class="hero">
     <div class="spine-bg" id="spineBg"></div>
-    <div class="left-content">
+
+    <div class="brand">
       <span class="brand-icon">📖</span>
       <h1 class="brand-name">WellRead Co.</h1>
       <p class="brand-tagline">For the love of a good book.</p>
-      <ul class="feature-list">
-        <li class="feature-item">
-          <span class="feature-icon">📚</span>
-          <span>Track every book you own, have read, or want to read</span>
-        </li>
-        <li class="feature-item">
-          <span class="feature-icon">⭐</span>
-          <span>Review books and discover what fellow readers love</span>
-        </li>
-        <li class="feature-item">
-          <span class="feature-icon">👥</span>
-          <span>Start or join a book club with events and discussions</span>
-        </li>
-        <li class="feature-item">
-          <span class="feature-icon">🔖</span>
-          <span>Build and share your wishlist with friends and family</span>
-        </li>
-        <li class="feature-item">
-          <span class="feature-icon">✉️</span>
-          <span>Message fellow readers and lend books to each other</span>
-        </li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- ── Right Form Panel ── -->
-  <div class="right-panel">
-
-    <!-- Mobile only branding -->
-    <div class="mobile-brand">
-      <span class="mobile-brand-icon">📖</span>
-      <h1 class="mobile-brand-name">WellRead Co.</h1>
-      <p class="mobile-brand-tagline">For the love of a good book.</p>
     </div>
 
     <div class="auth-card">
-
-      <!-- Tab Toggle -->
       <div class="tab-row">
         <button class="tab-btn active" id="tabSignIn" onclick="showTab('signin')">Sign In</button>
         <button class="tab-btn" id="tabSignUp" onclick="showTab('signup')">Create Account</button>
       </div>
 
-      <!-- ── Sign In Form ── -->
+      <!-- Sign In -->
       <div class="form-section active" id="signinSection">
-
         <div class="error-banner" id="signinError"></div>
-
         <div class="form-group">
           <label for="signinEmail">Email Address</label>
           <input type="email" id="signinEmail" placeholder="you@example.com" autocomplete="email">
           <span class="field-error" id="signinEmailErr">Please enter a valid email address.</span>
         </div>
-
         <div class="form-group">
           <label for="signinPassword">Password</label>
           <div class="password-wrap">
@@ -516,20 +282,16 @@
           </div>
           <span class="field-error" id="signinPasswordErr">Please enter your password.</span>
         </div>
-
         <a href="reset.html" class="forgot-link">Forgot your password?</a>
-
         <button class="submit-btn" id="signinBtn" onclick="handleSignIn()">
           <div class="spinner"></div>
           <span class="btn-text">Sign In</span>
         </button>
-
         <div class="divider">
           <div class="divider-line"></div>
           <span class="divider-text">or continue with</span>
           <div class="divider-line"></div>
         </div>
-
         <button class="google-btn" onclick="handleGoogle()">
           <svg class="google-logo" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -539,21 +301,17 @@
           </svg>
           Continue with Google
         </button>
-
       </div>
 
-      <!-- ── Sign Up Form ── -->
+      <!-- Sign Up -->
       <div class="form-section" id="signupSection">
-
         <div class="error-banner" id="signupError"></div>
         <div class="success-banner" id="signupSuccess"></div>
-
         <div class="form-group">
           <label for="signupEmail">Email Address</label>
           <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email">
           <span class="field-error" id="signupEmailErr">Please enter a valid email address.</span>
         </div>
-
         <div class="form-group">
           <label for="signupPassword">Password</label>
           <div class="password-wrap">
@@ -562,35 +320,28 @@
             <button class="pw-toggle" type="button" onclick="togglePw('signupPassword', this)" aria-label="Show password">👁️</button>
           </div>
           <div class="pw-strength" id="pwStrength">
-            <div class="pw-strength-bar">
-              <div class="pw-strength-fill" id="pwStrengthFill"></div>
-            </div>
+            <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
             <span class="pw-strength-label" id="pwStrengthLabel"></span>
           </div>
           <span class="field-error" id="signupPasswordErr">Password must be at least 8 characters.</span>
         </div>
-
         <div class="form-group">
           <label for="signupConfirm">Confirm Password</label>
           <div class="password-wrap">
-            <input type="password" id="signupConfirm" placeholder="Repeat your password"
-                   autocomplete="new-password">
+            <input type="password" id="signupConfirm" placeholder="Repeat your password" autocomplete="new-password">
             <button class="pw-toggle" type="button" onclick="togglePw('signupConfirm', this)" aria-label="Show password">👁️</button>
           </div>
           <span class="field-error" id="signupConfirmErr">Passwords do not match.</span>
         </div>
-
         <button class="submit-btn" id="signupBtn" onclick="handleSignUp()">
           <div class="spinner"></div>
           <span class="btn-text">Create Account</span>
         </button>
-
         <div class="divider">
           <div class="divider-line"></div>
           <span class="divider-text">or continue with</span>
           <div class="divider-line"></div>
         </div>
-
         <button class="google-btn" onclick="handleGoogle()">
           <svg class="google-logo" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -600,17 +351,111 @@
           </svg>
           Continue with Google
         </button>
-
         <p class="terms-text">
           By creating an account you agree to our
           <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Feature Showcase ── -->
+  <div class="features-section">
+    <div class="features-inner">
+      <h2 class="features-heading">Everything a book lover needs</h2>
+      <p class="features-subheading">All in one beautifully simple place.</p>
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <span class="feature-emoji">📚</span>
+          <h3 class="feature-title">Your Personal Library</h3>
+          <p class="feature-desc">Track every book you own, have read, are currently reading, or want to read next — all in one organized collection.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">📖</span>
+          <h3 class="feature-title">Reading Log</h3>
+          <p class="feature-desc">Log your reading sessions with start and finish dates, format (read or listened), and mark books as completed or DNF.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">⭐</span>
+          <h3 class="feature-title">Reviews & Ratings</h3>
+          <p class="feature-desc">Write personal reviews, give star ratings, and optionally publish them to share your thoughts with the community.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">🎯</span>
+          <h3 class="feature-title">Monthly Reading Goals</h3>
+          <p class="feature-desc">Set a reading goal each month and track your progress. Look back at your goal history and celebrate every milestone.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">🏅</span>
+          <h3 class="feature-title">Badges & Achievements</h3>
+          <p class="feature-desc">Earn badges for reaching milestones — reading 10, 25, or 100 books, writing reviews, meeting goals, and more.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">🔖</span>
+          <h3 class="feature-title">To Be Read List</h3>
+          <p class="feature-desc">Keep a prioritized list of books you plan to read next. Drag and drop to arrange them in the order you want to tackle them.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">⭐</span>
+          <h3 class="feature-title">Public Wishlist</h3>
+          <p class="feature-desc">Build a shareable wishlist of books you'd love to own. Send the link to friends and family — perfect for gift ideas.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">👥</span>
+          <h3 class="feature-title">Book Clubs</h3>
+          <p class="feature-desc">Create or join book clubs with wall posts, events, RSVPs, and discussions. Invite members and coordinate your next great read together.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">🤝</span>
+          <h3 class="feature-title">Connect with Readers</h3>
+          <p class="feature-desc">Find and follow other readers, see what your friends are reading, and share your reading life with people who love books as much as you do.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">✉️</span>
+          <h3 class="feature-title">Direct Messaging</h3>
+          <p class="feature-desc">Chat with fellow readers, share book recommendations, and talk about what you're reading — all within the app.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">📖</span>
+          <h3 class="feature-title">Lending Tracker</h3>
+          <p class="feature-desc">Track which books you've lent out and to whom. Never lose track of a loaned book again.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-emoji">🔔</span>
+          <h3 class="feature-title">Friend Activity Feed</h3>
+          <p class="feature-desc">See what your friends are reading, finishing, and reviewing in real time — discover your next book through the people you trust.</p>
+        </div>
 
       </div>
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
+  <!-- ── Bottom CTA ── -->
+  <div class="bottom-cta">
+    <h2>Ready to start reading more intentionally?</h2>
+    <a href="#" class="bottom-cta-btn" onclick="document.querySelector('.hero').scrollIntoView({behavior:'smooth'});setTimeout(()=>showTab('signup'),500);return false;">
+      Create Your Free Account →
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer">
+    © 2026 WellRead Co. · Made for readers, by readers.
+  </div>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -618,17 +463,10 @@
   <script src="common.js"></script>
 
   <script>
-    // ── Init ─────────────────────────────────────────────────
-    // login.html is a public page — initAuth handles the
-    // redirect away if user is already signed in
     WR.initAuth(null);
 
-    // ── Decorative book spines ────────────────────────────────
-    const spineColors = [
-      "#7B5EA7","#9DC4B0","#C9A84C","#A0674A","#4A2D7A",
-      "#6B8F71","#D4A853","#8B5E8B","#5E8B7A","#A07850",
-      "#7A5E9E","#B8D4C4","#D4B870","#C49070","#3A2060"
-    ];
+    // Decorative book spines
+    const spineColors = ["#7B5EA7","#9DC4B0","#C9A84C","#A0674A","#4A2D7A","#6B8F71","#D4A853","#8B5E8B","#5E8B7A","#A07850","#7A5E9E","#B8D4C4","#D4B870","#C49070","#3A2060"];
     const spineBg = document.getElementById("spineBg");
     if (spineBg) {
       const heights = [280,320,360,300,380,260,340,290,370,310,350,270,390,330,300];
@@ -636,16 +474,11 @@
       for (let i = 0; i < 15; i++) {
         const spine = document.createElement("div");
         spine.className = "spine";
-        spine.style.cssText = `
-          background:${spineColors[i % spineColors.length]};
-          height:${heights[i]}px;
-          width:${widths[i]}px;
-        `;
+        spine.style.cssText = `background:${spineColors[i%spineColors.length]};height:${heights[i]}px;width:${widths[i]}px;`;
         spineBg.appendChild(spine);
       }
     }
 
-    // ── Tab switching ─────────────────────────────────────────
     function showTab(tab) {
       const isSignIn = tab === "signin";
       document.getElementById("signinSection").classList.toggle("active", isSignIn);
@@ -655,7 +488,6 @@
       clearErrors();
     }
 
-    // ── Password visibility toggle ────────────────────────────
     function togglePw(inputId, btn) {
       const input = document.getElementById(inputId);
       const show  = input.type === "password";
@@ -663,142 +495,84 @@
       btn.textContent = show ? "🙈" : "👁️";
     }
 
-    // ── Password strength ─────────────────────────────────────
     function checkPasswordStrength(pw) {
-      const el    = document.getElementById("pwStrength");
-      const fill  = document.getElementById("pwStrengthFill");
+      const el = document.getElementById("pwStrength");
+      const fill = document.getElementById("pwStrengthFill");
       const label = document.getElementById("pwStrengthLabel");
       if (!pw) { el.classList.remove("show"); return; }
       el.classList.add("show");
-
       let score = 0;
       if (pw.length >= 8)  score++;
       if (pw.length >= 12) score++;
       if (/[A-Z]/.test(pw)) score++;
       if (/[0-9]/.test(pw)) score++;
       if (/[^A-Za-z0-9]/.test(pw)) score++;
-
       const levels = [
-        { pct: "20%", color: "#C0392B", text: "Very weak"  },
-        { pct: "40%", color: "#E67E22", text: "Weak"       },
-        { pct: "60%", color: "#F1C40F", text: "Fair"       },
-        { pct: "80%", color: "#27AE60", text: "Strong"     },
-        { pct: "100%",color: "#1A8A4A", text: "Very strong"}
+        { pct:"20%", color:"#C0392B", text:"Very weak" },
+        { pct:"40%", color:"#E67E22", text:"Weak" },
+        { pct:"60%", color:"#F1C40F", text:"Fair" },
+        { pct:"80%", color:"#27AE60", text:"Strong" },
+        { pct:"100%",color:"#1A8A4A", text:"Very strong" }
       ];
-      const level = levels[Math.min(score - 1, 4)] || levels[0];
-      fill.style.width      = level.pct;
+      const level = levels[Math.min(score-1,4)] || levels[0];
+      fill.style.width = level.pct;
       fill.style.background = level.color;
-      label.textContent     = level.text;
-      label.style.color     = level.color;
+      label.textContent = level.text;
+      label.style.color = level.color;
     }
 
-    // ── Validation helpers ────────────────────────────────────
-    function showFieldError(id, show) {
-      document.getElementById(id).classList.toggle("show", show);
-    }
-
-    function setInputError(id, hasError) {
-      document.getElementById(id).classList.toggle("error", hasError);
-    }
-
-    function showBanner(id, message) {
-      const el = document.getElementById(id);
-      el.textContent = message;
-      el.classList.add("show");
-    }
-
-    function hideBanner(id) {
-      document.getElementById(id).classList.remove("show");
-    }
-
+    function showFieldError(id, show) { document.getElementById(id).classList.toggle("show", show); }
+    function setInputError(id, hasError) { document.getElementById(id).classList.toggle("error", hasError); }
+    function showBanner(id, message) { const el = document.getElementById(id); el.textContent = message; el.classList.add("show"); }
+    function hideBanner(id) { document.getElementById(id).classList.remove("show"); }
     function clearErrors() {
       ["signinError","signupError","signupSuccess"].forEach(hideBanner);
-      ["signinEmail","signinPassword","signupEmail","signupPassword","signupConfirm"]
-        .forEach(id => setInputError(id, false));
-      ["signinEmailErr","signinPasswordErr","signupEmailErr","signupPasswordErr","signupConfirmErr"]
-        .forEach(id => showFieldError(id, false));
+      ["signinEmail","signinPassword","signupEmail","signupPassword","signupConfirm"].forEach(id => setInputError(id, false));
+      ["signinEmailErr","signinPasswordErr","signupEmailErr","signupPasswordErr","signupConfirmErr"].forEach(id => showFieldError(id, false));
     }
+    function setLoading(btnId, loading) { const btn = document.getElementById(btnId); btn.classList.toggle("loading", loading); btn.disabled = loading; }
+    function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 
-    function setLoading(btnId, loading) {
-      const btn = document.getElementById(btnId);
-      btn.classList.toggle("loading", loading);
-      btn.disabled = loading;
-    }
-
-    function isValidEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    }
-
-    // ── Sign In ───────────────────────────────────────────────
     async function handleSignIn() {
       clearErrors();
       const email = document.getElementById("signinEmail").value.trim();
       const pw    = document.getElementById("signinPassword").value;
       let valid   = true;
-
-      if (!isValidEmail(email)) {
-        setInputError("signinEmail", true);
-        showFieldError("signinEmailErr", true);
-        valid = false;
-      }
-      if (!pw) {
-        setInputError("signinPassword", true);
-        showFieldError("signinPasswordErr", true);
-        valid = false;
-      }
+      if (!isValidEmail(email)) { setInputError("signinEmail", true); showFieldError("signinEmailErr", true); valid = false; }
+      if (!pw) { setInputError("signinPassword", true); showFieldError("signinPasswordErr", true); valid = false; }
       if (!valid) return;
-
       setLoading("signinBtn", true);
       try {
         await WR.getAuth().signInWithEmailAndPassword(email, pw);
-        // Auth state change in common.js handles redirect
       } catch (e) {
         setLoading("signinBtn", false);
         showBanner("signinError", friendlyAuthError(e.code));
       }
     }
 
-    // ── Sign Up ───────────────────────────────────────────────
     async function handleSignUp() {
       clearErrors();
       const email   = document.getElementById("signupEmail").value.trim();
       const pw      = document.getElementById("signupPassword").value;
       const confirm = document.getElementById("signupConfirm").value;
       let valid     = true;
-
-      if (!isValidEmail(email)) {
-        setInputError("signupEmail", true);
-        showFieldError("signupEmailErr", true);
-        valid = false;
-      }
-      if (pw.length < 8) {
-        setInputError("signupPassword", true);
-        showFieldError("signupPasswordErr", true);
-        valid = false;
-      }
-      if (pw !== confirm) {
-        setInputError("signupConfirm", true);
-        showFieldError("signupConfirmErr", true);
-        valid = false;
-      }
+      if (!isValidEmail(email)) { setInputError("signupEmail", true); showFieldError("signupEmailErr", true); valid = false; }
+      if (pw.length < 8) { setInputError("signupPassword", true); showFieldError("signupPasswordErr", true); valid = false; }
+      if (pw !== confirm) { setInputError("signupConfirm", true); showFieldError("signupConfirmErr", true); valid = false; }
       if (!valid) return;
-
       setLoading("signupBtn", true);
       try {
         await WR.getAuth().createUserWithEmailAndPassword(email, pw);
-        // Auth state change in common.js detects no profile → redirects to setup.html
       } catch (e) {
         setLoading("signupBtn", false);
         showBanner("signupError", friendlyAuthError(e.code));
       }
     }
 
-    // ── Google Auth ───────────────────────────────────────────
     async function handleGoogle() {
       const provider = new firebase.auth.GoogleAuthProvider();
       try {
         await WR.getAuth().signInWithPopup(provider);
-        // common.js handles redirect to setup.html (new) or index.html (existing)
       } catch (e) {
         if (e.code !== "auth/popup-closed-by-user") {
           showBanner("signinError", friendlyAuthError(e.code));
@@ -807,7 +581,6 @@
       }
     }
 
-    // ── Friendly error messages ───────────────────────────────
     function friendlyAuthError(code) {
       const errors = {
         "auth/user-not-found":       "No account found with that email address.",
@@ -823,27 +596,22 @@
       return errors[code] || "Something went wrong. Please try again.";
     }
 
-    // ── Enter key support ─────────────────────────────────────
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const signinActive = document.getElementById("signinSection").classList.contains("active");
-      if (signinActive) handleSignIn();
-      else handleSignUp();
+      if (signinActive) handleSignIn(); else handleSignUp();
     });
 
-    // ── Expose for HTML handlers ──────────────────────────────
-    window.showTab             = showTab;
-    window.togglePw            = togglePw;
+    window.showTab               = showTab;
+    window.togglePw              = togglePw;
     window.checkPasswordStrength = checkPasswordStrength;
-    window.handleSignIn        = handleSignIn;
-    window.handleSignUp        = handleSignUp;
-    window.handleGoogle        = handleGoogle;
+    window.handleSignIn          = handleSignIn;
+    window.handleSignUp          = handleSignUp;
+    window.handleGoogle          = handleGoogle;
   </script>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
   </script>
 
 </body>
