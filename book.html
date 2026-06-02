@@ -529,6 +529,65 @@
     </div>
   </div>
 
+  <!-- ── Reading Details Modal ── -->
+  <div class="modal-overlay" id="readModal" onclick="if(event.target===this)closeReadModal()" style="display:none;position:fixed;inset:0;background:rgba(45,27,78,0.45);z-index:500;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--aged-paper);border-radius:20px 20px 0 0;padding:1.75rem;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(45,27,78,0.18);">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1.25rem;"></div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);margin-bottom:0.25rem;">📖 Log Reading</h2>
+      <p style="font-size:13px;color:var(--terracotta);margin-bottom:1.25rem;">Record how and when you read this book.</p>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Format</label>
+        <div style="display:flex;gap:8px;">
+          <button class="read-format-btn active" id="fmtRead"     onclick="selectFormat('read')"     style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--amethyst);background:var(--amethyst);color:#FAF6EE;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">📖 Read</button>
+          <button class="read-format-btn"        id="fmtListened" onclick="selectFormat('listened')" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--deep-plum);font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">🎧 Listened</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Start Date <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#BDB5CC;font-size:10px;">(optional)</span></label>
+          <input type="date" id="rmStartDate" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);background:#fff;outline:none;">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Finish Date <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#BDB5CC;font-size:10px;">(optional)</span></label>
+          <input type="date" id="rmEndDate" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);background:#fff;outline:none;">
+        </div>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--deep-plum);cursor:pointer;padding:10px;background:var(--lavender-mist);border-radius:8px;margin-bottom:1.25rem;">
+        <input type="checkbox" id="rmDNF" style="width:16px;height:16px;accent-color:var(--amethyst);cursor:pointer;">
+        Did Not Finish (DNF)
+      </label>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="closeReadModal()" style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px;border:1.5px solid var(--border);background:var(--aged-paper);color:var(--terracotta);cursor:pointer;">Cancel</button>
+        <button onclick="confirmMarkRead()" style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lending Modal ── -->
+  <div class="modal-overlay" id="lendModal" onclick="if(event.target===this)closeLendModal()" style="display:none;position:fixed;inset:0;background:rgba(45,27,78,0.45);z-index:500;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--aged-paper);border-radius:20px 20px 0 0;padding:1.75rem;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(45,27,78,0.18);">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1.25rem;"></div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);margin-bottom:0.25rem;">📖 Lend This Book</h2>
+      <p style="font-size:13px;color:var(--terracotta);margin-bottom:1.25rem;">Track who has your book and when you lent it.</p>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Borrower Name</label>
+        <input type="text" id="lmBorrower" placeholder="Their name" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);background:#fff;outline:none;" oninput="this.style.borderColor='var(--amethyst)'">
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Date Lent</label>
+        <input type="date" id="lmDate" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);background:#fff;outline:none;">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="closeLendModal()" style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px;border:1.5px solid var(--border);background:var(--aged-paper);color:var(--terracotta);cursor:pointer;">Cancel</button>
+        <button onclick="confirmLend()" style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;">Record Loan</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -585,6 +644,8 @@
       renderPage();
       // Init star picker after page HTML is in DOM
       WR.initStarPicker("myStarPicker");
+      // Render lending section if user owns the book
+      renderLendingSection();
     });
 
     // ── Data Loaders ──────────────────────────────────────────
@@ -785,6 +846,9 @@
               : `<p class="no-reviews">No club reviews yet for this book.</p>`}
           </div>
         </div>` : ""}
+
+        <!-- Lending section rendered separately after page load (only shown for owned books) -->
+        <div id="lending-section"></div>
       `;
     }
 
@@ -794,7 +858,7 @@
 
       if (!userBook) {
         html += `<button class="action-btn btn-library" onclick="openQuickAdd('library')">📚 Add to Library</button>`;
-        html += `<button class="action-btn btn-read"    onclick="openQuickAdd('read')">✅ Mark as Read</button>`;
+        html += `<button class="action-btn btn-read"    onclick="openReadModal()">📖 Log Reading</button>`;
         html += `<button class="action-btn btn-tbr"     onclick="openQuickAdd('tbr')">🔖 To Be Read</button>`;
         html += `<button class="action-btn btn-wishlist" onclick="openQuickAdd('wishlist')">⭐ Add to Wishlist</button>`;
       } else {
@@ -805,9 +869,9 @@
         }
 
         if (userBook.onReadList) {
-          html += `<button class="action-btn btn-greyed" disabled>✅ Already Read</button>`;
+          html += `<button class="action-btn btn-greyed" disabled>📖 Reading Logged</button>`;
         } else {
-          html += `<button class="action-btn btn-read" onclick="openQuickAdd('read')">✅ Mark as Read</button>`;
+          html += `<button class="action-btn btn-read" onclick="openReadModal()">📖 Log Reading</button>`;
         }
 
         if (userBook.onTBR) {
@@ -817,7 +881,7 @@
         }
 
         if (userBook.onWishlist) {
-          html += `<button class="action-btn btn-view" onclick="location.href='wishlist.html'">⭐ View on Wishlist</button>`;
+          html += `<button class="action-btn btn-view" onclick="location.href='library.html?tab=wishlist'">⭐ View on Wishlist</button>`;
         } else {
           html += `<button class="action-btn btn-wishlist" onclick="openQuickAdd('wishlist')">⭐ Add to Wishlist</button>`;
         }
@@ -968,7 +1032,201 @@
       }
     }
 
-    // ── Save Review ───────────────────────────────────────────
+    // ── Reading Details Modal ─────────────────────────────────
+    let selectedFormat = "read";
+
+    function openReadModal() {
+      selectedFormat = "read";
+      document.getElementById("rmStartDate").value = "";
+      document.getElementById("rmEndDate").value   = "";
+      document.getElementById("rmDNF").checked     = false;
+      selectFormat("read");
+      const modal = document.getElementById("readModal");
+      modal.style.display = "flex";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeReadModal() {
+      document.getElementById("readModal").style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    function selectFormat(fmt) {
+      selectedFormat = fmt;
+      const readBtn     = document.getElementById("fmtRead");
+      const listenedBtn = document.getElementById("fmtListened");
+      if (fmt === "read") {
+        readBtn.style.background     = "var(--amethyst)";
+        readBtn.style.color          = "#FAF6EE";
+        readBtn.style.borderColor    = "var(--amethyst)";
+        listenedBtn.style.background = "#fff";
+        listenedBtn.style.color      = "var(--deep-plum)";
+        listenedBtn.style.borderColor = "var(--border)";
+      } else {
+        listenedBtn.style.background  = "var(--amethyst)";
+        listenedBtn.style.color       = "#FAF6EE";
+        listenedBtn.style.borderColor = "var(--amethyst)";
+        readBtn.style.background      = "#fff";
+        readBtn.style.color           = "var(--deep-plum)";
+        readBtn.style.borderColor     = "var(--border)";
+      }
+    }
+
+    async function confirmMarkRead() {
+      const user      = WR.getCurrentUser();
+      const bookId    = book.bookId || book.isbn13 || book.id;
+      const startDate = document.getElementById("rmStartDate").value || null;
+      const endDate   = document.getElementById("rmEndDate").value   || null;
+      const dnf       = document.getElementById("rmDNF").checked;
+
+      const session = {
+        sessionId:       WR.generateId(),
+        startDate:       startDate || null,
+        endDate:         endDate   || null,
+        completed:       !!endDate && !dnf,
+        dnf,
+        format:          selectedFormat,
+        review:          null,
+        rating:          null,
+        reviewPublished: false
+      };
+
+      try {
+        const existing = {
+          inLibrary:  userBook?.inLibrary  || false,
+          onReadList: true,
+          onTBR:      userBook?.onTBR      || false,
+          onWishlist: userBook?.onWishlist || false
+        };
+
+        await WR.addBookToUserCollection(book, existing);
+
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .update({ readingSessions: firebase.firestore.FieldValue.arrayUnion(session), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+        userBook = await WR.getUserBook(bookId);
+        closeReadModal();
+        const msg = endDate ? "Reading logged! ✅" : "Started reading! 📖";
+        WR.showToast(msg, "success");
+
+        // Re-render action buttons and notes section
+        document.querySelector(".action-buttons").innerHTML = buildActionButtons();
+        const notesBody = document.getElementById("notes-body");
+        if (notesBody && notesBody.classList.contains("open")) {
+          notesBody.innerHTML = renderMyNotes();
+          WR.initStarPicker("myStarPicker");
+        }
+        // Re-render lending section
+        renderLendingSection();
+      } catch (e) {
+        console.error("Mark as read error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    // ── Lending Modal ─────────────────────────────────────────
+    function openLendModal() {
+      document.getElementById("lmBorrower").value = "";
+      document.getElementById("lmDate").value     = new Date().toISOString().split("T")[0];
+      const modal = document.getElementById("lendModal");
+      modal.style.display = "flex";
+      document.body.style.overflow = "hidden";
+      setTimeout(() => document.getElementById("lmBorrower").focus(), 100);
+    }
+
+    function closeLendModal() {
+      document.getElementById("lendModal").style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    async function confirmLend() {
+      const user     = WR.getCurrentUser();
+      const bookId   = book.bookId || book.isbn13 || book.id;
+      const borrower = document.getElementById("lmBorrower").value.trim();
+      const lentDate = document.getElementById("lmDate").value || null;
+
+      if (!borrower) {
+        WR.showToast("Please enter the borrower's name.", "error");
+        return;
+      }
+
+      const lend = { lendId: WR.generateId(), borrowerUid: null, borrowerName: borrower, lentDate: lentDate || null, returnedDate: null, currentlyLent: true };
+
+      try {
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .update({ lendingHistory: firebase.firestore.FieldValue.arrayUnion(lend), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+        if (!userBook) userBook = { id: bookId };
+        if (!userBook.lendingHistory) userBook.lendingHistory = [];
+        userBook.lendingHistory.push(lend);
+
+        closeLendModal();
+        WR.showToast(`Lent to ${borrower}! 📖`, "success");
+        renderLendingSection();
+      } catch (e) {
+        console.error("Lend error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    async function markReturned(lendId) {
+      const user   = WR.getCurrentUser();
+      const bookId = book.bookId || book.isbn13 || book.id;
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId).get();
+        if (!snap.exists) return;
+        const history = (snap.data().lendingHistory || []).map(l =>
+          l.lendId === lendId ? { ...l, currentlyLent: false, returnedDate: new Date().toISOString().split("T")[0] } : l
+        );
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .update({ lendingHistory: history });
+        if (userBook) userBook.lendingHistory = history;
+        WR.showToast("Marked as returned!", "success");
+        renderLendingSection();
+      } catch (e) {
+        console.error("Return error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    function renderLendingSection() {
+      const el = document.getElementById("lending-section");
+      if (!el || !userBook?.inLibrary) return;
+      const lentItems    = (userBook?.lendingHistory || []).filter(l => l.currentlyLent);
+      const returnedItems = (userBook?.lendingHistory || []).filter(l => !l.currentlyLent);
+      el.innerHTML = `
+        <div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-top:1.25rem;">
+          <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <h2 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--deep-plum);">📖 Lending</h2>
+            <button onclick="openLendModal()" style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:7px 14px;border-radius:7px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;">+ Lend Out</button>
+          </div>
+          <div style="padding:1rem 1.25rem;">
+            ${lentItems.length ? lentItems.map(l => `
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--lavender-mist);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+                <div>
+                  <div style="font-size:14px;font-weight:600;color:var(--deep-plum);">${WR.escapeHTML(l.borrowerName || "")}</div>
+                  <div style="font-size:12px;color:var(--terracotta);">${l.lentDate ? "Lent " + WR.formatDateInput(l.lentDate) : "Lent recently"}</div>
+                </div>
+                <button onclick="markReturned('${l.lendId}')" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:none;background:var(--faded-moss);color:#1A3D2E;cursor:pointer;">✓ Returned</button>
+              </div>`).join("") : `<p style="font-size:13px;color:var(--terracotta);">Not currently lent out.</p>`}
+            ${returnedItems.length ? `
+              <p style="font-size:11px;font-weight:600;color:#BDB5CC;text-transform:uppercase;letter-spacing:0.06em;margin-top:12px;margin-bottom:6px;">History</p>
+              ${returnedItems.map(l => `
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#BDB5CC;padding:4px 0;border-bottom:1px solid var(--border);">
+                  <span>${WR.escapeHTML(l.borrowerName || "")}</span>
+                  <span>${l.lentDate || "?"} → ${l.returnedDate || "?"}</span>
+                </div>`).join("")}` : ""}
+          </div>
+        </div>`;
+    }
     async function saveMyReview() {
       const user    = WR.getCurrentUser();
       const bookId  = book.bookId || book.isbn13 || book.id;
@@ -1119,11 +1377,19 @@
     }
 
     // ── Expose for HTML handlers ──────────────────────────────
-    window.toggleSection = toggleSection;
-    window.toggleDesc    = toggleDesc;
-    window.openQuickAdd  = openQuickAdd;
-    window.saveMyReview  = saveMyReview;
-    window.editMyReview  = editMyReview;
+    window.toggleSection  = toggleSection;
+    window.toggleDesc     = toggleDesc;
+    window.openQuickAdd   = openQuickAdd;
+    window.saveMyReview   = saveMyReview;
+    window.editMyReview   = editMyReview;
+    window.openReadModal  = openReadModal;
+    window.closeReadModal = closeReadModal;
+    window.selectFormat   = selectFormat;
+    window.confirmMarkRead = confirmMarkRead;
+    window.openLendModal  = openLendModal;
+    window.closeLendModal = closeLendModal;
+    window.confirmLend    = confirmLend;
+    window.markReturned   = markReturned;
   </script>
 
   <script>

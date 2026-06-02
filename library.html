@@ -305,28 +305,6 @@
 
   </div>
 
-  <!-- ── Book Detail Modal (Library tab) ── -->
-  <div class="modal-overlay" id="bookModal" onclick="if(event.target===this)closeModal()">
-    <div class="book-modal">
-      <div class="modal-drag"></div>
-      <div class="modal-top">
-        <div id="modalCoverArea"></div>
-        <div class="modal-title-area">
-          <h2 class="modal-book-title"  id="modalTitle"></h2>
-          <p class="modal-book-author"  id="modalAuthor"></p>
-          <p style="font-size:12px;color:#BDB5CC;" id="modalISBN"></p>
-        </div>
-        <button class="modal-close" onclick="closeModal()">✕</button>
-      </div>
-      <div id="modalBody"></div>
-      <div class="modal-btn-row">
-        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Close</button>
-        <button class="modal-btn modal-btn-view"   onclick="viewOnBookPage()">View Book</button>
-        <button class="modal-btn modal-btn-save"   onclick="saveBookDetails()">Save</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -464,7 +442,7 @@
             <div class="lending-list" id="lendingList">
               ${lentItems.length
                 ? lentItems.map(({ book, lend }) => `
-                    <div class="lending-item" onclick="openBookModal('${book.id}')">
+                    <div class="lending-item" onclick="location.href='book.html?id=${encodeURIComponent(book.id)}'" style="cursor:pointer;">
                       <span class="lending-item-icon">📖</span>
                       <div class="lending-item-info">
                         <div class="lending-item-title">${WR.escapeHTML(book.title || "")}</div>
@@ -518,11 +496,11 @@
         : "";
       const ph = `<div class="grid-cover-placeholder" ${book.coverURL ? 'style="display:none"' : ""}>📖</div>`;
       return `
-        <div class="grid-book-item" onclick="openBookModal('${book.id}')">
+        <a class="grid-book-item" href="book.html?id=${encodeURIComponent(book.id)}" style="text-decoration:none;">
           ${cover}${ph}
           <div class="grid-book-title">${WR.escapeHTML(book.title || "")}</div>
           <div class="grid-book-author">${WR.escapeHTML(book.author || "")}</div>
-        </div>`;
+        </a>`;
     }
 
     function buildLibraryListCard(book) {
@@ -532,13 +510,13 @@
       const ph      = `<div class="book-cover-placeholder" ${book.coverURL ? 'style="display:none"' : ""}>📖</div>`;
       const session = book.readingSessions?.[0];
       let badges = "";
-      if (session?.completed)             badges += `<span class="status-badge badge-read">Read</span>`;
+      if (session?.completed)                                          badges += `<span class="status-badge badge-read">Read</span>`;
       if (session?.startDate && !session?.completed && !session?.dnf) badges += `<span class="status-badge badge-reading">Reading</span>`;
-      if (session?.dnf)                   badges += `<span class="status-badge badge-dnf">DNF</span>`;
-      if (book.lendingHistory?.some(l => l.currentlyLent)) badges += `<span class="status-badge badge-lent">Lent Out</span>`;
+      if (session?.dnf)                                               badges += `<span class="status-badge badge-dnf">DNF</span>`;
+      if (book.lendingHistory?.some(l => l.currentlyLent))           badges += `<span class="status-badge badge-lent">Lent Out</span>`;
       return `
-        <div class="book-card">
-          <div class="card-main" onclick="openBookModal('${book.id}')">
+        <a class="book-card" href="book.html?id=${encodeURIComponent(book.id)}" style="text-decoration:none;">
+          <div class="card-main">
             ${cover}${ph}
             <div class="card-info">
               <div class="card-title">${WR.escapeHTML(book.title || "")}</div>
@@ -546,7 +524,7 @@
               ${badges ? `<div class="card-badges">${badges}</div>` : ""}
             </div>
           </div>
-        </div>`;
+        </a>`;
     }
 
     function applyLibrarySort() {
