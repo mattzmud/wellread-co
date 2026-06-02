@@ -507,6 +507,7 @@
     let friendshipId = null;
     let userBooks    = [];
     let userClubs    = [];
+    let userFriends  = [];
 
     // ── Init ──────────────────────────────────────────────────
     WR.initAuth(async (user) => {
@@ -520,6 +521,7 @@
         loadProfile(),
         loadUserBooks(),
         loadUserClubs(),
+        loadUserFriends(),
         isOwnProfile ? Promise.resolve() : checkFriendStatus()
       ]);
 
@@ -558,6 +560,31 @@
           .get();
         userClubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (e) { console.error("Clubs load error:", e); }
+    }
+
+    async function loadUserFriends() {
+      try {
+        const snap = await WR.getDb()
+          .collection("friends")
+          .where("users", "array-contains", profileUid)
+          .where("status", "==", "accepted")
+          .get();
+
+        const friendUids = snap.docs
+          .map(d => d.data().users.find(u => u !== profileUid))
+          .filter(Boolean);
+
+        if (!friendUids.length) { userFriends = []; return; }
+
+        const profiles = await Promise.all(
+          friendUids.slice(0, 24).map(uid =>
+            WR.getDb().collection("users").doc(uid).get()
+          )
+        );
+        userFriends = profiles
+          .filter(s => s.exists)
+          .map(s => ({ uid: s.id, ...s.data() }));
+      } catch (e) { console.error("Friends load error:", e); }
     }
 
     async function checkFriendStatus() {
@@ -638,6 +665,10 @@
           <div class="stat-card">
             <span class="stat-num">${userClubs.length}</span>
             <span class="stat-label">Book Clubs</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">${userFriends.length}</span>
+            <span class="stat-label">Friends</span>
           </div>
         </div>
 
@@ -763,6 +794,36 @@
                   </div>
                 </a>`).join("")}
             </div>
+          </div>
+        </div>` : ""}
+
+        <!-- Friends -->
+        ${userFriends.length ? `
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('friends', this)">
+            <span class="section-title">🤝 Friends <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${userFriends.length}</span></span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="friends-body">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:12px;">
+              ${userFriends.map(f => `
+                <a href="profile.html?uid=${f.uid}" style="text-decoration:none;text-align:center;">
+                  ${f.photoURL
+                    ? `<img src="${WR.escapeHTML(f.photoURL)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin:0 auto 5px;display:block;border:2px solid var(--border);">`
+                    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--lavender-mist);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 5px;">👤</div>`}
+                  <div style="font-size:10px;color:var(--deep-plum);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${WR.escapeHTML(f.displayName || "")}</div>
+                </a>`).join("")}
+            </div>
+            ${isOwnProfile ? `
+            <div style="margin-top:1rem;">
+              <a href="search.html?tab=people" style="font-size:13px;color:var(--amethyst);text-decoration:none;">+ Find more readers →</a>
+            </div>` : ""}
+          </div>
+        </div>` : isOwnProfile ? `
+        <div class="profile-section">
+          <div style="padding:1.25rem;text-align:center;">
+            <p style="font-size:14px;color:var(--terracotta);margin-bottom:0.75rem;">You haven't added any friends yet.</p>
+            <a href="search.html?tab=people" style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;text-decoration:none;">🔍 Find Readers</a>
           </div>
         </div>` : ""}
       `;
