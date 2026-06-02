@@ -1032,7 +1032,7 @@ function buildBookCard(book, actions = []) {
 // ─── Google Books API ────────────────────────────────────────
 async function searchGoogleBooks(query) {
   const encoded = encodeURIComponent(query);
-  const url     = `https://www.googleapis.com/books/v1/volumes?q=${encoded}&maxResults=20`;
+  const url     = `https://www.googleapis.com/books/v1/volumes?q=${encoded}&maxResults=20&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`;
   try {
     const res  = await fetch(url);
     const data = await res.json();
@@ -1045,7 +1045,7 @@ async function searchGoogleBooks(query) {
 }
 
 async function getGoogleBookByISBN(isbn) {
-  const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+  const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`;
   try {
     const res  = await fetch(url);
     const data = await res.json();
