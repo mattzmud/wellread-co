@@ -342,30 +342,35 @@
     // ── Load All Books ────────────────────────────────────────
     async function loadAllBooks() {
       const user = WR.getCurrentUser();
-      for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        let snap;
         try {
-          const snap = await WR.getDb()
+          // Try cache first — instant if previously visited
+          snap = await WR.getDb()
             .collection("users").doc(user.uid)
-            .collection("books").get();
-
-          allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          updateCounts();
-          renderTab();
-
-          // Also load wishlist visibility setting
-          const usnap = await WR.getDb().collection("users").doc(user.uid).get();
-          if (usnap.exists) {
-            isPublic = usnap.data().profileVisibility?.wishlist !== false;
-          }
-          return;
-        } catch (e) {
-          if (attempt === 0) {
-            await new Promise(r => setTimeout(r, 500));
-          } else {
-            console.error("Error loading books:", e);
-            WR.showToast("Error loading your books.", "error");
-          }
+            .collection("books").get({ source: "cache" });
+        } catch (cacheErr) {
+          // Cache miss — fetch from server
+          snap = await WR.getDb()
+            .collection("users").doc(user.uid)
+            .collection("books").get({ source: "server" });
         }
+        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        updateCounts();
+        renderTab();
+
+        // Load wishlist visibility
+        try {
+          const usnap = await WR.getDb().collection("users").doc(user.uid).get({ source: "cache" });
+          if (usnap.exists) isPublic = usnap.data().profileVisibility?.wishlist !== false;
+        } catch {
+          const usnap = await WR.getDb().collection("users").doc(user.uid).get();
+          if (usnap.exists) isPublic = usnap.data().profileVisibility?.wishlist !== false;
+        }
+        return;
+      } catch (e) {
+        console.error("Error loading books:", e);
+        WR.showToast("Error loading your books.", "error");
       }
     }
 

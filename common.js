@@ -63,23 +63,6 @@ function initFirebase() {
   _db   = firebase.firestore();
 }
 
-// Resolves once Firestore can successfully respond to a query.
-// Retries up to 5 times with increasing delays.
-async function waitForFirestore() {
-  const delays = [0, 300, 600, 1000, 2000];
-  for (const delay of delays) {
-    if (delay) await new Promise(r => setTimeout(r, delay));
-    try {
-      await _db.collection("users").limit(1).get();
-      return true; // Firestore is ready
-    } catch (e) {
-      // Not ready yet — try again
-    }
-  }
-  console.warn("Firestore did not become ready after retries");
-  return false;
-}
-
 // ─── Auth State ──────────────────────────────────────────────
 // Call this on every authenticated page.
 // onReady(user) fires once auth is confirmed.
@@ -112,28 +95,23 @@ function initAuth(onReady) {
         return;
       }
 
-      // Ensure Firestore connection is ready before any queries
-      await waitForFirestore();
-
-      // Fetch user profile doc — with one retry on failure
-      // (Firestore can be slow to connect on first page navigation)
-      for (let attempt = 0; attempt < 2; attempt++) {
+      // Fetch user profile — try cache first (instant), fall back to network
+      try {
+        let snap;
         try {
-          const snap = await _db.collection("users").doc(user.uid).get();
-          if (!snap.exists && page !== "setup.html") {
-            location.href = "setup.html";
-            return;
-          }
-          _currentUser._profile = snap.exists ? snap.data() : null;
-          break; // success — stop retrying
-        } catch (e) {
-          if (attempt === 0) {
-            // First attempt failed — wait briefly then retry
-            await new Promise(r => setTimeout(r, 500));
-          } else {
-            console.error("Error fetching user profile:", e);
-          }
+          // Cache hit is instant — no network round trip needed
+          snap = await _db.collection("users").doc(user.uid).get({ source: "cache" });
+        } catch (cacheErr) {
+          // Cache miss — fetch from network
+          snap = await _db.collection("users").doc(user.uid).get({ source: "server" });
         }
+        if (!snap.exists && page !== "setup.html") {
+          location.href = "setup.html";
+          return;
+        }
+        _currentUser._profile = snap.exists ? snap.data() : null;
+      } catch (e) {
+        console.error("Error fetching user profile:", e);
       }
 
       // Render nav and start notification listener
