@@ -399,6 +399,11 @@
           <p class="char-count"><span id="bioCount">0</span> / 300</p>
         </div>
 
+        <div class="form-group">
+          <label for="zipCode">Location <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:#BDB5CC;">(zip code or city — used to find nearby book clubs)</span></label>
+          <input type="text" id="zipCode" maxlength="100" placeholder="e.g. 48197 or Ann Arbor, MI" autocomplete="postal-code">
+        </div>
+
         <button class="save-btn" id="saveProfileBtn" onclick="saveProfile()">
           <div class="spinner"></div>
           <span class="btn-text">Save Profile</span>
@@ -656,6 +661,7 @@
       setValue("lastName",    profile.lastName     || "");
       setValue("displayName", profile.displayName  || "");
       setValue("bio",         profile.bio          || "");
+      setValue("zipCode",     profile.zipCode      || "");
       updateCharCount(document.getElementById("bio"), "bioCount", 300);
 
       // Social
@@ -733,6 +739,7 @@
       const lastName    = document.getElementById("lastName").value.trim();
       const displayName = document.getElementById("displayName").value.trim();
       const bio         = document.getElementById("bio").value.trim();
+      const zipCode     = document.getElementById("zipCode").value.trim();
 
       if (!firstName || !lastName || !displayName) {
         errEl.textContent = "First name, last name, and display name are required.";
@@ -747,8 +754,30 @@
         let photoURL = currentPhotoURL;
         if (selectedPhoto) photoURL = await uploadPhoto(user.uid);
 
+        // Geocode zip/location if provided and changed
+        let lat = profile?.lat || null;
+        let lng = profile?.lng || null;
+        if (zipCode && zipCode !== (profile?.zipCode || "")) {
+          try {
+            const geo = await WR.geocode(zipCode);
+            if (geo?.found && geo.results?.length) {
+              lat = geo.results[0].lat;
+              lng = geo.results[0].lng;
+            }
+          } catch (geoErr) {
+            console.warn("Geocoding zip failed:", geoErr);
+          }
+        } else if (!zipCode) {
+          lat = null;
+          lng = null;
+        }
+
         await WR.getDb().collection("users").doc(user.uid).set({
-          firstName, lastName, displayName, bio: bio || null, photoURL: photoURL || null
+          firstName, lastName, displayName,
+          bio:      bio      || null,
+          photoURL: photoURL || null,
+          zipCode:  zipCode  || null,
+          lat, lng
         }, { merge: true });
 
         await user.updateProfile({ displayName, photoURL: photoURL || user.photoURL });
@@ -759,6 +788,9 @@
           profile.displayName = displayName;
           profile.bio         = bio;
           profile.photoURL    = photoURL;
+          profile.zipCode     = zipCode;
+          profile.lat         = lat;
+          profile.lng         = lng;
         }
 
         currentPhotoURL = photoURL;
