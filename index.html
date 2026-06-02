@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Home</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+    }
+
+    .page-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 6rem;
+    }
+
+    /* ── Welcome Header ── */
+    .welcome-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .welcome-text h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      margin-bottom: 3px;
+    }
+
+    .welcome-text p {
+      font-size: 14px;
+      color: var(--terracotta);
+    }
+
+    .welcome-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--faded-moss);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .welcome-avatar-placeholder {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--lavender-mist);
+      border: 2px solid var(--faded-moss);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* ── Reading Goal Card ── */
+    .goal-card {
+      background: var(--deep-plum);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .goal-icon { font-size: 36px; flex-shrink: 0; }
+
+    .goal-info { flex: 1; min-width: 0; }
+
+    .goal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: #F7F3FF;
+      margin-bottom: 0.4rem;
+    }
+
+    .goal-progress-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .goal-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--warm-gold);
+      transition: width 0.6s ease;
+    }
+
+    .goal-progress-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .goal-progress-label strong { color: var(--warm-gold); }
+
+    .goal-set-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      background: transparent;
+      color: #F7F3FF;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .goal-set-btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--deep-plum);
+    }
+
+    .section-link {
+      font-size: 13px;
+      color: var(--amethyst);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .section-link:hover { text-decoration: underline; }
+
+    /* ── Currently Reading Shelf ── */
+    .reading-shelf {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .reading-shelf::-webkit-scrollbar { height: 4px; }
+    .reading-shelf::-webkit-scrollbar-track { background: transparent; }
+    .reading-shelf::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .reading-book-card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      display: flex;
+      gap: 12px;
+      min-width: 260px;
+      max-width: 300px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.1s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .reading-book-card:hover {
+      box-shadow: 0 4px 16px rgba(45,27,78,0.10);
+      transform: translateY(-2px);
+    }
+
+    .reading-cover {
+      width: 56px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 5px;
+      box-shadow: 2px 3px 8px rgba(45,27,78,0.16);
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .reading-cover-placeholder {
+      width: 56px;
+      height: 80px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .reading-info { flex: 1; min-width: 0; }
+
+    .reading-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px;
+      color: var(--deep-plum);
+      margin-bottom: 3px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    .reading-author {
+      font-size: 12px;
+      color: var(--terracotta);
+      margin-bottom: 8px;
+    }
+
+    .reading-started {
+      font-size: 11px;
+      color: #BDB5CC;
+      margin-bottom: 8px;
+    }
+
+    .reading-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: #EDE4F7;
+      color: #5B3E8A;
+    }
+
+    /* ── Quick Stats Row ── */
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 2rem;
+    }
+
+    .quick-stat-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+
+    .quick-stat-card:hover {
+      box-shadow: 0 3px 12px rgba(45,27,78,0.08);
+      transform: translateY(-2px);
+    }
+
+    .qs-icon  { font-size: 24px; margin-bottom: 6px; display: block; }
+    .qs-num   { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--amethyst); display: block; }
+    .qs-label { font-size: 11px; color: var(--terracotta); margin-top: 2px; display: block; }
+
+    /* ── Upcoming Events ── */
+    .events-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .event-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .event-card:hover { box-shadow: 0 3px 12px rgba(45,27,78,0.08); }
+
+    .event-date-box {
+      background: var(--deep-plum);
+      border-radius: 10px;
+      padding: 8px 12px;
+      text-align: center;
+      flex-shrink: 0;
+      min-width: 52px;
+    }
+
+    .event-month {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--warm-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .event-day {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #F7F3FF;
+      line-height: 1;
+    }
+
+    .event-info { flex: 1; min-width: 0; }
+
+    .event-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .event-club {
+      font-size: 12px;
+      color: var(--terracotta);
+      margin-bottom: 2px;
+    }
+
+    .event-time {
+      font-size: 11px;
+      color: #BDB5CC;
+    }
+
+    .event-rsvp {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+
+    .event-rsvp:hover { opacity: 0.8; }
+    .rsvp-yes     { background: #DCF0E8; color: #2E6B50; }
+    .rsvp-no      { background: #FCE8E8; color: #8B2020; }
+    .rsvp-maybe   { background: #FEF3CD; color: #8B6914; }
+    .rsvp-pending { background: var(--lavender-mist); color: var(--amethyst); border: 1.5px solid var(--amethyst); }
+
+    /* ── My Clubs ── */
+    .clubs-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .club-card {
+      background: var(--faded-moss);
+      border-radius: 14px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.1s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .club-card:hover {
+      box-shadow: 0 4px 16px rgba(45,27,78,0.12);
+      transform: translateY(-2px);
+    }
+
+    .club-card-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: #1A3D2E;
+      margin-bottom: 4px;
+    }
+
+    .club-card-meta {
+      font-size: 12px;
+      color: #2E5E47;
+      margin-bottom: 10px;
+    }
+
+    .club-current-read {
+      background: rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .club-read-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--warm-gold);
+      flex-shrink: 0;
+    }
+
+    .club-read-text {
+      font-size: 12px;
+      color: #1A3D2E;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Activity Feed ── */
+    .activity-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .activity-item {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 0.875rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .activity-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .activity-avatar-placeholder {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--lavender-mist);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+
+    .activity-body { flex: 1; min-width: 0; }
+
+    .activity-text {
+      font-size: 13px;
+      color: var(--deep-plum);
+      line-height: 1.5;
+      margin-bottom: 3px;
+    }
+
+    .activity-text a {
+      color: var(--amethyst);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .activity-text a:hover { text-decoration: underline; }
+
+    .activity-time {
+      font-size: 11px;
+      color: #BDB5CC;
+    }
+
+    .activity-book-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--lavender-mist);
+      border: 1px solid #DDD6F3;
+      border-radius: 8px;
+      padding: 4px 10px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--amethyst);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .activity-book-pill:hover { background: #EDE4F7; }
+
+    /* ── Goal Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(45,27,78,0.45);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .goal-modal {
+      background: var(--aged-paper);
+      border-radius: 20px;
+      padding: 1.75rem;
+      width: min(380px, 94vw);
+      box-shadow: 0 8px 40px rgba(45,27,78,0.22);
+    }
+
+    .goal-modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--deep-plum);
+      margin-bottom: 0.25rem;
+    }
+
+    .goal-modal-desc {
+      font-size: 13px;
+      color: var(--terracotta);
+      margin-bottom: 1.25rem;
+    }
+
+    .goal-input-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .goal-stepper-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 20px;
+      color: var(--amethyst);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .goal-stepper-btn:hover { background: var(--lavender-mist); }
+
+    .goal-number-input {
+      flex: 1;
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 36px;
+      color: var(--deep-plum);
+      border: none;
+      background: transparent;
+      outline: none;
+      width: 80px;
+    }
+
+    .goal-unit {
+      font-size: 14px;
+      color: var(--terracotta);
+      white-space: nowrap;
+    }
+
+    .goal-modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .goal-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .goal-btn:hover { opacity: 0.85; }
+    .goal-btn-cancel { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+    .goal-btn-save   { background: var(--amethyst); color: #FAF6EE; }
+
+    /* ── Empty States ── */
+    .empty-section {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .empty-section-icon  { font-size: 32px; margin-bottom: 0.5rem; display: block; }
+    .empty-section-text  { font-size: 13px; color: var(--terracotta); margin-bottom: 0.75rem; }
+    .empty-section-link  {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--amethyst);
+      text-decoration: none;
+      padding: 7px 14px;
+      border-radius: 7px;
+      background: var(--lavender-mist);
+      transition: background 0.15s;
+    }
+    .empty-section-link:hover { background: #EDE4F7; }
+
+    /* ── Skeleton ── */
+    .skeleton-line {
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #ede8f5 25%, #e0d8ef 50%, #ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    .skeleton-block {
+      border-radius: 12px;
+      background: linear-gradient(90deg, #ede8f5 25%, #e0d8ef 50%, #ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .quick-stats { grid-template-columns: repeat(2, 1fr); }
+      .goal-card   { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 400px) {
+      .quick-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap">
+
+    <!-- Welcome Header -->
+    <div class="welcome-header" id="welcomeHeader">
+      <div class="welcome-text">
+        <h1 id="welcomeHeading">Good evening 📖</h1>
+        <p id="welcomeSub">Welcome back to WellRead Co.</p>
+      </div>
+      <div id="avatarWrap"></div>
+    </div>
+
+    <!-- Reading Goal Card -->
+    <div class="goal-card" id="goalCard">
+      <span class="goal-icon">🎯</span>
+      <div class="goal-info">
+        <p class="goal-title" id="goalTitle">Set your reading goal for this month</p>
+        <div class="goal-progress-bar">
+          <div class="goal-progress-fill" id="goalFill" style="width:0%"></div>
+        </div>
+        <p class="goal-progress-label" id="goalLabel">No goal set yet</p>
+      </div>
+      <button class="goal-set-btn" onclick="openGoalModal()">
+        <span id="goalBtnText">Set Goal</span>
+      </button>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="quick-stats" id="quickStats">
+      <a class="quick-stat-card" href="library.html">
+        <span class="qs-icon">📚</span>
+        <span class="qs-num" id="qsLibrary">—</span>
+        <span class="qs-label">In Library</span>
+      </a>
+      <a class="quick-stat-card" href="readlist.html">
+        <span class="qs-icon">✅</span>
+        <span class="qs-num" id="qsRead">—</span>
+        <span class="qs-label">Books Read</span>
+      </a>
+      <a class="quick-stat-card" href="tbr.html">
+        <span class="qs-icon">🔖</span>
+        <span class="qs-num" id="qsTBR">—</span>
+        <span class="qs-label">To Be Read</span>
+      </a>
+      <a class="quick-stat-card" href="wishlist.html">
+        <span class="qs-icon">⭐</span>
+        <span class="qs-num" id="qsWishlist">—</span>
+        <span class="qs-label">Wishlist</span>
+      </a>
+    </div>
+
+    <!-- Currently Reading -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">📖 Currently Reading</h2>
+        <a class="section-link" href="readlist.html">See all →</a>
+      </div>
+      <div id="currentlyReadingArea">
+        <div class="reading-shelf">
+          <div style="display:flex;gap:14px;">
+            <div class="skeleton-block" style="min-width:260px;height:112px;border-radius:14px;"></div>
+            <div class="skeleton-block" style="min-width:260px;height:112px;border-radius:14px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Club Events -->
+    <div class="section" id="eventsSection">
+      <div class="section-header">
+        <h2 class="section-title">📅 Upcoming Club Events</h2>
+        <a class="section-link" href="clubs.html">My Clubs →</a>
+      </div>
+      <div id="eventsArea">
+        <div class="skeleton-block" style="height:72px;border-radius:12px;margin-bottom:10px;"></div>
+        <div class="skeleton-block" style="height:72px;border-radius:12px;"></div>
+      </div>
+    </div>
+
+    <!-- My Book Clubs -->
+    <div class="section" id="clubsSection">
+      <div class="section-header">
+        <h2 class="section-title">👥 My Book Clubs</h2>
+        <a class="section-link" href="clubs.html">See all →</a>
+      </div>
+      <div id="clubsArea">
+        <div class="clubs-row">
+          <div class="skeleton-block" style="height:110px;border-radius:14px;"></div>
+          <div class="skeleton-block" style="height:110px;border-radius:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Friend Activity -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">🔔 Friend Activity</h2>
+        <a class="section-link" href="search.html">Find Books →</a>
+      </div>
+      <div id="activityArea">
+        <div class="skeleton-block" style="height:72px;border-radius:12px;margin-bottom:10px;"></div>
+        <div class="skeleton-block" style="height:72px;border-radius:12px;margin-bottom:10px;"></div>
+        <div class="skeleton-block" style="height:72px;border-radius:12px;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Goal Modal ── -->
+  <div class="modal-overlay" id="goalModal" onclick="handleGoalOverlayClick(event)">
+    <div class="goal-modal">
+      <h2 class="goal-modal-title">Monthly Reading Goal</h2>
+      <p class="goal-modal-desc" id="goalModalDesc">How many books do you want to read this month?</p>
+      <div class="goal-input-row">
+        <button class="goal-stepper-btn" onclick="adjustGoal(-1)">−</button>
+        <input type="number" class="goal-number-input" id="goalInput" value="4" min="1" max="100">
+        <span class="goal-unit">books this month</span>
+        <button class="goal-stepper-btn" onclick="adjustGoal(1)">+</button>
+      </div>
+      <div class="goal-modal-actions">
+        <button class="goal-btn goal-btn-cancel" onclick="closeGoalModal()">Cancel</button>
+        <button class="goal-btn goal-btn-save"   onclick="saveGoal()">Save Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let profile       = null;
+    let userStats     = { library: 0, read: 0, tbr: 0, wishlist: 0 };
+    let currentReads  = [];
+    let upcomingEvents = [];
+    let myClubs       = [];
+    let friendActivity = [];
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+
+      profile = user._profile;
+      renderWelcome();
+
+      // Load all sections in parallel
+      await Promise.all([
+        loadStats(),
+        loadCurrentlyReading(),
+        loadClubsAndEvents(),
+        loadFriendActivity()
+      ]);
+    });
+
+    // ── Welcome Header ────────────────────────────────────────
+    function renderWelcome() {
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? "Good morning" :
+                       hour < 17 ? "Good afternoon" :
+                       "Good evening";
+
+      const name = profile?.displayName || profile?.firstName || "reader";
+      document.getElementById("welcomeHeading").textContent = `${greeting}, ${name} 📖`;
+      document.getElementById("welcomeSub").textContent = getDateString();
+
+      // Avatar
+      const wrap = document.getElementById("avatarWrap");
+      if (profile?.photoURL) {
+        wrap.innerHTML = `<img class="welcome-avatar" src="${WR.escapeHTML(profile.photoURL)}"
+          alt="Your photo" onclick="location.href='profile.html?uid=${WR.getCurrentUser().uid}'"
+          onerror="this.outerHTML='<div class=\\'welcome-avatar-placeholder\\' onclick=\\'location.href=\\'profile.html?uid=${WR.getCurrentUser().uid}\\'\\'>👤</div>'">`;
+      } else {
+        wrap.innerHTML = `<div class="welcome-avatar-placeholder"
+          onclick="location.href='profile.html?uid=${WR.getCurrentUser().uid}'">👤</div>`;
+      }
+    }
+
+    function getDateString() {
+      return new Date().toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric"
+      });
+    }
+
+    // ── Stats ─────────────────────────────────────────────────
+    async function loadStats() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").get();
+
+        snap.forEach(doc => {
+          const b = doc.data();
+          if (b.inLibrary)  userStats.library++;
+          if (b.onReadList) userStats.read++;
+          if (b.onTBR)      userStats.tbr++;
+          if (b.onWishlist) userStats.wishlist++;
+        });
+
+        document.getElementById("qsLibrary").textContent  = userStats.library;
+        document.getElementById("qsRead").textContent     = userStats.read;
+        document.getElementById("qsTBR").textContent      = userStats.tbr;
+        document.getElementById("qsWishlist").textContent = userStats.wishlist;
+
+        renderGoalCard();
+      } catch (e) {
+        console.error("Stats error:", e);
+      }
+    }
+
+    // ── Goal Card ─────────────────────────────────────────────
+    function renderGoalCard() {
+      const goal    = profile?.monthlyGoal;
+      const now     = new Date();
+      const month   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const isThisMonth = goal?.month === month;
+
+      if (!isThisMonth || !goal?.target) {
+        document.getElementById("goalTitle").textContent  = "Set your reading goal for this month";
+        document.getElementById("goalLabel").textContent  = "No goal set yet";
+        document.getElementById("goalFill").style.width   = "0%";
+        document.getElementById("goalBtnText").textContent = "Set Goal";
+        return;
+      }
+
+      // Count books completed this month
+      const target = goal.target;
+      // We use the overall read count as a proxy — a more precise version
+      // would filter by completion date in the current month
+      const booksThisMonth = countBooksReadThisMonth();
+      const pct = Math.min(100, Math.round((booksThisMonth / target) * 100));
+
+      document.getElementById("goalTitle").textContent =
+        pct >= 100
+          ? `🎉 Goal complete! You read ${booksThisMonth} of ${target} books`
+          : `${booksThisMonth} of ${target} books read this month`;
+      document.getElementById("goalFill").style.width  = pct + "%";
+      document.getElementById("goalLabel").innerHTML =
+        `<strong>${pct}%</strong> of your ${now.toLocaleString("default", { month: "long" })} goal`;
+      document.getElementById("goalBtnText").textContent = "Edit Goal";
+    }
+
+    function countBooksReadThisMonth() {
+      // Placeholder — in a full implementation this would check
+      // readingSessions[].endDate against the current month
+      return 0;
+    }
+
+    // ── Goal Modal ────────────────────────────────────────────
+    function openGoalModal() {
+      const goal = profile?.monthlyGoal;
+      const now  = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const monthName = now.toLocaleString("default", { month: "long" });
+
+      document.getElementById("goalModalDesc").textContent =
+        `How many books do you want to read in ${monthName}?`;
+      document.getElementById("goalInput").value =
+        (goal?.month === month ? goal.target : 4);
+      document.getElementById("goalModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeGoalModal() {
+      document.getElementById("goalModal").classList.remove("open");
+      document.body.style.overflow = "";
+    }
+
+    function handleGoalOverlayClick(e) {
+      if (e.target === document.getElementById("goalModal")) closeGoalModal();
+    }
+
+    function adjustGoal(delta) {
+      const input = document.getElementById("goalInput");
+      const val   = Math.max(1, Math.min(100, parseInt(input.value || "4") + delta));
+      input.value = val;
+    }
+
+    async function saveGoal() {
+      const user   = WR.getCurrentUser();
+      const target = parseInt(document.getElementById("goalInput").value);
+      if (!target || target < 1) return;
+
+      const now   = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set({
+          monthlyGoal: { month, target, achieved: false }
+        }, { merge: true });
+
+        if (profile) profile.monthlyGoal = { month, target, achieved: false };
+        renderGoalCard();
+        WR.showToast(`Goal set: ${target} books this month! 🎯`, "success");
+        closeGoalModal();
+      } catch (e) {
+        console.error("Goal save error:", e);
+        WR.showToast("Error saving goal.", "error");
+      }
+    }
+
+    // ── Currently Reading ─────────────────────────────────────
+    async function loadCurrentlyReading() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books")
+          .where("onReadList", "==", true)
+          .get();
+
+        currentReads = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(b => {
+            const s = b.readingSessions?.[0];
+            return s?.startDate && !s?.completed && !s?.dnf;
+          });
+
+        renderCurrentlyReading();
+      } catch (e) {
+        console.error("Currently reading error:", e);
+      }
+    }
+
+    function renderCurrentlyReading() {
+      const area = document.getElementById("currentlyReadingArea");
+
+      if (!currentReads.length) {
+        area.innerHTML = `
+          <div class="empty-section">
+            <span class="empty-section-icon">📖</span>
+            <p class="empty-section-text">You're not currently reading anything. Start a book!</p>
+            <a class="empty-section-link" href="search.html">🔍 Find a Book</a>
+          </div>`;
+        return;
+      }
+
+      area.innerHTML = `<div class="reading-shelf">${currentReads.map(b => buildReadingCard(b)).join("")}</div>`;
+    }
+
+    function buildReadingCard(book) {
+      const session = book.readingSessions?.[0] || {};
+      const cover   = book.coverURL
+        ? `<img class="reading-cover" src="${WR.escapeHTML(book.coverURL)}" alt=""
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholder = `<div class="reading-cover-placeholder" ${book.coverURL ? 'style="display:none"' : ""}>📖</div>`;
+      const started = session.startDate
+        ? `Started ${WR.formatDateInput(session.startDate)}`
+        : "Reading now";
+
+      return `
+        <a class="reading-book-card" href="book.html?id=${encodeURIComponent(book.id)}">
+          ${cover}${placeholder}
+          <div class="reading-info">
+            <div class="reading-title">${WR.escapeHTML(book.title || "")}</div>
+            <div class="reading-author">${WR.escapeHTML(book.author || "")}</div>
+            <div class="reading-started">${started}</div>
+            <span class="reading-badge">📖 Reading</span>
+          </div>
+        </a>`;
+    }
+
+    // ── Clubs & Events ────────────────────────────────────────
+    async function loadClubsAndEvents() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs")
+          .where("memberUids", "array-contains", user.uid)
+          .limit(6)
+          .get();
+
+        myClubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderClubs();
+
+        // Load upcoming events from each club
+        const now      = new Date();
+        const eventPromises = myClubs.map(club =>
+          WR.getDb()
+            .collection("clubs").doc(club.id)
+            .collection("events")
+            .where("date", ">=", now.toISOString().split("T")[0])
+            .orderBy("date")
+            .limit(3)
+            .get()
+            .then(evSnap => evSnap.docs.map(d => ({
+              id: d.id, clubId: club.id, clubName: club.name, ...d.data()
+            })))
+            .catch(() => [])
+        );
+
+        const allEventArrays = await Promise.all(eventPromises);
+        upcomingEvents = allEventArrays
+          .flat()
+          .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+          .slice(0, 5);
+
+        renderEvents();
+      } catch (e) {
+        console.error("Clubs/events error:", e);
+        renderClubs();
+        renderEvents();
+      }
+    }
+
+    function renderClubs() {
+      const area = document.getElementById("clubsArea");
+
+      if (!myClubs.length) {
+        area.innerHTML = `
+          <div class="empty-section">
+            <span class="empty-section-icon">👥</span>
+            <p class="empty-section-text">You haven't joined any book clubs yet.</p>
+            <a class="empty-section-link" href="clubs.html">🔍 Find or Start a Club</a>
+          </div>`;
+        return;
+      }
+
+      area.innerHTML = `<div class="clubs-row">${myClubs.slice(0,4).map(c => `
+        <a class="club-card" href="club.html?id=${c.id}">
+          <div class="club-card-name">${WR.escapeHTML(c.name || "")}</div>
+          <div class="club-card-meta">${(c.memberUids?.length || 0)} members</div>
+          ${c.currentRead?.title ? `
+          <div class="club-current-read">
+            <div class="club-read-dot"></div>
+            <span class="club-read-text">
+              ${WR.escapeHTML(c.currentRead.session || "Current")}: <strong>${WR.escapeHTML(c.currentRead.title)}</strong>
+            </span>
+          </div>` : ""}
+        </a>`).join("")}
+      </div>`;
+    }
+
+    function renderEvents() {
+      const area = document.getElementById("eventsArea");
+
+      if (!upcomingEvents.length) {
+        if (!myClubs.length) {
+          area.innerHTML = "";
+          document.getElementById("eventsSection").style.display = "none";
+          return;
+        }
+        area.innerHTML = `
+          <div class="empty-section">
+            <span class="empty-section-icon">📅</span>
+            <p class="empty-section-text">No upcoming events in your clubs.</p>
+          </div>`;
+        return;
+      }
+
+      area.innerHTML = `<div class="events-list">${upcomingEvents.map(ev => buildEventCard(ev)).join("")}</div>`;
+    }
+
+    function buildEventCard(ev) {
+      const date  = ev.date ? new Date(ev.date + "T00:00:00") : null;
+      const month = date ? date.toLocaleString("default", { month: "short" }).toUpperCase() : "";
+      const day   = date ? date.getDate() : "?";
+      const time  = ev.startTime ? ev.startTime : "";
+
+      const userRsvp = getUserRsvp(ev);
+      const rsvpClass = userRsvp === "yes"   ? "rsvp-yes" :
+                        userRsvp === "no"    ? "rsvp-no"  :
+                        userRsvp === "maybe" ? "rsvp-maybe" : "rsvp-pending";
+      const rsvpLabel = userRsvp === "yes"   ? "✓ Going" :
+                        userRsvp === "no"    ? "✗ Not Going" :
+                        userRsvp === "maybe" ? "? Maybe" : "RSVP";
+
+      return `
+        <a class="event-card" href="club.html?id=${ev.clubId}">
+          <div class="event-date-box">
+            <div class="event-month">${month}</div>
+            <div class="event-day">${day}</div>
+          </div>
+          <div class="event-info">
+            <div class="event-name">${WR.escapeHTML(ev.name || "Club Event")}</div>
+            <div class="event-club">${WR.escapeHTML(ev.clubName || "")}</div>
+            ${time ? `<div class="event-time">${WR.escapeHTML(time)}</div>` : ""}
+          </div>
+          <button class="event-rsvp ${rsvpClass}"
+                  onclick="event.preventDefault();event.stopPropagation();handleRSVP('${ev.clubId}','${ev.id}')">
+            ${rsvpLabel}
+          </button>
+        </a>`;
+    }
+
+    function getUserRsvp(ev) {
+      const uid = WR.getCurrentUser()?.uid;
+      if (!uid) return null;
+      if (ev.rsvps?.yes?.includes(uid))   return "yes";
+      if (ev.rsvps?.no?.includes(uid))    return "no";
+      if (ev.rsvps?.maybe?.includes(uid)) return "maybe";
+      return null;
+    }
+
+    async function handleRSVP(clubId, eventId) {
+      // Cycle through: null → yes → maybe → no → yes
+      const ev = upcomingEvents.find(e => e.id === eventId);
+      if (!ev) return;
+
+      const uid     = WR.getCurrentUser().uid;
+      const current = getUserRsvp(ev);
+      const next    = current === null ? "yes" : current === "yes" ? "maybe" : current === "maybe" ? "no" : "yes";
+
+      try {
+        const ref = WR.getDb().collection("clubs").doc(clubId).collection("events").doc(eventId);
+        const update = {};
+
+        // Remove from all arrays first
+        ["yes","no","maybe"].forEach(s => {
+          update[`rsvps.${s}`] = firebase.firestore.FieldValue.arrayRemove(uid);
+        });
+        await ref.update(update);
+        await ref.update({ [`rsvps.${next}`]: firebase.firestore.FieldValue.arrayUnion(uid) });
+
+        // Update local state
+        if (!ev.rsvps) ev.rsvps = { yes: [], no: [], maybe: [] };
+        ["yes","no","maybe"].forEach(s => {
+          ev.rsvps[s] = (ev.rsvps[s] || []).filter(u => u !== uid);
+        });
+        ev.rsvps[next].push(uid);
+
+        renderEvents();
+        WR.showToast(
+          next === "yes" ? "You're going! 🎉" :
+          next === "maybe" ? "Marked as maybe." :
+          "Marked as not going.", "success"
+        );
+      } catch (e) {
+        console.error("RSVP error:", e);
+        WR.showToast("Error saving RSVP.", "error");
+      }
+    }
+
+    // ── Friend Activity ───────────────────────────────────────
+    async function loadFriendActivity() {
+      const user = WR.getCurrentUser();
+      try {
+        // Get accepted friends
+        const friendsSnap = await WR.getDb()
+          .collection("friends")
+          .where("users", "array-contains", user.uid)
+          .where("status", "==", "accepted")
+          .limit(20)
+          .get();
+
+        const friendUids = [];
+        friendsSnap.forEach(doc => {
+          const data = doc.data();
+          const other = data.users.find(u => u !== user.uid);
+          if (other) friendUids.push(other);
+        });
+
+        if (!friendUids.length) {
+          renderActivity([]);
+          return;
+        }
+
+        // Get recent book activity from friends (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        // Firestore "in" query supports up to 10 values
+        const uidBatch = friendUids.slice(0, 10);
+        const actSnap  = await WR.getDb()
+          .collectionGroup("books")
+          .where("updatedAt", ">=", firebase.firestore.Timestamp.fromDate(sevenDaysAgo))
+          .orderBy("updatedAt", "desc")
+          .limit(30)
+          .get();
+
+        // Filter to only friends' activity
+        const activity = actSnap.docs
+          .filter(doc => {
+            const pathParts = doc.ref.path.split("/");
+            const ownerUid  = pathParts[1];
+            return uidBatch.includes(ownerUid) && ownerUid !== user.uid;
+          })
+          .slice(0, 8)
+          .map(doc => ({ id: doc.id, ownerUid: doc.ref.path.split("/")[1], ...doc.data() }));
+
+        // Load friend profiles for display names
+        const profileSnaps = await Promise.all(
+          [...new Set(activity.map(a => a.ownerUid))].map(uid =>
+            WR.getDb().collection("users").doc(uid).get()
+          )
+        );
+
+        const profileMap = {};
+        profileSnaps.forEach(snap => {
+          if (snap.exists) profileMap[snap.id] = snap.data();
+        });
+
+        renderActivity(activity, profileMap);
+      } catch (e) {
+        console.error("Activity feed error:", e);
+        renderActivity([]);
+      }
+    }
+
+    function renderActivity(activity, profileMap = {}) {
+      const area = document.getElementById("activityArea");
+
+      if (!activity.length) {
+        area.innerHTML = `
+          <div class="empty-section">
+            <span class="empty-section-icon">🔔</span>
+            <p class="empty-section-text">Add friends to see what they're reading.</p>
+            <a class="empty-section-link" href="search.html">🔍 Discover Books</a>
+          </div>`;
+        return;
+      }
+
+      area.innerHTML = `<div class="activity-list">${activity.map(a => buildActivityItem(a, profileMap)).join("")}</div>`;
+    }
+
+    function buildActivityItem(item, profileMap) {
+      const friend  = profileMap[item.ownerUid] || {};
+      const name    = friend.displayName || "A reader";
+      const photo   = friend.photoURL
+        ? `<img class="activity-avatar" src="${WR.escapeHTML(friend.photoURL)}" alt="${WR.escapeHTML(name)}">`
+        : `<div class="activity-avatar-placeholder">👤</div>`;
+
+      const session = item.readingSessions?.[0];
+      let action    = "updated";
+      if (session?.completed) action = "finished reading";
+      else if (session?.startDate && !session?.completed) action = "started reading";
+      else if (item.onWishlist)  action = "added to wishlist";
+      else if (item.inLibrary)   action = "added to their library";
+      else if (item.onTBR)       action = "added to their TBR list";
+
+      const time    = item.updatedAt ? WR.formatRelativeTime(item.updatedAt) : "";
+      const bookPill = item.title
+        ? `<a class="activity-book-pill" href="book.html?id=${encodeURIComponent(item.id)}">📖 ${WR.escapeHTML(item.title)}</a>`
+        : "";
+
+      return `
+        <div class="activity-item">
+          ${photo}
+          <div class="activity-body">
+            <p class="activity-text">
+              <a href="profile.html?uid=${WR.escapeHTML(item.ownerUid)}">${WR.escapeHTML(name)}</a>
+              ${action}
+            </p>
+            ${bookPill}
+            <p class="activity-time">${time}</p>
+          </div>
+        </div>`;
+    }
+
+    // ── Expose ────────────────────────────────────────────────
+    window.openGoalModal         = openGoalModal;
+    window.closeGoalModal        = closeGoalModal;
+    window.handleGoalOverlayClick = handleGoalOverlayClick;
+    window.adjustGoal            = adjustGoal;
+    window.saveGoal              = saveGoal;
+    window.handleRSVP            = handleRSVP;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>
