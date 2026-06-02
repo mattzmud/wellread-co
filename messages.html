@@ -634,11 +634,28 @@
     // ── Open Thread ───────────────────────────────────────────
     async function openThread(threadId, threadObj) {
       activeThreadId = threadId;
-      // Accept a thread object directly (e.g. from openOrCreateDM) to avoid
-      // a race condition where the onSnapshot overwrites the threads array
-      // before this lookup runs.
-      const thread = threadObj || threads.find(t => t.id === threadId);
-      if (!thread) return;
+      // Accept a pre-built thread object directly to avoid a race condition
+      // where onSnapshot replaces the threads array before the find() runs.
+      let thread = threadObj || threads.find(t => t.id === threadId);
+
+      // Fallback: if still not found (snapshot hasn't landed yet), read from Firestore directly
+      if (!thread) {
+        try {
+          const snap = await WR.getDb().collection("messages").doc(threadId).get();
+          if (snap.exists) {
+            thread = { id: snap.id, ...snap.data() };
+            const uid      = WR.getCurrentUser().uid;
+            const otherUid = thread.participants?.find(u => u !== uid);
+            if (otherUid) {
+              const pSnap          = await WR.getDb().collection("users").doc(otherUid).get();
+              thread._otherProfile = pSnap.exists ? pSnap.data() : null;
+              thread._otherUid     = otherUid;
+            }
+          }
+        } catch (e) { console.error("openThread fallback fetch failed:", e); }
+      }
+
+      if (!thread) { console.error("openThread: thread not found for id", threadId); return; }
 
       // Mobile: show thread, hide sidebar
       document.getElementById("sidebarPanel").classList.add("mobile-hidden");
