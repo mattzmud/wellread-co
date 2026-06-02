@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Book Wishlist</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+    html, body { min-height: 100%; font-family: 'Nunito Sans', sans-serif; background: var(--lavender-mist); color: var(--deep-plum); }
+
+    /* ── Top Bar ── */
+    .top-bar {
+      background: var(--deep-plum);
+      padding: 0.875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .top-bar-brand {
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none;
+    }
+    .top-bar-logo { font-size: 22px; }
+    .top-bar-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px; color: #F7F3FF;
+    }
+    .join-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 13px; font-weight: 600;
+      padding: 8px 16px; border-radius: 8px; border: none;
+      background: var(--amethyst); color: #FAF6EE; cursor: pointer;
+      text-decoration: none; white-space: nowrap; transition: opacity 0.15s;
+    }
+    .join-btn:hover { opacity: 0.85; }
+
+    /* ── Page ── */
+    .page-wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+    /* ── Profile Header ── */
+    .profile-header {
+      background: #fff; border-radius: 16px; border: 1px solid var(--border);
+      padding: 1.5rem; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
+    }
+    .profile-photo {
+      width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+      border: 3px solid var(--faded-moss); flex-shrink: 0;
+    }
+    .profile-photo-placeholder {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--lavender-mist); border: 3px solid var(--faded-moss);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; flex-shrink: 0;
+    }
+    .profile-info { flex: 1; min-width: 0; }
+    .profile-name {
+      font-family: 'Playfair Display', serif; font-size: 22px;
+      color: var(--deep-plum); margin-bottom: 4px;
+    }
+    .profile-tagline { font-size: 14px; color: var(--terracotta); margin-bottom: 8px; }
+    .wishlist-count-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600; color: var(--amethyst);
+      background: var(--lavender-mist); border: 1px solid #DDD6F3;
+      padding: 3px 10px; border-radius: 20px;
+    }
+
+    /* ── Books List ── */
+    .books-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .book-card {
+      background: #fff; border-radius: 12px; border: 1px solid var(--border);
+      padding: 1rem; display: flex; gap: 14px; align-items: center;
+      text-decoration: none; color: inherit; transition: box-shadow 0.15s;
+    }
+    .book-card:hover { box-shadow: 0 3px 14px rgba(45,27,78,0.08); }
+
+    .book-cover { width: 56px; height: 80px; object-fit: cover; border-radius: 4px; box-shadow: 1px 2px 8px rgba(45,27,78,0.14); flex-shrink: 0; display: block; }
+    .book-cover-ph { width: 56px; height: 80px; border-radius: 4px; background: linear-gradient(135deg, var(--warm-gold), #A07820); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+
+    .book-info { flex: 1; min-width: 0; }
+    .book-title  { font-family: 'Playfair Display', serif; font-size: 15px; color: var(--deep-plum); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .book-author { font-size: 12px; color: var(--terracotta); margin-bottom: 4px; }
+    .book-isbn   { font-size: 11px; color: #BDB5CC; }
+
+    .book-arrow { font-size: 16px; color: #BDB5CC; flex-shrink: 0; }
+
+    /* ── CTA Banner ── */
+    .cta-banner {
+      background: var(--deep-plum); border-radius: 16px;
+      padding: 1.5rem; margin-top: 2rem; text-align: center;
+    }
+    .cta-icon  { font-size: 36px; margin-bottom: 0.75rem; display: block; }
+    .cta-title { font-family: 'Playfair Display', serif; font-size: 20px; color: #F7F3FF; margin-bottom: 0.4rem; }
+    .cta-desc  { font-size: 13px; color: rgba(255,255,255,0.65); margin-bottom: 1.25rem; line-height: 1.6; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 11px 24px; background: var(--warm-gold); color: #FAF6EE;
+      border: none; border-radius: 8px; cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; }
+
+    /* ── States ── */
+    .loading-state { text-align: center; padding: 3rem; font-size: 14px; color: var(--terracotta); }
+    .error-state   { text-align: center; padding: 3rem; }
+    .error-icon    { font-size: 48px; margin-bottom: 1rem; display: block; }
+    .error-title   { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .error-desc    { font-size: 14px; color: var(--terracotta); }
+
+    /* Skeleton */
+    .skeleton-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <a class="top-bar-brand" href="index.html">
+      <span class="top-bar-logo">📖</span>
+      <span class="top-bar-name">WellRead Co.</span>
+    </a>
+    <a class="join-btn" href="login.html">Join WellRead Co. →</a>
+  </div>
+
+  <div class="page-wrap">
+
+    <!-- Profile Header -->
+    <div class="profile-header" id="profileHeader">
+      <div class="profile-photo-placeholder">👤</div>
+      <div class="profile-info">
+        <div class="skeleton-line" style="width:45%;height:20px;margin-bottom:8px;"></div>
+        <div class="skeleton-line" style="width:60%"></div>
+      </div>
+    </div>
+
+    <!-- Books -->
+    <div id="booksArea">
+      <div class="loading-state">Loading wishlist...</div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-banner">
+      <span class="cta-icon">📚</span>
+      <h2 class="cta-title">Track your own reading life</h2>
+      <p class="cta-desc">Build your library, create wishlists, join book clubs, and connect with fellow readers on WellRead Co. It's free.</p>
+      <a class="cta-btn" href="login.html">🎉 Create a Free Account</a>
+    </div>
+
+  </div>
+
+  <!-- Firebase (read-only, no auth required for public wishlists) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // Public page — no auth check, just init Firebase
+    // We call initFirebase directly (not initAuth) so no redirect happens
+    const params = new URLSearchParams(location.search);
+    const uid    = params.get("uid");
+
+    // Bootstrap Firebase without auth enforcement
+    // common.js exposes WR.getDb() after initAuth, but we need
+    // it without auth here, so we init manually
+    (function() {
+      const FIREBASE_CONFIG_COPY = window.FIREBASE_CONFIG || {};
+      // WR.initAuth will have been called if user is signed in,
+      // but on this public page we just need Firestore
+      // We use a small delay to let common.js finish setting up
+      setTimeout(loadPublicWishlist, 300);
+    })();
+
+    async function loadPublicWishlist() {
+      if (!uid) {
+        showError("No user specified", "This wishlist link is missing a user ID.");
+        return;
+      }
+
+      try {
+        // We need the db — use firebase directly since WR may not be auth'd
+        const db = firebase.firestore();
+
+        // Load user profile
+        const userSnap = await db.collection("users").doc(uid).get();
+        if (!userSnap.exists) {
+          showError("User not found", "This wishlist link is no longer valid.");
+          return;
+        }
+
+        const profile = userSnap.data();
+
+        // Check visibility
+        if (profile.profileVisibility?.wishlist === false) {
+          showError("Private Wishlist", `${profile.displayName || "This user"}'s wishlist is set to private.`);
+          return;
+        }
+
+        // Load wishlist books
+        const booksSnap = await db
+          .collection("users").doc(uid)
+          .collection("books")
+          .where("onWishlist", "==", true)
+          .get();
+
+        const books = booksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        renderProfile(profile, books.length);
+        renderBooks(books, profile);
+
+      } catch (e) {
+        console.error("Wishlist load error:", e);
+        showError("Something went wrong", "We couldn't load this wishlist. Please try again.");
+      }
+    }
+
+    function renderProfile(profile, count) {
+      const header = document.getElementById("profileHeader");
+      const joined = profile.joinedAt
+        ? (profile.joinedAt.toDate
+            ? profile.joinedAt.toDate().toLocaleDateString("en-US", { month: "long", year: "numeric" })
+            : new Date(profile.joinedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" }))
+        : null;
+
+      document.title = `${profile.displayName || "Someone"}'s Wishlist — WellRead Co.`;
+
+      header.innerHTML = `
+        ${profile.photoURL
+          ? `<img class="profile-photo" src="${escH(profile.photoURL)}" alt="${escH(profile.displayName || "")}">`
+          : `<div class="profile-photo-placeholder">👤</div>`}
+        <div class="profile-info">
+          <h1 class="profile-name">${escH(profile.displayName || "A Reader")}</h1>
+          <p class="profile-tagline">${joined ? `📖 WellRead since ${joined}` : "WellRead Co. member"}</p>
+          <span class="wishlist-count-badge">⭐ ${count} book${count === 1 ? "" : "s"} on this wishlist</span>
+        </div>`;
+    }
+
+    function renderBooks(books, profile) {
+      const area = document.getElementById("booksArea");
+      if (!books.length) {
+        area.innerHTML = `
+          <div style="text-align:center;padding:2rem;background:#fff;border-radius:12px;border:1px solid var(--border);">
+            <div style="font-size:40px;margin-bottom:0.75rem;">⭐</div>
+            <p style="font-size:14px;color:var(--terracotta);">${escH(profile.displayName || "This reader")} hasn't added any books to their wishlist yet.</p>
+          </div>`;
+        return;
+      }
+
+      area.innerHTML = `<div class="books-list">${books.map(b => buildBookCard(b)).join("")}</div>`;
+    }
+
+    function buildBookCard(book) {
+      const bookId  = book.id || book.bookId || "";
+      const cover   = book.coverURL
+        ? `<img class="book-cover" src="${escH(book.coverURL)}" alt=""
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholder = `<div class="book-cover-ph" ${book.coverURL ? 'style="display:none"' : ""}>⭐</div>`;
+
+      return `
+        <a class="book-card" href="book.html?id=${encodeURIComponent(bookId)}">
+          ${cover}${placeholder}
+          <div class="book-info">
+            <div class="book-title">${escH(book.title || "Unknown Title")}</div>
+            <div class="book-author">${escH(book.author || "")}</div>
+            ${book.isbn ? `<div class="book-isbn">ISBN: ${escH(book.isbn)}</div>` : ""}
+          </div>
+          <span class="book-arrow">→</span>
+        </a>`;
+    }
+
+    function showError(title, desc) {
+      document.getElementById("profileHeader").style.display = "none";
+      document.getElementById("booksArea").innerHTML = `
+        <div class="error-state">
+          <span class="error-icon">🔒</span>
+          <h2 class="error-title">${escH(title)}</h2>
+          <p class="error-desc">${escH(desc)}</p>
+        </div>`;
+    }
+
+    function escH(str) {
+      const d = document.createElement("div");
+      d.textContent = str || "";
+      return d.innerHTML;
+    }
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+  </script>
+</body>
+</html>

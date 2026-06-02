@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Messages</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+    html, body { height: 100%; font-family: 'Nunito Sans', sans-serif; background: var(--lavender-mist); color: var(--deep-plum); overflow: hidden; }
+
+    /* ── Layout ── */
+    .messages-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: 100vh;
+      padding-top: 60px; /* nav height */
+    }
+
+    @media (max-width: 768px) {
+      .messages-layout { grid-template-columns: 1fr; padding-top: 0; padding-bottom: 64px; }
+      .thread-panel { display: none; }
+      .thread-panel.mobile-open { display: flex; }
+      .sidebar-panel.mobile-hidden { display: none; }
+    }
+
+    /* ── Sidebar ── */
+    .sidebar-panel {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--deep-plum);
+    }
+
+    .new-msg-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--amethyst); color: #fff; border: none;
+      font-size: 20px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .new-msg-btn:hover { opacity: 0.85; }
+
+    .sidebar-search {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-search input {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px;
+      color: var(--deep-plum); background: var(--lavender-mist);
+      outline: none;
+    }
+
+    .sidebar-search input:focus { border-color: var(--amethyst); }
+
+    .threads-list {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    .thread-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.875rem 1.25rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .thread-item:hover { background: var(--lavender-mist); }
+    .thread-item.active { background: #EDE4F7; }
+
+    .thread-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .thread-avatar-placeholder {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--lavender-mist); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .thread-group-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--faded-moss); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+
+    .thread-info { flex: 1; min-width: 0; }
+    .thread-name {
+      font-size: 14px; font-weight: 600; color: var(--deep-plum);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .thread-preview {
+      font-size: 12px; color: #BDB5CC;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .thread-preview.unread { color: var(--deep-plum); font-weight: 600; }
+
+    .thread-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .thread-time { font-size: 11px; color: #BDB5CC; }
+    .unread-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--amethyst); display: none;
+    }
+    .unread-dot.show { display: block; }
+
+    .threads-empty {
+      text-align: center; padding: 2rem 1rem;
+      font-size: 14px; color: var(--terracotta);
+    }
+
+    /* ── Thread Panel ── */
+    .thread-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      background: var(--lavender-mist);
+    }
+
+    .thread-header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0.875rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      display: none;
+      background: none; border: none; font-size: 20px;
+      cursor: pointer; color: var(--amethyst); padding: 4px;
+    }
+
+    @media (max-width: 768px) { .back-btn { display: block; } }
+
+    .thread-header-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .thread-header-avatar-ph {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--lavender-mist); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0; border: 1px solid var(--border);
+    }
+
+    .thread-header-info { flex: 1; min-width: 0; }
+    .thread-header-name {
+      font-size: 15px; font-weight: 600; color: var(--deep-plum);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .thread-header-sub { font-size: 11px; color: #BDB5CC; }
+
+    /* ── Messages Area ── */
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scrollbar-width: thin;
+    }
+
+    .msg-day-divider {
+      text-align: center;
+      font-size: 11px;
+      color: #BDB5CC;
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .msg-day-divider::before,
+    .msg-day-divider::after {
+      content: ""; flex: 1; height: 1px; background: var(--border);
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .msg-row.mine { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0; align-self: flex-end;
+    }
+    .msg-avatar-ph {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--lavender-mist); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; border: 1px solid var(--border);
+    }
+
+    .msg-bubble-wrap { max-width: 70%; display: flex; flex-direction: column; gap: 2px; }
+    .msg-row.mine .msg-bubble-wrap { align-items: flex-end; }
+
+    .msg-sender-name {
+      font-size: 10px; font-weight: 600;
+      color: var(--terracotta); margin-bottom: 1px;
+    }
+
+    .msg-bubble {
+      background: #fff;
+      border-radius: 16px 16px 16px 4px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--deep-plum);
+      line-height: 1.5;
+      box-shadow: 0 1px 4px rgba(45,27,78,0.06);
+      word-break: break-word;
+    }
+    .msg-row.mine .msg-bubble {
+      background: var(--amethyst);
+      color: #F7F3FF;
+      border-radius: 16px 16px 4px 16px;
+    }
+
+    /* Book share pill inside bubble */
+    .book-share-pill {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 6px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .msg-bubble .book-share-pill { background: var(--lavender-mist); }
+    .book-share-cover { width: 32px; height: 46px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+    .book-share-cover-ph { width: 32px; height: 46px; border-radius: 3px; background: var(--amethyst); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .book-share-title { font-size: 12px; font-weight: 600; color: var(--deep-plum); }
+    .msg-row.mine .book-share-title { color: var(--deep-plum); }
+
+    .msg-time {
+      font-size: 10px;
+      color: #BDB5CC;
+      padding: 0 4px;
+    }
+
+    /* ── Composer ── */
+    .composer {
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    .composer-textarea {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      color: var(--deep-plum);
+      background: var(--lavender-mist);
+      outline: none;
+      resize: none;
+      min-height: 42px;
+      max-height: 120px;
+      line-height: 1.4;
+      transition: border-color 0.2s;
+    }
+    .composer-textarea:focus { border-color: var(--amethyst); background: #fff; }
+
+    .composer-book-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--lavender-mist); border: 1.5px solid var(--border);
+      font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: background 0.15s; flex-shrink: 0;
+    }
+    .composer-book-btn:hover { background: #EDE4F7; }
+
+    .send-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--amethyst); color: #fff; border: none;
+      font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: opacity 0.15s; flex-shrink: 0;
+    }
+    .send-btn:hover { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Empty Thread State ── */
+    .no-thread-selected {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      color: var(--terracotta);
+    }
+    .no-thread-icon  { font-size: 52px; margin-bottom: 1rem; }
+    .no-thread-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .no-thread-desc  { font-size: 14px; }
+
+    /* ── Book Share Picker Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(45,27,78,0.45); z-index: 600;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    @media (min-width: 640px) { .modal-overlay { align-items: center; } }
+
+    .share-modal {
+      background: var(--aged-paper); border-radius: 20px 20px 0 0;
+      padding: 1.5rem; width: 100%; max-width: 480px;
+      max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 -4px 32px rgba(45,27,78,0.18);
+    }
+    @media (min-width: 640px) { .share-modal { border-radius: 20px; } }
+
+    .modal-drag { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 1.25rem; }
+    @media (min-width: 640px) { .modal-drag { display: none; } }
+
+    .share-modal-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--deep-plum); margin-bottom: 0.75rem; }
+    .share-search { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum); background: #fff; outline: none; margin-bottom: 1rem; }
+    .share-search:focus { border-color: var(--amethyst); }
+    .share-results { display: flex; flex-direction: column; gap: 8px; }
+    .share-book-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px;
+      border-radius: 10px; background: #fff; border: 1px solid var(--border);
+      cursor: pointer; transition: background 0.15s;
+    }
+    .share-book-item:hover { background: var(--lavender-mist); }
+    .share-book-cover { width: 36px; height: 52px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+    .share-book-cover-ph { width: 36px; height: 52px; border-radius: 3px; background: var(--amethyst); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .share-book-title { font-size: 13px; font-weight: 600; color: var(--deep-plum); }
+    .share-book-author { font-size: 11px; color: var(--terracotta); }
+
+    /* New Message Modal */
+    .new-msg-modal {
+      background: var(--aged-paper); border-radius: 20px 20px 0 0;
+      padding: 1.5rem; width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 -4px 32px rgba(45,27,78,0.18);
+    }
+    @media (min-width: 640px) { .new-msg-modal { border-radius: 20px; } }
+
+    .new-msg-modal-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--deep-plum); margin-bottom: 0.75rem; }
+    .new-msg-search { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum); background: #fff; outline: none; margin-bottom: 1rem; }
+    .new-msg-search:focus { border-color: var(--amethyst); }
+    .friend-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px;
+      border-radius: 10px; cursor: pointer; transition: background 0.15s;
+    }
+    .friend-item:hover { background: var(--lavender-mist); }
+    .friend-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .friend-avatar-ph { width: 40px; height: 40px; border-radius: 50%; background: var(--lavender-mist); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; border: 1px solid var(--border); }
+    .friend-name { font-size: 14px; font-weight: 600; color: var(--deep-plum); }
+
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1rem; }
+    .modal-btn { font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; transition: opacity 0.15s; }
+    .modal-btn:hover { opacity: 0.85; }
+    .btn-cancel { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <div class="messages-layout">
+
+    <!-- ── Sidebar ── -->
+    <div class="sidebar-panel" id="sidebarPanel">
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">Messages</h2>
+        <button class="new-msg-btn" onclick="openNewMsgModal()" title="New Message">+</button>
+      </div>
+      <div class="sidebar-search">
+        <input type="text" id="threadSearch" placeholder="Search conversations..." oninput="filterThreads(this.value)">
+      </div>
+      <div class="threads-list" id="threadsList">
+        <div class="threads-empty">Loading messages...</div>
+      </div>
+    </div>
+
+    <!-- ── Thread Panel ── -->
+    <div class="thread-panel" id="threadPanel">
+      <div class="no-thread-selected" id="noThreadSelected">
+        <div class="no-thread-icon">✉️</div>
+        <h2 class="no-thread-title">Your Messages</h2>
+        <p class="no-thread-desc">Select a conversation or start a new one.</p>
+      </div>
+      <!-- Active thread rendered here by JS -->
+    </div>
+
+  </div>
+
+  <!-- ── New Message Modal ── -->
+  <div class="modal-overlay" id="newMsgModal" onclick="handleOverlay('newMsgModal',event)">
+    <div class="new-msg-modal">
+      <div class="modal-drag"></div>
+      <h2 class="new-msg-modal-title">New Message</h2>
+      <input type="text" class="new-msg-search" id="newMsgSearch"
+             placeholder="Search friends..." oninput="searchNewMsgFriends(this.value)">
+      <div id="newMsgFriendList"></div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeOverlay('newMsgModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Book Share Modal ── -->
+  <div class="modal-overlay" id="bookShareModal" onclick="handleOverlay('bookShareModal',event)">
+    <div class="share-modal">
+      <div class="modal-drag"></div>
+      <h2 class="share-modal-title">Share a Book</h2>
+      <input type="text" class="share-search" id="shareBookSearch"
+             placeholder="Search your library or any book..."
+             oninput="onShareBookSearch(this.value)">
+      <div class="share-results" id="shareResults">
+        <p style="font-size:13px;color:var(--terracotta);">Type to search for a book to share.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeOverlay('bookShareModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let threads        = [];
+    let allFriends     = [];
+    let activeThreadId = null;
+    let messagesUnsub  = null;
+    let threadsUnsub   = null;
+    let shareSearchTimeout = null;
+    let myLibraryBooks = [];
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+
+      // Check if opened from profile (start DM)
+      const params = new URLSearchParams(location.search);
+      const targetUid = params.get("uid");
+
+      await Promise.all([
+        loadFriends(),
+        loadMyLibrary()
+      ]);
+
+      startThreadsListener();
+
+      if (targetUid && targetUid !== user.uid) {
+        await openOrCreateDM(targetUid);
+      }
+    });
+
+    // ── Load Friends ──────────────────────────────────────────
+    async function loadFriends() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("friends")
+          .where("users", "array-contains", user.uid)
+          .where("status", "==", "accepted")
+          .get();
+
+        const uids = snap.docs
+          .map(d => d.data().users.find(u => u !== user.uid))
+          .filter(Boolean);
+
+        const profiles = await Promise.all(
+          uids.slice(0,30).map(uid => WR.getDb().collection("users").doc(uid).get())
+        );
+        allFriends = profiles.filter(s => s.exists).map(s => ({ uid: s.id, ...s.data() }));
+      } catch (e) { console.error("Load friends error:", e); }
+    }
+
+    async function loadMyLibrary() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").limit(50).get();
+        myLibraryBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.error("Load library error:", e); }
+    }
+
+    // ── Threads Listener ──────────────────────────────────────
+    function startThreadsListener() {
+      const uid = WR.getCurrentUser().uid;
+      if (threadsUnsub) threadsUnsub();
+
+      threadsUnsub = WR.getDb()
+        .collection("messages")
+        .where("participants", "array-contains", uid)
+        .orderBy("lastMessageAt", "desc")
+        .limit(30)
+        .onSnapshot(async snap => {
+          threads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          await enrichThreads();
+          renderThreadsList();
+        }, e => console.error("Threads listener error:", e));
+    }
+
+    async function enrichThreads() {
+      const uid = WR.getCurrentUser().uid;
+      for (const thread of threads) {
+        if (thread.type === "dm") {
+          const otherUid = thread.participants.find(u => u !== uid);
+          if (otherUid && !thread._otherProfile) {
+            try {
+              const snap = await WR.getDb().collection("users").doc(otherUid).get();
+              thread._otherProfile = snap.exists ? snap.data() : null;
+              thread._otherUid     = otherUid;
+            } catch (e) {}
+          }
+        }
+      }
+    }
+
+    // ── Render Threads ────────────────────────────────────────
+    function renderThreadsList(filter = "") {
+      const list = document.getElementById("threadsList");
+      let filtered = threads;
+      if (filter) {
+        const q = filter.toLowerCase();
+        filtered = threads.filter(t => {
+          const name = getThreadName(t).toLowerCase();
+          return name.includes(q);
+        });
+      }
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="threads-empty">${filter ? "No conversations found." : "No messages yet. Start a conversation!"}</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(t => buildThreadItem(t)).join("");
+    }
+
+    function getThreadName(thread) {
+      const uid = WR.getCurrentUser().uid;
+      if (thread.type === "group") return thread.groupName || "Group Chat";
+      return thread._otherProfile?.displayName || "Unknown";
+    }
+
+    function getThreadPhoto(thread) {
+      if (thread.type === "group") return null;
+      return thread._otherProfile?.photoURL || null;
+    }
+
+    function buildThreadItem(thread) {
+      const name    = getThreadName(thread);
+      const photo   = getThreadPhoto(thread);
+      const time    = thread.lastMessageAt ? WR.formatRelativeTime(thread.lastMessageAt) : "";
+      const preview = thread.lastMessagePreview || "No messages yet";
+      const isActive = thread.id === activeThreadId;
+
+      const avatarHTML = thread.type === "group"
+        ? `<div class="thread-group-avatar">👥</div>`
+        : photo
+          ? `<img class="thread-avatar" src="${WR.escapeHTML(photo)}" alt="">`
+          : `<div class="thread-avatar-placeholder">👤</div>`;
+
+      return `
+        <div class="thread-item${isActive ? " active" : ""}" onclick="openThread('${thread.id}')">
+          ${avatarHTML}
+          <div class="thread-info">
+            <div class="thread-name">${WR.escapeHTML(name)}</div>
+            <div class="thread-preview">${WR.escapeHTML(preview)}</div>
+          </div>
+          <div class="thread-meta">
+            <span class="thread-time">${time}</span>
+          </div>
+        </div>`;
+    }
+
+    function filterThreads(val) { renderThreadsList(val); }
+
+    // ── Open Thread ───────────────────────────────────────────
+    async function openThread(threadId) {
+      activeThreadId = threadId;
+      const thread   = threads.find(t => t.id === threadId);
+      if (!thread) return;
+
+      // Mobile: show thread, hide sidebar
+      document.getElementById("sidebarPanel").classList.add("mobile-hidden");
+      document.getElementById("threadPanel").classList.add("mobile-open");
+
+      renderThreadsList();
+      renderThreadUI(thread);
+      startMessagesListener(threadId);
+    }
+
+    function renderThreadUI(thread) {
+      const panel   = document.getElementById("threadPanel");
+      const name    = getThreadName(thread);
+      const photo   = getThreadPhoto(thread);
+      const uid     = WR.getCurrentUser().uid;
+      const otherUid = thread._otherUid || "";
+
+      const avatarHTML = thread.type === "group"
+        ? `<div class="thread-header-avatar-ph">👥</div>`
+        : photo
+          ? `<img class="thread-header-avatar" src="${WR.escapeHTML(photo)}" alt="">`
+          : `<div class="thread-header-avatar-ph">👤</div>`;
+
+      panel.innerHTML = `
+        <div class="thread-header">
+          <button class="back-btn" onclick="goBackToList()">←</button>
+          ${avatarHTML}
+          <div class="thread-header-info">
+            <div class="thread-header-name">
+              ${thread.type === "dm" && otherUid
+                ? `<a href="profile.html?uid=${otherUid}" style="color:inherit;text-decoration:none;">${WR.escapeHTML(name)}</a>`
+                : WR.escapeHTML(name)}
+            </div>
+            <div class="thread-header-sub">${thread.type === "group" ? `${thread.participants?.length || 0} members` : ""}</div>
+          </div>
+        </div>
+        <div class="messages-area" id="messagesArea"></div>
+        <div class="composer">
+          <button class="composer-book-btn" onclick="openBookShareModal()" title="Share a book">📖</button>
+          <textarea class="composer-textarea" id="msgInput" rows="1"
+                    placeholder="Type a message..."
+                    oninput="autoGrow(this)"
+                    onkeydown="handleMsgKey(event)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>`;
+    }
+
+    function goBackToList() {
+      activeThreadId = null;
+      document.getElementById("sidebarPanel").classList.remove("mobile-hidden");
+      document.getElementById("threadPanel").classList.remove("mobile-open");
+      document.getElementById("threadPanel").innerHTML = `
+        <div class="no-thread-selected" id="noThreadSelected">
+          <div class="no-thread-icon">✉️</div>
+          <h2 class="no-thread-title">Your Messages</h2>
+          <p class="no-thread-desc">Select a conversation or start a new one.</p>
+        </div>`;
+      if (messagesUnsub) { messagesUnsub(); messagesUnsub = null; }
+    }
+
+    // ── Messages Listener ─────────────────────────────────────
+    function startMessagesListener(threadId) {
+      if (messagesUnsub) messagesUnsub();
+
+      messagesUnsub = WR.getDb()
+        .collection("messages").doc(threadId)
+        .collection("messages")
+        .orderBy("createdAt", "asc")
+        .limit(100)
+        .onSnapshot(snap => {
+          const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderMessages(msgs);
+        }, e => console.error("Messages listener error:", e));
+    }
+
+    function renderMessages(msgs) {
+      const area = document.getElementById("messagesArea");
+      if (!area) return;
+      const uid  = WR.getCurrentUser().uid;
+
+      if (!msgs.length) {
+        area.innerHTML = `<div style="text-align:center;padding:2rem;font-size:14px;color:var(--terracotta);">No messages yet. Say hello! 👋</div>`;
+        return;
+      }
+
+      let html   = "";
+      let lastDay = "";
+
+      msgs.forEach(msg => {
+        const date    = msg.createdAt?.toDate ? msg.createdAt.toDate() : new Date();
+        const dayStr  = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+        const isMine  = msg.senderUid === uid;
+        const thread  = threads.find(t => t.id === activeThreadId);
+        const isGroup = thread?.type === "group";
+
+        if (dayStr !== lastDay) {
+          html += `<div class="msg-day-divider">${dayStr}</div>`;
+          lastDay = dayStr;
+        }
+
+        const photo = isMine
+          ? (WR.getCurrentUser()._profile?.photoURL || null)
+          : null; // For DMs we'd load the other person's photo
+
+        const avatarHTML = isMine
+          ? (photo ? `<img class="msg-avatar" src="${WR.escapeHTML(photo)}" alt="">` : `<div class="msg-avatar-ph">👤</div>`)
+          : `<div class="msg-avatar-ph">👤</div>`;
+
+        const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+        const bookPill = msg.sharedBook
+          ? `<a class="book-share-pill" href="book.html?id=${encodeURIComponent(msg.sharedBook.bookId || "")}">
+               ${msg.sharedBook.coverURL
+                 ? `<img class="book-share-cover" src="${WR.escapeHTML(msg.sharedBook.coverURL)}" alt="">`
+                 : `<div class="book-share-cover-ph">📖</div>`}
+               <div>
+                 <div class="book-share-title">${WR.escapeHTML(msg.sharedBook.title || "")}</div>
+                 <div style="font-size:11px;color:var(--terracotta);">${WR.escapeHTML(msg.sharedBook.author || "")}</div>
+               </div>
+             </a>`
+          : "";
+
+        html += `
+          <div class="msg-row${isMine ? " mine" : ""}">
+            ${!isMine ? avatarHTML : ""}
+            <div class="msg-bubble-wrap">
+              ${isGroup && !isMine ? `<div class="msg-sender-name">${WR.escapeHTML(msg.senderDisplayName || "")}</div>` : ""}
+              <div class="msg-bubble">
+                ${msg.text ? WR.escapeHTML(msg.text) : ""}
+                ${bookPill}
+              </div>
+              <div class="msg-time">${timeStr}</div>
+            </div>
+            ${isMine ? avatarHTML : ""}
+          </div>`;
+      });
+
+      area.innerHTML = html;
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // ── Send Message ──────────────────────────────────────────
+    function handleMsgKey(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function sendMessage(sharedBook = null) {
+      if (!activeThreadId) return;
+      const input = document.getElementById("msgInput");
+      const text  = input?.value.trim();
+      if (!text && !sharedBook) return;
+
+      if (input) input.value = "";
+      const user    = WR.getCurrentUser();
+      const profile = user._profile;
+
+      try {
+        const msgData = {
+          senderUid:         user.uid,
+          senderDisplayName: profile?.displayName || "Anonymous",
+          text:              text || null,
+          sharedBook:        sharedBook || null,
+          createdAt:         firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await WR.getDb()
+          .collection("messages").doc(activeThreadId)
+          .collection("messages").add(msgData);
+
+        await WR.getDb().collection("messages").doc(activeThreadId).update({
+          lastMessageAt:      firebase.firestore.FieldValue.serverTimestamp(),
+          lastMessagePreview: sharedBook ? `📖 ${sharedBook.title}` : text
+        });
+      } catch (e) {
+        console.error("Send message error:", e);
+        WR.showToast("Error sending message.", "error");
+        if (input) input.value = text;
+      }
+    }
+
+    function autoGrow(el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 120) + "px";
+    }
+
+    // ── Open or Create DM ─────────────────────────────────────
+    async function openOrCreateDM(otherUid) {
+      const uid        = WR.getCurrentUser().uid;
+      const threadId   = WR.getFriendshipId(uid, otherUid);
+
+      // Check if thread exists
+      try {
+        const snap = await WR.getDb().collection("messages").doc(threadId).get();
+        if (!snap.exists) {
+          // Create the thread
+          const otherSnap = await WR.getDb().collection("users").doc(otherUid).get();
+          const otherProfile = otherSnap.exists ? otherSnap.data() : null;
+
+          await WR.getDb().collection("messages").doc(threadId).set({
+            type:               "dm",
+            participants:       [uid, otherUid],
+            createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessageAt:      firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessagePreview: ""
+          });
+
+          threads.unshift({
+            id: threadId,
+            type: "dm",
+            participants: [uid, otherUid],
+            _otherUid: otherUid,
+            _otherProfile: otherProfile
+          });
+        } else {
+          const thread = { id: snap.id, ...snap.data() };
+          const otherSnap = await WR.getDb().collection("users").doc(otherUid).get();
+          thread._otherProfile = otherSnap.exists ? otherSnap.data() : null;
+          thread._otherUid     = otherUid;
+          if (!threads.find(t => t.id === threadId)) threads.unshift(thread);
+        }
+
+        renderThreadsList();
+        await openThread(threadId);
+      } catch (e) {
+        console.error("Open DM error:", e);
+      }
+    }
+
+    // ── New Message Modal ─────────────────────────────────────
+    function openNewMsgModal() {
+      document.getElementById("newMsgModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+      renderNewMsgFriends(allFriends);
+      setTimeout(() => document.getElementById("newMsgSearch")?.focus(), 100);
+    }
+
+    function searchNewMsgFriends(val) {
+      const q        = val.toLowerCase();
+      const filtered = q ? allFriends.filter(f => (f.displayName||"").toLowerCase().includes(q)) : allFriends;
+      renderNewMsgFriends(filtered);
+    }
+
+    function renderNewMsgFriends(friends) {
+      const el = document.getElementById("newMsgFriendList");
+      if (!friends.length) {
+        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:8px 0;">No friends found. Add friends to start messaging.</p>`;
+        return;
+      }
+      el.innerHTML = friends.map(f => `
+        <div class="friend-item" onclick="startDM('${f.uid}')">
+          ${f.photoURL ? `<img class="friend-avatar" src="${WR.escapeHTML(f.photoURL)}" alt="">` : `<div class="friend-avatar-ph">👤</div>`}
+          <div class="friend-name">${WR.escapeHTML(f.displayName || "")}</div>
+        </div>`).join("");
+    }
+
+    async function startDM(otherUid) {
+      closeOverlay("newMsgModal");
+      await openOrCreateDM(otherUid);
+    }
+
+    // ── Book Share ────────────────────────────────────────────
+    function openBookShareModal() {
+      document.getElementById("bookShareModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+      renderShareResults(myLibraryBooks.slice(0, 10));
+    }
+
+    function onShareBookSearch(val) {
+      clearTimeout(shareSearchTimeout);
+      if (!val) { renderShareResults(myLibraryBooks.slice(0,10)); return; }
+
+      shareSearchTimeout = setTimeout(async () => {
+        const q        = val.toLowerCase();
+        const local    = myLibraryBooks.filter(b =>
+          (b.title||"").toLowerCase().includes(q) ||
+          (b.author||"").toLowerCase().includes(q)
+        );
+        if (local.length) { renderShareResults(local); return; }
+        const api = await WR.searchGoogleBooks(val);
+        renderShareResults(api.slice(0,8));
+      }, 400);
+    }
+
+    function renderShareResults(books) {
+      const el = document.getElementById("shareResults");
+      if (!books.length) {
+        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);">No books found.</p>`;
+        return;
+      }
+      el.innerHTML = books.map(b => {
+        const authors = Array.isArray(b.authors) ? b.authors.join(", ") : (b.author||"");
+        const bookId  = b.bookId || b.isbn13 || b.id || "";
+        return `
+          <div class="share-book-item" onclick="shareBook('${bookId}','${WR.escapeHTML(b.title||"")}','${WR.escapeHTML(authors)}','${WR.escapeHTML(b.coverURL||"")}')">
+            ${b.coverURL ? `<img class="share-book-cover" src="${WR.escapeHTML(b.coverURL)}" alt="">` : `<div class="share-book-cover-ph">📖</div>`}
+            <div>
+              <div class="share-book-title">${WR.escapeHTML(b.title||"")}</div>
+              <div class="share-book-author">${WR.escapeHTML(authors)}</div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    async function shareBook(bookId, title, author, coverURL) {
+      closeOverlay("bookShareModal");
+      await sendMessage({ bookId, title, author, coverURL: coverURL || null });
+    }
+
+    // ── Modal Helpers ─────────────────────────────────────────
+    function handleOverlay(id, e) {
+      if (e.target === document.getElementById(id)) closeOverlay(id);
+    }
+
+    function closeOverlay(id) {
+      document.getElementById(id)?.classList.remove("open");
+      document.body.style.overflow = "";
+    }
+
+    // ── Expose ────────────────────────────────────────────────
+    window.filterThreads        = filterThreads;
+    window.openThread           = openThread;
+    window.goBackToList         = goBackToList;
+    window.handleMsgKey         = handleMsgKey;
+    window.sendMessage          = sendMessage;
+    window.autoGrow             = autoGrow;
+    window.openNewMsgModal      = openNewMsgModal;
+    window.searchNewMsgFriends  = searchNewMsgFriends;
+    window.startDM              = startDM;
+    window.openBookShareModal   = openBookShareModal;
+    window.onShareBookSearch    = onShareBookSearch;
+    window.shareBook            = shareBook;
+    window.handleOverlay        = handleOverlay;
+    window.closeOverlay         = closeOverlay;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+  </script>
+</body>
+</html>

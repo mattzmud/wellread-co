@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Admin</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+    html, body { min-height: 100%; font-family: 'Nunito Sans', sans-serif; background: var(--lavender-mist); color: var(--deep-plum); }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 6rem; }
+
+    .page-header { margin-bottom: 1.75rem; }
+    .page-title  { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; color: var(--deep-plum); margin-bottom: 4px; }
+    .page-subtitle { font-size: 14px; color: var(--terracotta); }
+
+    /* ── Stats Row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.75rem; }
+    .stat-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 1.25rem; text-align: center; }
+    .stat-num   { font-family: 'Playfair Display', serif; font-size: 32px; color: var(--amethyst); display: block; }
+    .stat-label { font-size: 13px; color: var(--terracotta); margin-top: 4px; }
+
+    /* ── Notification Panel ── */
+    .notif-card { background: #fff; border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.75rem; }
+    .card-title  { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--deep-plum); margin-bottom: 1rem; }
+
+    .notif-input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: var(--aged-paper); outline: none; margin-bottom: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .notif-input:focus { border-color: var(--amethyst); background: #fff; }
+
+    .notif-body {
+      width: 100%; min-height: 120px; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: var(--aged-paper); outline: none; resize: vertical; margin-bottom: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .notif-body:focus { border-color: var(--amethyst); background: #fff; }
+
+    .notif-options { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .notif-checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--deep-plum); cursor: pointer; }
+    .notif-checkbox input { accent-color: var(--amethyst); width: 15px; height: 15px; cursor: pointer; }
+
+    .send-notif-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 11px 24px; border-radius: 8px; border: none;
+      background: var(--amethyst); color: #FAF6EE; cursor: pointer;
+      transition: opacity 0.15s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .send-notif-btn:hover { opacity: 0.88; }
+    .send-notif-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .send-notif-btn .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .send-notif-btn.loading .spinner { display: block; }
+    .send-notif-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Users Table ── */
+    .users-card { background: #fff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+    .users-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+    .search-input {
+      padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; color: var(--deep-plum);
+      background: var(--lavender-mist); outline: none; width: 260px;
+    }
+    .search-input:focus { border-color: var(--amethyst); background: #fff; }
+
+    .sort-select {
+      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 13px; color: var(--deep-plum);
+      background: #fff; outline: none; cursor: pointer;
+    }
+
+    .users-table { width: 100%; border-collapse: collapse; }
+    .users-table th {
+      text-align: left; padding: 0.75rem 1rem;
+      font-size: 11px; font-weight: 600; color: var(--terracotta);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      background: var(--lavender-mist); border-bottom: 1px solid var(--border);
+    }
+    .users-table td { padding: 0.875rem 1rem; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--deep-plum); vertical-align: middle; }
+    .users-table tr:last-child td { border-bottom: none; }
+    .users-table tr:hover td { background: var(--lavender-mist); cursor: pointer; }
+
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .user-avatar-ph { width: 36px; height: 36px; border-radius: 50%; background: var(--lavender-mist); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; border: 1px solid var(--border); }
+    .user-name    { font-weight: 600; color: var(--deep-plum); }
+    .user-handle  { font-size: 11px; color: var(--terracotta); }
+
+    .status-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+    .status-active    { background: #DCF0E8; color: #2E6B50; }
+    .status-suspended { background: #FCE8E8; color: #8B2020; }
+
+    .provider-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: var(--lavender-mist); color: var(--amethyst); }
+
+    /* ── User Detail Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(45,27,78,0.45); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+
+    .user-modal {
+      background: var(--aged-paper); border-radius: 20px; padding: 1.75rem;
+      width: min(640px, 96vw); max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(45,27,78,0.22);
+    }
+
+    .modal-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 1.5rem; }
+    .modal-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 3px solid var(--faded-moss); }
+    .modal-avatar-ph { width: 64px; height: 64px; border-radius: 50%; background: var(--lavender-mist); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; border: 3px solid var(--faded-moss); }
+    .modal-user-name { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--deep-plum); margin-bottom: 3px; }
+    .modal-user-email { font-size: 13px; color: var(--terracotta); }
+    .modal-close { margin-left: auto; background: none; border: none; font-size: 20px; color: var(--terracotta); cursor: pointer; padding: 4px 8px; border-radius: 6px; flex-shrink: 0; }
+    .modal-close:hover { background: #EDE4F7; }
+
+    .modal-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+    .modal-stat  { background: var(--lavender-mist); border-radius: 10px; padding: 0.75rem; text-align: center; }
+    .modal-stat-num   { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--amethyst); }
+    .modal-stat-label { font-size: 10px; color: var(--terracotta); margin-top: 2px; }
+
+    .modal-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+    .info-item label { display: block; font-size: 10px; font-weight: 600; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+    .info-item span  { font-size: 13px; color: var(--deep-plum); }
+
+    .action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 1rem; }
+
+    .action-btn {
+      font-family: 'Nunito Sans', sans-serif; font-size: 12px; font-weight: 600;
+      padding: 9px 14px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: #fff; color: var(--deep-plum); cursor: pointer; text-align: center;
+      transition: background 0.15s;
+    }
+    .action-btn:hover { background: var(--lavender-mist); }
+    .action-btn.danger { border-color: #F5C6C6; color: #922B21; }
+    .action-btn.danger:hover { background: #FDECEC; }
+    .action-btn.success { border-color: #9DC4B0; color: #2E6B50; }
+    .action-btn.success:hover { background: #DCF0E8; }
+
+    .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(45,27,78,0.6); z-index: 600; align-items: center; justify-content: center; }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box { background: var(--aged-paper); border-radius: 16px; padding: 1.5rem; width: min(400px, 94vw); box-shadow: 0 8px 32px rgba(45,27,78,0.22); }
+    .confirm-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .confirm-desc  { font-size: 13px; color: var(--terracotta); margin-bottom: 1.25rem; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .confirm-btn { font-family: 'Nunito Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; transition: opacity 0.15s; }
+    .confirm-btn:hover { opacity: 0.85; }
+    .confirm-cancel  { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+    .confirm-proceed { background: #C0392B; color: #fff; }
+    .confirm-safe    { background: var(--amethyst); color: #fff; }
+
+    @media (max-width: 600px) {
+      .modal-stats     { grid-template-columns: repeat(2,1fr); }
+      .modal-info-grid { grid-template-columns: 1fr; }
+      .search-input    { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+
+    <div class="page-header">
+      <h1 class="page-title">⚙️ Admin Dashboard</h1>
+      <p class="page-subtitle">WellRead Co. platform management</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-num" id="statUsers">—</span>
+        <span class="stat-label">Total Users</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statBooks">—</span>
+        <span class="stat-label">Books in Database</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statClubs">—</span>
+        <span class="stat-label">Book Clubs</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statActive">—</span>
+        <span class="stat-label">Active Accounts</span>
+      </div>
+    </div>
+
+    <!-- Notification Deployment -->
+    <div class="notif-card">
+      <h2 class="card-title">📢 Send App Notification</h2>
+      <input type="text" class="notif-input" id="notifTitle" placeholder="Notification title">
+      <textarea class="notif-body" id="notifBody" placeholder="Notification body — supports emojis and plain text formatting..."></textarea>
+      <div class="notif-options">
+        <label class="notif-checkbox">
+          <input type="checkbox" id="notifEmail" checked>
+          Also send as email to all users
+        </label>
+      </div>
+      <button class="send-notif-btn" id="sendNotifBtn" onclick="sendAppNotification()">
+        <div class="spinner"></div>
+        <span class="btn-text">📣 Send to All Users</span>
+      </button>
+    </div>
+
+    <!-- Users Table -->
+    <div class="users-card">
+      <div class="users-header">
+        <h2 class="card-title" style="margin-bottom:0;">👤 All Users</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" class="search-input" id="userSearch" placeholder="Search by name or email..." oninput="filterUsers(this.value)">
+          <select class="sort-select" id="userSort" onchange="applySort()">
+            <option value="joinedAt-desc">Newest First</option>
+            <option value="joinedAt-asc">Oldest First</option>
+            <option value="displayName-asc">Name A–Z</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+      <div id="usersTableWrap">
+        <p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">Loading users...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── User Detail Modal ── -->
+  <div class="modal-overlay" id="userModal" onclick="if(event.target===this)closeUserModal()">
+    <div class="user-modal" id="userModalInner"></div>
+  </div>
+
+  <!-- ── Confirm Dialog ── -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <h3 class="confirm-title" id="confirmTitle">Are you sure?</h3>
+      <p  class="confirm-desc"  id="confirmDesc"></p>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn" id="confirmProceedBtn" onclick="proceedConfirm()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let allUsers      = [];
+    let displayUsers  = [];
+    let selectedUser  = null;
+    let confirmAction = null;
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+      if (!WR.isAdmin()) {
+        WR.showToast("Access denied.", "error");
+        setTimeout(() => { location.href = "index.html"; }, 1000);
+        return;
+      }
+      await Promise.all([loadStats(), loadUsers()]);
+    });
+
+    // ── Stats ─────────────────────────────────────────────────
+    async function loadStats() {
+      const db = WR.getDb();
+      try {
+        const [users, books, clubs] = await Promise.all([
+          db.collection("users").get(),
+          db.collection("books").get(),
+          db.collection("clubs").get()
+        ]);
+        const active = users.docs.filter(d => !d.data().suspended).length;
+        document.getElementById("statUsers").textContent  = users.size;
+        document.getElementById("statBooks").textContent  = books.size;
+        document.getElementById("statClubs").textContent  = clubs.size;
+        document.getElementById("statActive").textContent = active;
+      } catch (e) { console.error("Stats error:", e); }
+    }
+
+    // ── Users ─────────────────────────────────────────────────
+    async function loadUsers() {
+      try {
+        const snap = await WR.getDb().collection("users").orderBy("joinedAt", "desc").limit(200).get();
+        allUsers     = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+        displayUsers = [...allUsers];
+        renderUsersTable();
+      } catch (e) {
+        console.error("Load users error:", e);
+        document.getElementById("usersTableWrap").innerHTML =
+          `<p style="padding:2rem;text-align:center;color:var(--terracotta);">Error loading users.</p>`;
+      }
+    }
+
+    function filterUsers(val) {
+      const q = val.toLowerCase().trim();
+      displayUsers = q
+        ? allUsers.filter(u =>
+            (u.displayName || "").toLowerCase().includes(q) ||
+            (u.firstName   || "").toLowerCase().includes(q) ||
+            (u.lastName    || "").toLowerCase().includes(q) ||
+            (u.email       || "").toLowerCase().includes(q)
+          )
+        : [...allUsers];
+      applySort();
+    }
+
+    function applySort() {
+      const val   = document.getElementById("userSort").value;
+      const [field, dir] = val.split("-");
+
+      if (val === "suspended") {
+        displayUsers = displayUsers.filter(u => u.suspended);
+        renderUsersTable();
+        return;
+      }
+
+      displayUsers.sort((a, b) => {
+        if (field === "joinedAt") {
+          const av = a.joinedAt?.seconds || 0;
+          const bv = b.joinedAt?.seconds || 0;
+          return dir === "desc" ? bv - av : av - bv;
+        }
+        if (field === "displayName") {
+          const av = (a.displayName || "").toLowerCase();
+          const bv = (b.displayName || "").toLowerCase();
+          return av.localeCompare(bv);
+        }
+        return 0;
+      });
+      renderUsersTable();
+    }
+
+    function renderUsersTable() {
+      const wrap = document.getElementById("usersTableWrap");
+      if (!displayUsers.length) {
+        wrap.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">No users found.</p>`;
+        return;
+      }
+
+      wrap.innerHTML = `
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Provider</th>
+              <th>Joined</th>
+              <th>Last Login</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${displayUsers.map(u => `
+              <tr onclick="openUserModal('${u.uid}')">
+                <td>
+                  <div class="user-cell">
+                    ${u.photoURL
+                      ? `<img class="user-avatar" src="${WR.escapeHTML(u.photoURL)}" alt="">`
+                      : `<div class="user-avatar-ph">👤</div>`}
+                    <div>
+                      <div class="user-name">${WR.escapeHTML(u.displayName || "—")}</div>
+                      <div class="user-handle">${WR.escapeHTML(u.firstName || "")} ${WR.escapeHTML(u.lastName || "")}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>${WR.escapeHTML(u.email || "—")}</td>
+                <td><span class="provider-badge">${u.authProvider === "google" ? "Google" : "Email"}</span></td>
+                <td>${u.joinedAt ? WR.formatRelativeTime(u.joinedAt) : "—"}</td>
+                <td>${u.lastLoginAt ? WR.formatRelativeTime(u.lastLoginAt) : "—"}</td>
+                <td>
+                  <span class="status-badge ${u.suspended ? "status-suspended" : "status-active"}">
+                    ${u.suspended ? "Suspended" : "Active"}
+                  </span>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    // ── User Detail Modal ─────────────────────────────────────
+    async function openUserModal(uid) {
+      selectedUser = allUsers.find(u => u.uid === uid);
+      if (!selectedUser) return;
+
+      const u = selectedUser;
+
+      // Load book counts
+      let libraryCount = 0, readCount = 0, wishlistCount = 0, tbrCount = 0;
+      try {
+        const booksSnap = await WR.getDb()
+          .collection("users").doc(uid).collection("books").get();
+        booksSnap.forEach(d => {
+          const b = d.data();
+          if (b.inLibrary)  libraryCount++;
+          if (b.onReadList) readCount++;
+          if (b.onWishlist) wishlistCount++;
+          if (b.onTBR)      tbrCount++;
+        });
+      } catch (e) {}
+
+      const joined    = u.joinedAt ? WR.formatFullDate(u.joinedAt) : "—";
+      const lastLogin = u.lastLoginAt ? WR.formatFullDate(u.lastLoginAt) : "—";
+
+      document.getElementById("userModalInner").innerHTML = `
+        <div class="modal-header">
+          ${u.photoURL
+            ? `<img class="modal-avatar" src="${WR.escapeHTML(u.photoURL)}" alt="">`
+            : `<div class="modal-avatar-ph">👤</div>`}
+          <div>
+            <div class="modal-user-name">${WR.escapeHTML(u.displayName || "—")}</div>
+            <div class="modal-user-email">${WR.escapeHTML(u.email || "—")}</div>
+          </div>
+          <button class="modal-close" onclick="closeUserModal()">✕</button>
+        </div>
+
+        <div class="modal-stats">
+          <div class="modal-stat"><div class="modal-stat-num">${libraryCount}</div><div class="modal-stat-label">Library</div></div>
+          <div class="modal-stat"><div class="modal-stat-num">${readCount}</div><div class="modal-stat-label">Read</div></div>
+          <div class="modal-stat"><div class="modal-stat-num">${wishlistCount}</div><div class="modal-stat-label">Wishlist</div></div>
+          <div class="modal-stat"><div class="modal-stat-num">${tbrCount}</div><div class="modal-stat-label">TBR</div></div>
+        </div>
+
+        <div class="modal-info-grid">
+          <div class="info-item"><label>Full Name</label><span>${WR.escapeHTML((u.firstName||"")+" "+(u.lastName||""))}</span></div>
+          <div class="info-item"><label>Display Name</label><span>${WR.escapeHTML(u.displayName||"—")}</span></div>
+          <div class="info-item"><label>Auth Provider</label><span>${u.authProvider === "google" ? "Google" : "Email/Password"}</span></div>
+          <div class="info-item"><label>Status</label><span>${u.suspended ? "🔴 Suspended" : "🟢 Active"}</span></div>
+          <div class="info-item"><label>Joined</label><span>${joined}</span></div>
+          <div class="info-item"><label>Last Login</label><span>${lastLogin}</span></div>
+        </div>
+
+        <div class="action-grid">
+          <button class="action-btn" onclick="adminResetPassword('${uid}','${WR.escapeHTML(u.email||"")}')">🔑 Reset Password</button>
+          ${u.suspended
+            ? `<button class="action-btn success" onclick="adminReinstate('${uid}')">✅ Reinstate Account</button>`
+            : `<button class="action-btn danger"  onclick="adminSuspend('${uid}')">⏸️ Suspend Account</button>`}
+          <button class="action-btn danger"  onclick="adminReset('${uid}')">🔄 Reset Account Data</button>
+          <button class="action-btn danger"  onclick="adminDelete('${uid}')">🗑️ Delete Account</button>
+        </div>
+
+        <div style="margin-top:0.5rem;">
+          <a href="profile.html?uid=${uid}" target="_blank" style="font-size:13px;color:var(--amethyst);text-decoration:none;">View public profile →</a>
+        </div>`;
+
+      document.getElementById("userModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeUserModal() {
+      document.getElementById("userModal").classList.remove("open");
+      document.body.style.overflow = "";
+      selectedUser = null;
+    }
+
+    // ── Admin Actions ─────────────────────────────────────────
+    async function adminResetPassword(uid, email) {
+      if (!email) { WR.showToast("No email on file.", "error"); return; }
+      showConfirm(
+        "Reset Password",
+        `Send a password reset email to ${email}?`,
+        "Send Reset Email",
+        "safe",
+        async () => {
+          try {
+            await WR.getAuth().sendPasswordResetEmail(email);
+            WR.showToast("Password reset email sent!", "success");
+          } catch (e) {
+            WR.showToast("Error sending reset email.", "error");
+          }
+        }
+      );
+    }
+
+    async function adminSuspend(uid) {
+      showConfirm(
+        "Suspend Account",
+        "This will block the user from accessing the platform. Their data will be preserved.",
+        "Suspend Account",
+        "danger",
+        async () => {
+          try {
+            await WR.getDb().collection("users").doc(uid).set(
+              { suspended: true, suspendedAt: firebase.firestore.FieldValue.serverTimestamp() },
+              { merge: true }
+            );
+            updateLocalUser(uid, { suspended: true });
+            renderUsersTable();
+            closeUserModal();
+            WR.showToast("Account suspended.");
+          } catch (e) { WR.showToast("Error suspending account.", "error"); }
+        }
+      );
+    }
+
+    async function adminReinstate(uid) {
+      showConfirm(
+        "Reinstate Account",
+        "This will restore the user's access to the platform.",
+        "Reinstate",
+        "safe",
+        async () => {
+          try {
+            await WR.getDb().collection("users").doc(uid).set(
+              { suspended: false, suspendedAt: null },
+              { merge: true }
+            );
+            updateLocalUser(uid, { suspended: false });
+            renderUsersTable();
+            closeUserModal();
+            WR.showToast("Account reinstated.", "success");
+          } catch (e) { WR.showToast("Error reinstating account.", "error"); }
+        }
+      );
+    }
+
+    async function adminReset(uid) {
+      showConfirm(
+        "Reset Account Data",
+        "This will permanently delete the user's library, read list, wishlist, reviews, and club memberships. Their login and basic profile will be preserved. This CANNOT be undone.",
+        "Reset Account Data",
+        "danger",
+        async () => {
+          try {
+            // Delete subcollection books (client-side batch for up to 500)
+            const booksSnap = await WR.getDb().collection("users").doc(uid).collection("books").get();
+            const batch = WR.getDb().batch();
+            booksSnap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            WR.showToast("Account data reset.", "success");
+            closeUserModal();
+          } catch (e) { WR.showToast("Error resetting account.", "error"); }
+        }
+      );
+    }
+
+    async function adminDelete(uid) {
+      showConfirm(
+        "Permanently Delete Account",
+        "This will permanently mark the account for deletion and suspend access. Full data cleanup requires the Cloudflare Worker. THIS CANNOT BE UNDONE.",
+        "Delete Account",
+        "danger",
+        async () => {
+          try {
+            await WR.getDb().collection("users").doc(uid).set(
+              { suspended: true, deletedAt: firebase.firestore.FieldValue.serverTimestamp() },
+              { merge: true }
+            );
+            allUsers     = allUsers.filter(u => u.uid !== uid);
+            displayUsers = displayUsers.filter(u => u.uid !== uid);
+            renderUsersTable();
+            closeUserModal();
+            document.getElementById("statUsers").textContent = allUsers.length;
+            WR.showToast("Account marked for deletion.");
+          } catch (e) { WR.showToast("Error deleting account.", "error"); }
+        }
+      );
+    }
+
+    function updateLocalUser(uid, updates) {
+      const idx = allUsers.findIndex(u => u.uid === uid);
+      if (idx !== -1) allUsers[idx] = { ...allUsers[idx], ...updates };
+      const idx2 = displayUsers.findIndex(u => u.uid === uid);
+      if (idx2 !== -1) displayUsers[idx2] = { ...displayUsers[idx2], ...updates };
+    }
+
+    // ── App Notification ──────────────────────────────────────
+    async function sendAppNotification() {
+      const title   = document.getElementById("notifTitle").value.trim();
+      const body    = document.getElementById("notifBody").value.trim();
+      const withEmail = document.getElementById("notifEmail").checked;
+      const btn     = document.getElementById("sendNotifBtn");
+
+      if (!title || !body) {
+        WR.showToast("Please enter a title and body.", "error");
+        return;
+      }
+
+      showConfirm(
+        "Send Notification",
+        `Send "${title}" to all ${allUsers.length} users?${withEmail ? " Also sends an email." : ""}`,
+        "Send to All",
+        "safe",
+        async () => {
+          btn.classList.add("loading"); btn.disabled = true;
+          try {
+            // Save to appNotifications collection
+            await WR.getDb().collection("appNotifications").add({
+              title, body, emailAlso: withEmail,
+              sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+              sentByUid: WR.getCurrentUser().uid
+            });
+
+            // Create notification for each user (batch in groups of 500)
+            const batchSize = 400;
+            for (let i = 0; i < allUsers.length; i += batchSize) {
+              const batch = WR.getDb().batch();
+              allUsers.slice(i, i + batchSize).forEach(u => {
+                const ref = WR.getDb()
+                  .collection("notifications").doc(u.uid)
+                  .collection("items").doc();
+                batch.set(ref, {
+                  type:      "app_admin",
+                  title,
+                  body,
+                  bodyHTML:  null,
+                  linkedId:  null,
+                  read:      false,
+                  dismissed: false,
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+              });
+              await batch.commit();
+            }
+
+            document.getElementById("notifTitle").value = "";
+            document.getElementById("notifBody").value  = "";
+            WR.showToast(`Notification sent to ${allUsers.length} users! 📢`, "success");
+          } catch (e) {
+            console.error("Notification error:", e);
+            WR.showToast("Error sending notification.", "error");
+          } finally {
+            btn.classList.remove("loading"); btn.disabled = false;
+          }
+        }
+      );
+    }
+
+    // ── Confirm Dialog ────────────────────────────────────────
+    function showConfirm(title, desc, btnLabel, btnType, onConfirm) {
+      document.getElementById("confirmTitle").textContent = title;
+      document.getElementById("confirmDesc").textContent  = desc;
+      const btn = document.getElementById("confirmProceedBtn");
+      btn.textContent = btnLabel;
+      btn.className   = `confirm-btn ${btnType === "danger" ? "confirm-proceed" : "confirm-safe"}`;
+      confirmAction   = onConfirm;
+      document.getElementById("confirmOverlay").classList.add("open");
+    }
+
+    function closeConfirm() {
+      document.getElementById("confirmOverlay").classList.remove("open");
+      confirmAction = null;
+    }
+
+    async function proceedConfirm() {
+      closeConfirm();
+      if (confirmAction) await confirmAction();
+    }
+
+    window.filterUsers         = filterUsers;
+    window.applySort           = applySort;
+    window.openUserModal       = openUserModal;
+    window.closeUserModal      = closeUserModal;
+    window.adminResetPassword  = adminResetPassword;
+    window.adminSuspend        = adminSuspend;
+    window.adminReinstate      = adminReinstate;
+    window.adminReset          = adminReset;
+    window.adminDelete         = adminDelete;
+    window.sendAppNotification = sendAppNotification;
+    window.closeConfirm        = closeConfirm;
+    window.proceedConfirm      = proceedConfirm;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+  </script>
+</body>
+</html>
