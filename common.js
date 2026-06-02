@@ -113,16 +113,26 @@ function initAuth(onReady) {
         return;
       }
 
-      // Fetch user profile doc
-      try {
-        const snap = await _db.collection("users").doc(user.uid).get();
-        if (!snap.exists && page !== "setup.html") {
-          location.href = "setup.html";
-          return;
+      // Fetch user profile doc — retry once if Firestore is slow on first load
+      let profileFetched = false;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const snap = await _db.collection("users").doc(user.uid).get();
+          if (!snap.exists && page !== "setup.html") {
+            location.href = "setup.html";
+            return;
+          }
+          _currentUser._profile = snap.exists ? snap.data() : null;
+          profileFetched = true;
+          break;
+        } catch (e) {
+          console.error(`Profile fetch attempt ${attempt + 1} failed:`, e);
+          if (attempt === 0) await new Promise(r => setTimeout(r, 300));
         }
-        _currentUser._profile = snap.exists ? snap.data() : null;
-      } catch (e) {
-        console.error("Error fetching user profile:", e);
+      }
+
+      if (!profileFetched) {
+        console.warn("Could not fetch profile after retries");
       }
 
       // Render nav and start notification listener

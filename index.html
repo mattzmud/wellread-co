@@ -818,7 +818,25 @@
     WR.initAuth(async (user) => {
       if (!user) return;
 
+      // Small delay to ensure Firestore persistence is ready
+      // and profile is fully loaded after page navigation
+      await new Promise(r => setTimeout(r, 200));
+
       profile = user._profile;
+
+      // If profile is still null after delay, try fetching directly
+      if (!profile) {
+        try {
+          const snap = await WR.getDb().collection("users").doc(user.uid).get();
+          if (snap.exists) {
+            profile = snap.data();
+            user._profile = profile;
+          }
+        } catch (e) {
+          console.error("Profile retry error:", e);
+        }
+      }
+
       renderWelcome();
 
       // Load all sections in parallel
