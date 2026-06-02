@@ -28,12 +28,16 @@
     .messages-layout {
       display: grid;
       grid-template-columns: 320px 1fr;
-      height: 100vh;
-      padding-top: 60px; /* nav height */
+      height: calc(100vh - 60px); /* subtract desktop nav height */
+      margin-top: 60px;
     }
 
     @media (max-width: 768px) {
-      .messages-layout { grid-template-columns: 1fr; padding-top: 0; padding-bottom: 64px; }
+      .messages-layout {
+        grid-template-columns: 1fr;
+        height: calc(100vh - 64px); /* subtract mobile tab bar */
+        margin-top: 0;
+      }
       .thread-panel { display: none; }
       .thread-panel.mobile-open { display: flex; }
       .sidebar-panel.mobile-hidden { display: none; }
@@ -47,6 +51,7 @@
       flex-direction: column;
       height: 100%;
       overflow: hidden;
+      min-height: 0;
     }
 
     .sidebar-header {
@@ -157,6 +162,7 @@
       height: 100%;
       overflow: hidden;
       background: var(--lavender-mist);
+      min-height: 0;
     }
 
     .thread-header {
@@ -204,6 +210,7 @@
       flex-direction: column;
       gap: 8px;
       scrollbar-width: thin;
+      min-height: 0;
     }
 
     .msg-day-divider {
