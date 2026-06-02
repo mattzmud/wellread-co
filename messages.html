@@ -826,44 +826,56 @@
 
     // ── Open or Create DM ─────────────────────────────────────
     async function openOrCreateDM(otherUid) {
-      const uid        = WR.getCurrentUser().uid;
-      const threadId   = WR.getFriendshipId(uid, otherUid);
+      const uid      = WR.getCurrentUser().uid;
+      const threadId = WR.getFriendshipId(uid, otherUid);
 
-      // Check if thread exists
       try {
-        const snap = await WR.getDb().collection("messages").doc(threadId).get();
-        if (!snap.exists) {
-          // Create the thread
-          const otherSnap = await WR.getDb().collection("users").doc(otherUid).get();
-          const otherProfile = otherSnap.exists ? otherSnap.data() : null;
+        let thread = threads.find(t => t.id === threadId);
 
-          await WR.getDb().collection("messages").doc(threadId).set({
-            type:               "dm",
-            participants:       [uid, otherUid],
-            createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
-            lastMessageAt:      firebase.firestore.FieldValue.serverTimestamp(),
-            lastMessagePreview: ""
-          });
+        if (!thread) {
+          // Try to fetch existing thread
+          let snap = null;
+          try {
+            snap = await WR.getDb().collection("messages").doc(threadId).get();
+          } catch (e) {
+            console.warn("Could not read thread (may not exist yet):", e.code);
+          }
 
-          threads.unshift({
-            id: threadId,
-            type: "dm",
-            participants: [uid, otherUid],
-            _otherUid: otherUid,
-            _otherProfile: otherProfile
-          });
-        } else {
-          const thread = { id: snap.id, ...snap.data() };
-          const otherSnap = await WR.getDb().collection("users").doc(otherUid).get();
-          thread._otherProfile = otherSnap.exists ? otherSnap.data() : null;
-          thread._otherUid     = otherUid;
-          if (!threads.find(t => t.id === threadId)) threads.unshift(thread);
+          if (snap?.exists) {
+            thread = { id: snap.id, ...snap.data() };
+          } else {
+            // Create new thread
+            await WR.getDb().collection("messages").doc(threadId).set({
+              type:               "dm",
+              participants:       [uid, otherUid],
+              createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
+              lastMessageAt:      firebase.firestore.FieldValue.serverTimestamp(),
+              lastMessagePreview: ""
+            });
+            thread = {
+              id:           threadId,
+              type:         "dm",
+              participants: [uid, otherUid]
+            };
+          }
+
+          // Load other user's profile
+          try {
+            const otherSnap      = await WR.getDb().collection("users").doc(otherUid).get();
+            thread._otherProfile = otherSnap.exists ? otherSnap.data() : null;
+            thread._otherUid     = otherUid;
+          } catch (e) { console.error("Profile load error:", e); }
+
+          if (!threads.find(t => t.id === threadId)) {
+            threads.unshift(thread);
+          }
         }
 
         renderThreadsList();
         await openThread(threadId);
       } catch (e) {
         console.error("Open DM error:", e);
+        WR.showToast("Could not open conversation. Please try again.", "error");
       }
     }
 
