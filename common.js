@@ -991,6 +991,22 @@ async function acceptClubInvite(clubId, notifId) {
 }
 
 async function declineClubInvite(clubId, notifId) {
+  try {
+    // Delete the pending invite doc so the person can be re-invited
+    const invitesSnap = await _db
+      .collection("clubs").doc(clubId)
+      .collection("invites")
+      .where("invitedUid", "==", _currentUser.uid)
+      .where("status", "==", "pending")
+      .limit(1)
+      .get();
+
+    if (!invitesSnap.empty) {
+      await invitesSnap.docs[0].ref.delete();
+    }
+  } catch (e) {
+    console.error("Decline invite cleanup error:", e);
+  }
   if (notifId) await dismissNotif(notifId);
   showToast("Invite declined.");
 }
