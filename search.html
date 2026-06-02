@@ -1083,7 +1083,7 @@
       btn.textContent = "Adding...";
 
       try {
-        const bookId  = modalBook.bookId || modalBook.isbn13 || modalBook.id;
+        const bookId   = modalBook.bookId || modalBook.isbn13 || modalBook.id;
         const existing = userBooks[bookId] || {};
 
         const flags = {
@@ -1100,7 +1100,6 @@
           // Add a reading session
           const startDate = document.getElementById("startDate").value || null;
           const endDate   = document.getElementById("endDate").value   || null;
-          const bookId    = modalBook.bookId || modalBook.isbn13;
 
           const session = {
             sessionId:     WR.generateId(),
@@ -1125,7 +1124,6 @@
         }
 
         // Update local userBooks cache
-        const bookId = modalBook.bookId || modalBook.isbn13;
         userBooks[bookId] = { ...flags, bookId };
 
         // Update card badges without re-searching
