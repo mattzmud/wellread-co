@@ -36,6 +36,9 @@
       min-height: 100vh;
       background: var(--deep-plum);
       overflow-x: hidden;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
     }
 
     /* ── Left Panel — Branding ── */
@@ -124,13 +127,10 @@
     /* ── Right Panel — Form ── */
     .right-panel {
       width: 100%;
-      background: var(--aged-paper);
+      max-width: 460px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 2rem 1.5rem;
-      min-height: 100vh;
     }
 
     .mobile-brand {
@@ -143,7 +143,7 @@
     .mobile-brand-name {
       font-family: 'Playfair Display', serif;
       font-size: 28px;
-      color: var(--deep-plum);
+      color: #F7F3FF;
     }
 
     .mobile-brand-tagline {
@@ -157,14 +157,13 @@
     .auth-card {
       width: 100%;
       max-width: 420px;
-      background: #fff;
+      background: var(--aged-paper);
       border-radius: 20px;
       padding: 2rem;
-      box-shadow: 0 4px 32px rgba(45,27,78,0.10);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
       border: 1px solid var(--border);
     }
 
-    /* ── Tab Toggle ── */
     .tab-row {
       display: flex;
       background: var(--lavender-mist);
@@ -442,11 +441,8 @@
     }
 
     /* ── Responsive ── */
-    @media (min-width: 900px) {
-      .left-panel { display: flex; }
-      .right-panel { width: 480px; flex-shrink: 0; }
-      .mobile-brand { display: none; }
-    }
+    /* Mobile brand always visible */
+    .mobile-brand { display: block; }
   </style>
 </head>
 <body>
