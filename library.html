@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — My Library</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+    }
+
+    .page-wrap {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 6rem;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      margin-bottom: 0.25rem;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--terracotta);
+    }
+
+    .header-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-btn:hover { opacity: 0.85; }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: var(--amethyst);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--terracotta);
+      margin-top: 2px;
+    }
+
+    /* ── Lending Panel ── */
+    .lending-panel {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .lending-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .lending-toggle:hover { background: var(--lavender-mist); }
+
+    .lending-toggle-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: var(--deep-plum);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lending-count {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--lavender-mist);
+      color: var(--amethyst);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .lending-arrow {
+      font-size: 12px;
+      color: var(--terracotta);
+      transition: transform 0.2s;
+    }
+
+    .lending-toggle.open .lending-arrow { transform: rotate(180deg); }
+
+    .lending-body {
+      display: none;
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .lending-body.open { display: block; }
+
+    .lending-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0.75rem 0 0.5rem;
+    }
+
+    .lending-tab {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--terracotta);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .lending-tab.active {
+      background: var(--amethyst);
+      border-color: var(--amethyst);
+      color: #FAF6EE;
+    }
+
+    .lending-list { margin-top: 0.5rem; }
+
+    .lending-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: var(--lavender-mist);
+      margin-bottom: 8px;
+    }
+
+    .lending-item-icon { font-size: 20px; flex-shrink: 0; }
+
+    .lending-item-info { flex: 1; min-width: 0; }
+
+    .lending-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lending-item-meta {
+      font-size: 12px;
+      color: var(--terracotta);
+      margin-top: 1px;
+    }
+
+    .lending-empty {
+      text-align: center;
+      padding: 1rem;
+      font-size: 13px;
+      color: var(--terracotta);
+    }
+
+    /* ── Controls Bar ── */
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .sort-select {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--deep-plum);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .sort-select:focus { border-color: var(--amethyst); }
+
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+    }
+
+    .view-btn {
+      padding: 8px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--terracotta);
+    }
+
+    .view-btn.active {
+      background: var(--amethyst);
+      border-color: var(--amethyst);
+      color: #FAF6EE;
+    }
+
+    /* ── Book Grid (Cover view) ── */
+    .books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 20px;
+    }
+
+    .grid-book-item {
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s;
+    }
+
+    .grid-book-item:hover { transform: translateY(-3px); }
+
+    .grid-cover-wrap {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .grid-cover-img {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      border-radius: 6px;
+      box-shadow: 2px 4px 12px rgba(45,27,78,0.18);
+      display: block;
+    }
+
+    .grid-cover-placeholder {
+      width: 100%;
+      aspect-ratio: 2/3;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 2px 4px 12px rgba(45,27,78,0.18);
+    }
+
+    .grid-book-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      margin-bottom: 2px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    .grid-book-author {
+      font-size: 11px;
+      color: var(--terracotta);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Book List (List view) ── */
+    .books-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .list-book-item {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.1s;
+    }
+
+    .list-book-item:hover {
+      box-shadow: 0 4px 16px rgba(45,27,78,0.08);
+      transform: translateY(-1px);
+    }
+
+    .list-cover-img {
+      width: 56px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 1px 2px 8px rgba(45,27,78,0.14);
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .list-cover-placeholder {
+      width: 56px;
+      height: 80px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .list-book-info { flex: 1; min-width: 0; }
+
+    .list-book-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: var(--deep-plum);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-book-author {
+      font-size: 13px;
+      color: var(--terracotta);
+      margin-bottom: 4px;
+    }
+
+    .list-book-meta {
+      font-size: 12px;
+      color: #BDB5CC;
+      margin-bottom: 6px;
+    }
+
+    .list-book-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .status-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .badge-read    { background: #DCF0E8; color: #2E6B50; }
+    .badge-reading { background: #EDE4F7; color: #5B3E8A; }
+    .badge-lent    { background: #FEF3CD; color: #8B6914; }
+    .badge-dnf     { background: #FCE8E8; color: #8B2020; }
+
+    /* ── Book Detail Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(45,27,78,0.45);
+      z-index: 500;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    @media (min-width: 640px) {
+      .modal-overlay { align-items: center; }
+    }
+
+    .book-modal {
+      background: var(--aged-paper);
+      border-radius: 20px 20px 0 0;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 -4px 32px rgba(45,27,78,0.18);
+    }
+
+    @media (min-width: 640px) {
+      .book-modal { border-radius: 20px; max-height: 85vh; }
+    }
+
+    .modal-drag { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 1.25rem; }
+
+    @media (min-width: 640px) { .modal-drag { display: none; } }
+
+    .modal-top {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-cover {
+      width: 70px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+      box-shadow: 2px 4px 12px rgba(45,27,78,0.18);
+    }
+
+    .modal-cover-placeholder {
+      width: 70px;
+      height: 100px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .modal-title-area { flex: 1; min-width: 0; }
+
+    .modal-book-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      color: var(--deep-plum);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .modal-book-author {
+      font-size: 13px;
+      color: var(--terracotta);
+      margin-bottom: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--terracotta);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .modal-close:hover { background: #EDE4F7; }
+
+    .modal-section {
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--terracotta);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .modal-field-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-field { flex: 1; min-width: 120px; }
+
+    .modal-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--terracotta);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .modal-field input[type="date"],
+    .modal-field input[type="text"],
+    .modal-field select,
+    .modal-field textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      color: var(--deep-plum);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .modal-field input:focus,
+    .modal-field select:focus,
+    .modal-field textarea:focus { border-color: var(--amethyst); }
+
+    .modal-field textarea { resize: none; }
+
+    .modal-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--deep-plum);
+      cursor: pointer;
+      padding: 6px 0;
+    }
+
+    .modal-checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--amethyst);
+      cursor: pointer;
+    }
+
+    .lend-history {
+      background: var(--lavender-mist);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .lend-history-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--terracotta);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .lend-history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--deep-plum);
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lend-history-item:last-child { border-bottom: none; }
+
+    .lend-returned { color: var(--faded-moss); font-weight: 600; }
+    .lend-out      { color: var(--warm-gold); font-weight: 600; }
+
+    .modal-btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .modal-btn:hover  { opacity: 0.85; }
+    .modal-btn-cancel { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+    .modal-btn-save   { background: var(--amethyst); color: #FAF6EE; }
+    .modal-btn-view   { background: var(--faded-moss); color: #1A3D2E; }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .empty-icon  { font-size: 56px; margin-bottom: 1rem; display: block; }
+    .empty-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: var(--deep-plum);
+      margin-bottom: 0.5rem;
+    }
+    .empty-desc {
+      font-size: 14px;
+      color: var(--terracotta);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .empty-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 22px;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+
+    .empty-btn:hover { opacity: 0.85; }
+
+    /* ── Skeleton ── */
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 20px;
+    }
+
+    .skeleton-book {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skeleton-cover {
+      aspect-ratio: 2/3;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #ede8f5 25%, #e0d8ef 50%, #ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    .skeleton-line {
+      height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(90deg, #ede8f5 25%, #e0d8ef 50%, #ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @media (max-width: 768px) {
+      .page-header { flex-direction: column; }
+      .books-grid  { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">📚 My Library</h1>
+        <p class="page-subtitle" id="librarySubtitle">Books I own</p>
+      </div>
+      <a href="search.html" class="header-btn">+ Add a Book</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card">
+        <span class="stat-num" id="statTotal">—</span>
+        <span class="stat-label">Total Books</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statRead">—</span>
+        <span class="stat-label">Read</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statReading">—</span>
+        <span class="stat-label">Reading Now</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="statLent">—</span>
+        <span class="stat-label">Currently Lent</span>
+      </div>
+    </div>
+
+    <!-- Lending Panel -->
+    <div class="lending-panel">
+      <div class="lending-toggle" id="lendingToggle" onclick="toggleLending()">
+        <span class="lending-toggle-title">
+          📖 Lending Tracker
+          <span class="lending-count" id="lendingCount">0</span>
+        </span>
+        <span class="lending-arrow" id="lendingArrow">▼</span>
+      </div>
+      <div class="lending-body" id="lendingBody">
+        <div class="lending-tabs">
+          <button class="lending-tab active" id="lendTab-out"     onclick="switchLendTab('out')">Lent Out</button>
+          <button class="lending-tab"        id="lendTab-borrowed" onclick="switchLendTab('borrowed')">Borrowing</button>
+        </div>
+        <div class="lending-list" id="lendingList"></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+      <select class="sort-select" id="sortSelect" onchange="applySort()">
+        <option value="addedAt-desc">Recently Added</option>
+        <option value="title-asc">Title A–Z</option>
+        <option value="title-desc">Title Z–A</option>
+        <option value="author-asc">Author A–Z</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewGrid" onclick="setView('grid')" title="Grid view">▦</button>
+        <button class="view-btn"        id="viewList" onclick="setView('list')" title="List view">☰</button>
+      </div>
+    </div>
+
+    <!-- Books Display -->
+    <div id="booksArea">
+      <div class="skeleton-grid" id="skeletonGrid">
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:80%"></div><div class="skeleton-line" style="width:55%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:45%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:85%"></div><div class="skeleton-line" style="width:60%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:65%"></div><div class="skeleton-line" style="width:50%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:40%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:80%"></div><div class="skeleton-line" style="width:55%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:60%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:90%"></div><div class="skeleton-line" style="width:45%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:65%"></div><div class="skeleton-line" style="width:55%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:50%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:80%"></div><div class="skeleton-line" style="width:40%"></div></div>
+        <div class="skeleton-book"><div class="skeleton-cover"></div><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line" style="width:60%"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Book Detail Modal ── -->
+  <div class="modal-overlay" id="bookModal" onclick="handleModalClick(event)">
+    <div class="book-modal" id="bookModalInner">
+      <div class="modal-drag"></div>
+      <div class="modal-top">
+        <div id="modalCoverArea"></div>
+        <div class="modal-title-area">
+          <h2 class="modal-book-title"  id="modalTitle"></h2>
+          <p class="modal-book-author"  id="modalAuthor"></p>
+          <p style="font-size:12px;color:#BDB5CC;" id="modalISBN"></p>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modalBody"></div>
+      <div class="modal-btn-row">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Close</button>
+        <button class="modal-btn modal-btn-view"   onclick="viewOnBookPage()">View Book Page</button>
+        <button class="modal-btn modal-btn-save"   onclick="saveBookDetails()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let allBooks     = [];
+    let displayBooks = [];
+    let currentView  = "grid";
+    let lendTab      = "out";
+    let openBookId   = null;
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+      await loadLibrary();
+    });
+
+    async function loadLibrary() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books")
+          .where("inLibrary", "==", true)
+          .get();
+
+        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        displayBooks = [...allBooks];
+        applySort();
+        renderStats();
+        renderLending();
+      } catch (e) {
+        console.error("Error loading library:", e);
+        WR.showToast("Error loading your library.", "error");
+      }
+    }
+
+    // ── Stats ─────────────────────────────────────────────────
+    function renderStats() {
+      const total   = allBooks.length;
+      const read    = allBooks.filter(b => b.onReadList && b.readingSessions?.some(s => s.completed)).length;
+      const reading = allBooks.filter(b => b.readingSessions?.some(s => s.startDate && !s.completed && !s.dnf)).length;
+      const lent    = allBooks.filter(b => b.lendingHistory?.some(l => l.currentlyLent)).length;
+
+      document.getElementById("statTotal").textContent   = total;
+      document.getElementById("statRead").textContent    = read;
+      document.getElementById("statReading").textContent = reading;
+      document.getElementById("statLent").textContent    = lent;
+      document.getElementById("librarySubtitle").textContent =
+        `${total} book${total === 1 ? "" : "s"} in your collection`;
+
+      const lentCount = lent + allBooks.filter(b =>
+        b.lendingHistory?.some(l => l.currentlyLent && l.borrowerUid)).length;
+      document.getElementById("lendingCount").textContent = lent;
+    }
+
+    // ── Lending Panel ─────────────────────────────────────────
+    function toggleLending() {
+      const body   = document.getElementById("lendingBody");
+      const toggle = document.getElementById("lendingToggle");
+      const arrow  = document.getElementById("lendingArrow");
+      const isOpen = body.classList.contains("open");
+      body.classList.toggle("open", !isOpen);
+      toggle.classList.toggle("open", !isOpen);
+    }
+
+    function switchLendTab(tab) {
+      lendTab = tab;
+      document.querySelectorAll(".lending-tab").forEach(t => t.classList.remove("active"));
+      document.getElementById("lendTab-" + tab).classList.add("active");
+      renderLendingList();
+    }
+
+    function renderLending() { renderLendingList(); }
+
+    function renderLendingList() {
+      const list = document.getElementById("lendingList");
+      let items  = [];
+
+      if (lendTab === "out") {
+        allBooks.forEach(book => {
+          const active = book.lendingHistory?.filter(l => l.currentlyLent) || [];
+          active.forEach(l => items.push({ book, lend: l }));
+        });
+      }
+      // "borrowing" would come from a separate query — placeholder for now
+      if (!items.length) {
+        list.innerHTML = `<div class="lending-empty">${
+          lendTab === "out"
+            ? "You haven't lent any books out right now."
+            : "You're not currently borrowing any books."
+        }</div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(({ book, lend }) => `
+        <div class="lending-item" onclick="openBookModal('${book.id}')">
+          <span class="lending-item-icon">📖</span>
+          <div class="lending-item-info">
+            <div class="lending-item-title">${WR.escapeHTML(book.title || "")}</div>
+            <div class="lending-item-meta">
+              Lent to <strong>${WR.escapeHTML(lend.borrowerName || "someone")}</strong>
+              on ${lend.lentDate ? WR.formatDateInput(lend.lentDate) : "unknown date"}
+            </div>
+          </div>
+          <span class="lend-out">Out</span>
+        </div>`).join("");
+    }
+
+    // ── Sort ──────────────────────────────────────────────────
+    function applySort() {
+      const val  = document.getElementById("sortSelect").value;
+      const [field, dir] = val.split("-");
+
+      displayBooks = [...allBooks].sort((a, b) => {
+        let av = "", bv = "";
+        if (field === "addedAt") {
+          av = a.addedAt?.seconds || 0;
+          bv = b.addedAt?.seconds || 0;
+          return dir === "desc" ? bv - av : av - bv;
+        }
+        if (field === "title") {
+          av = (a.title || "").toLowerCase();
+          bv = (b.title || "").toLowerCase();
+        }
+        if (field === "author") {
+          av = (a.author || "").toLowerCase();
+          bv = (b.author || "").toLowerCase();
+        }
+        return dir === "asc"
+          ? av.localeCompare(bv)
+          : bv.localeCompare(av);
+      });
+
+      renderBooks();
+    }
+
+    // ── View ──────────────────────────────────────────────────
+    function setView(view) {
+      currentView = view;
+      document.getElementById("viewGrid").classList.toggle("active", view === "grid");
+      document.getElementById("viewList").classList.toggle("active", view === "list");
+      renderBooks();
+    }
+
+    // ── Render Books ──────────────────────────────────────────
+    function renderBooks() {
+      const area = document.getElementById("booksArea");
+
+      if (!displayBooks.length) {
+        area.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">📚</span>
+            <h2 class="empty-title">Your library is empty</h2>
+            <p class="empty-desc">Start building your collection by searching for books you own.</p>
+            <a href="search.html" class="empty-btn">🔍 Find a Book</a>
+          </div>`;
+        return;
+      }
+
+      if (currentView === "grid") {
+        area.innerHTML = `<div class="books-grid">${displayBooks.map(b => buildGridCard(b)).join("")}</div>`;
+      } else {
+        area.innerHTML = `<div class="books-list">${displayBooks.map(b => buildListCard(b)).join("")}</div>`;
+      }
+    }
+
+    function buildGridCard(book) {
+      const cover = book.coverURL
+        ? `<img class="grid-cover-img" src="${WR.escapeHTML(book.coverURL)}" alt=""
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholder = `<div class="grid-cover-placeholder" ${book.coverURL ? 'style="display:none"' : ""}>📖</div>`;
+
+      return `
+        <div class="grid-book-item" onclick="openBookModal('${book.id}')">
+          <div class="grid-cover-wrap">
+            ${cover}${placeholder}
+          </div>
+          <div class="grid-book-title">${WR.escapeHTML(book.title || "")}</div>
+          <div class="grid-book-author">${WR.escapeHTML(book.author || "")}</div>
+        </div>`;
+    }
+
+    function buildListCard(book) {
+      const cover = book.coverURL
+        ? `<img class="list-cover-img" src="${WR.escapeHTML(book.coverURL)}" alt=""
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholder = `<div class="list-cover-placeholder" ${book.coverURL ? 'style="display:none"' : ""}>📖</div>`;
+
+      const session  = book.readingSessions?.[0];
+      const isRead   = session?.completed;
+      const isReading = session?.startDate && !session?.completed && !session?.dnf;
+      const isDNF    = session?.dnf;
+      const isLent   = book.lendingHistory?.some(l => l.currentlyLent);
+
+      let badges = "";
+      if (isRead)    badges += `<span class="status-badge badge-read">Read</span>`;
+      if (isReading) badges += `<span class="status-badge badge-reading">Reading</span>`;
+      if (isDNF)     badges += `<span class="status-badge badge-dnf">DNF</span>`;
+      if (isLent)    badges += `<span class="status-badge badge-lent">Lent Out</span>`;
+
+      const addedDate = book.addedAt
+        ? "Added " + WR.formatRelativeTime(book.addedAt)
+        : "";
+
+      return `
+        <div class="list-book-item" onclick="openBookModal('${book.id}')">
+          ${cover}${placeholder}
+          <div class="list-book-info">
+            <div class="list-book-title">${WR.escapeHTML(book.title || "")}</div>
+            <div class="list-book-author">${WR.escapeHTML(book.author || "")}</div>
+            <div class="list-book-meta">${addedDate}</div>
+            ${badges ? `<div class="list-book-badges">${badges}</div>` : ""}
+          </div>
+        </div>`;
+    }
+
+    // ── Book Detail Modal ─────────────────────────────────────
+    function openBookModal(bookId) {
+      const book = allBooks.find(b => b.id === bookId);
+      if (!book) return;
+      openBookId = bookId;
+
+      // Cover
+      const coverArea = document.getElementById("modalCoverArea");
+      if (book.coverURL) {
+        coverArea.innerHTML = `<img class="modal-cover" src="${WR.escapeHTML(book.coverURL)}" alt=""
+          onerror="this.outerHTML='<div class=\\'modal-cover-placeholder\\'>📖</div>'">`;
+      } else {
+        coverArea.innerHTML = `<div class="modal-cover-placeholder">📖</div>`;
+      }
+
+      document.getElementById("modalTitle").textContent  = book.title  || "";
+      document.getElementById("modalAuthor").textContent = book.author  || "";
+      document.getElementById("modalISBN").textContent   = book.isbn ? "ISBN: " + book.isbn : "";
+
+      const session = book.readingSessions?.[0] || {};
+      const lend    = book.lendingHistory?.[book.lendingHistory.length - 1] || {};
+      const isLent  = book.lendingHistory?.some(l => l.currentlyLent);
+
+      document.getElementById("modalBody").innerHTML = `
+        <!-- Reading Session -->
+        <div class="modal-section">
+          <p class="modal-label">Reading Details</p>
+          <div class="modal-field-row">
+            <div class="modal-field">
+              <label>Format</label>
+              <select id="mFormat">
+                <option value="read"     ${session.format === "read"     ? "selected" : ""}>Read</option>
+                <option value="listened" ${session.format === "listened" ? "selected" : ""}>Listened</option>
+              </select>
+            </div>
+            <div class="modal-field">
+              <label>Started</label>
+              <input type="date" id="mStartDate" value="${session.startDate || ""}">
+            </div>
+            <div class="modal-field">
+              <label>Finished</label>
+              <input type="date" id="mEndDate" value="${session.endDate || ""}">
+            </div>
+          </div>
+          <label class="modal-checkbox-row" style="margin-top:8px;">
+            <input type="checkbox" id="mDNF" ${session.dnf ? "checked" : ""}>
+            Did Not Finish (DNF)
+          </label>
+        </div>
+
+        <!-- Lending -->
+        <div class="modal-section">
+          <p class="modal-label">Lending</p>
+          <label class="modal-checkbox-row">
+            <input type="checkbox" id="mLent" ${isLent ? "checked" : ""}
+                   onchange="toggleLendFields(this.checked)">
+            Currently lent to someone
+          </label>
+          <div id="lendFields" style="display:${isLent ? "block" : "none"};margin-top:8px;">
+            <div class="modal-field-row">
+              <div class="modal-field">
+                <label>Borrower Name</label>
+                <input type="text" id="mBorrowerName" value="${WR.escapeHTML(lend.borrowerName || "")}" placeholder="Their name">
+              </div>
+              <div class="modal-field">
+                <label>Lent On</label>
+                <input type="date" id="mLentDate" value="${lend.lentDate || ""}">
+              </div>
+            </div>
+          </div>
+          ${buildLendHistory(book.lendingHistory || [])}
+        </div>
+      `;
+
+      document.getElementById("bookModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function buildLendHistory(history) {
+      const past = history.filter(l => !l.currentlyLent);
+      if (!past.length) return "";
+      return `
+        <div class="lend-history">
+          <p class="lend-history-title">Lending History</p>
+          ${past.map(l => `
+            <div class="lend-history-item">
+              <span>${WR.escapeHTML(l.borrowerName || "Unknown")}</span>
+              <span>${l.lentDate || ""} → ${l.returnedDate || "?"}</span>
+              <span class="lend-returned">Returned</span>
+            </div>`).join("")}
+        </div>`;
+    }
+
+    function toggleLendFields(show) {
+      document.getElementById("lendFields").style.display = show ? "block" : "none";
+    }
+
+    function closeModal() {
+      document.getElementById("bookModal").classList.remove("open");
+      document.body.style.overflow = "";
+      openBookId = null;
+    }
+
+    function handleModalClick(e) {
+      if (e.target === document.getElementById("bookModal")) closeModal();
+    }
+
+    function viewOnBookPage() {
+      if (openBookId) location.href = `book.html?id=${encodeURIComponent(openBookId)}`;
+    }
+
+    async function saveBookDetails() {
+      if (!openBookId) return;
+      const user   = WR.getCurrentUser();
+      const book   = allBooks.find(b => b.id === openBookId);
+      if (!book)   return;
+
+      const startDate = document.getElementById("mStartDate")?.value || null;
+      const endDate   = document.getElementById("mEndDate")?.value   || null;
+      const format    = document.getElementById("mFormat")?.value    || "read";
+      const dnf       = document.getElementById("mDNF")?.checked     || false;
+      const isLent    = document.getElementById("mLent")?.checked    || false;
+      const borrowerName = document.getElementById("mBorrowerName")?.value.trim() || null;
+      const lentDate     = document.getElementById("mLentDate")?.value || null;
+
+      try {
+        const db  = WR.getDb();
+        const ref = db.collection("users").doc(user.uid).collection("books").doc(openBookId);
+
+        // Update reading session
+        let sessions = book.readingSessions || [];
+        if (sessions.length === 0) sessions = [{ sessionId: WR.generateId() }];
+        sessions[0] = {
+          ...sessions[0],
+          startDate,
+          endDate,
+          format,
+          dnf,
+          completed: !!endDate && !dnf
+        };
+
+        // Update lending
+        let lendingHistory = (book.lendingHistory || []).filter(l => !l.currentlyLent);
+        if (isLent) {
+          lendingHistory.push({
+            lendId:       WR.generateId(),
+            borrowerUid:  null,
+            borrowerName: borrowerName || "Unknown",
+            lentDate:     lentDate     || null,
+            returnedDate: null,
+            currentlyLent: true
+          });
+        }
+
+        await ref.set({
+          readingSessions: sessions,
+          lendingHistory,
+          onReadList: !!startDate || !!endDate || !!dnf,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Refresh local data
+        const idx = allBooks.findIndex(b => b.id === openBookId);
+        if (idx !== -1) {
+          allBooks[idx] = { ...allBooks[idx], readingSessions: sessions, lendingHistory };
+        }
+
+        renderStats();
+        renderLending();
+        renderBooks();
+        WR.showToast("Saved! 📚", "success");
+        closeModal();
+      } catch (e) {
+        console.error("Save error:", e);
+        WR.showToast("Error saving changes.", "error");
+      }
+    }
+
+    // ── Expose ────────────────────────────────────────────────
+    window.toggleLending    = toggleLending;
+    window.switchLendTab    = switchLendTab;
+    window.applySort        = applySort;
+    window.setView          = setView;
+    window.openBookModal    = openBookModal;
+    window.closeModal       = closeModal;
+    window.handleModalClick = handleModalClick;
+    window.viewOnBookPage   = viewOnBookPage;
+    window.saveBookDetails  = saveBookDetails;
+    window.toggleLendFields = toggleLendFields;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>

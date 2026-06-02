@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — My Wishlist</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+    }
+
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 6rem;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .page-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; color: var(--deep-plum); margin-bottom: 0.25rem; }
+    .page-subtitle { font-size: 14px; color: var(--terracotta); }
+
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .header-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-btn:hover { opacity: 0.85; }
+    .btn-add   { background: var(--amethyst); color: #FAF6EE; }
+    .btn-share { background: var(--faded-moss); color: #1A3D2E; }
+
+    /* ── Visibility Banner ── */
+    .visibility-banner {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.875rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .visibility-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--deep-plum);
+    }
+
+    .visibility-icon { font-size: 20px; }
+
+    .visibility-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--terracotta);
+      cursor: pointer;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 12px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+
+    .toggle-track::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .toggle-switch input:checked + .toggle-track { background: var(--amethyst); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+
+    /* ── Share Link Box ── */
+    .share-box {
+      background: var(--lavender-mist);
+      border: 1px solid #DDD6F3;
+      border-radius: 10px;
+      padding: 0.875rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .share-box.show { display: block; }
+
+    .share-box-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amethyst);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .share-link-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .share-link-input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      color: var(--deep-plum);
+      background: #fff;
+      outline: none;
+    }
+
+    .copy-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: none;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+
+    .copy-btn:hover { opacity: 0.85; }
+
+    .share-note {
+      font-size: 12px;
+      color: var(--terracotta);
+      margin-top: 6px;
+    }
+
+    /* ── Wishlist Cards ── */
+    .wish-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .wish-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      transition: box-shadow 0.15s;
+    }
+
+    .wish-card:hover { box-shadow: 0 3px 14px rgba(45,27,78,0.07); }
+
+    .book-cover-img {
+      width: 56px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 1px 2px 8px rgba(45,27,78,0.14);
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .book-cover-placeholder {
+      width: 56px;
+      height: 80px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--warm-gold), #A07820);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .wish-info { flex: 1; min-width: 0; }
+
+    .wish-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      color: var(--deep-plum);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+
+    .wish-title:hover { color: var(--amethyst); }
+
+    .wish-author { font-size: 12px; color: var(--terracotta); margin-bottom: 6px; }
+
+    .wish-meta { font-size: 11px; color: #BDB5CC; }
+
+    .avg-stars { color: var(--warm-gold); font-size: 12px; }
+
+    .wish-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .wish-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+
+    .wish-btn:hover { opacity: 0.8; }
+    .wish-btn-add    { background: var(--amethyst); color: #FAF6EE; }
+    .wish-btn-tbr    { background: var(--faded-moss); color: #1A3D2E; }
+    .wish-btn-remove { background: var(--aged-paper); color: var(--terracotta); border: 1px solid var(--border); }
+
+    /* ── Empty ── */
+    .empty-state { text-align: center; padding: 4rem 2rem; }
+    .empty-icon  { font-size: 56px; margin-bottom: 1rem; display: block; }
+    .empty-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .empty-desc  { font-size: 14px; color: var(--terracotta); margin-bottom: 1.5rem; line-height: 1.6; }
+    .empty-btn   {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Nunito Sans', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 11px 22px; background: var(--amethyst); color: #FAF6EE;
+      border: none; border-radius: 8px; cursor: pointer; text-decoration: none; transition: opacity 0.15s;
+    }
+    .empty-btn:hover { opacity: 0.85; }
+
+    /* ── Skeleton ── */
+    .skeleton-list { display: flex; flex-direction: column; gap: 10px; }
+    .skeleton-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 1rem; display: flex; gap: 14px; align-items: center; }
+    .skeleton-cover { width: 56px; height: 80px; border-radius: 4px; background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; flex-shrink: 0; }
+    .skeleton-lines { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .skeleton-line  { height: 11px; border-radius: 6px; background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    @media (max-width: 600px) {
+      .page-header  { flex-direction: column; }
+      .wish-actions { flex-direction: row; width: 100%; }
+      .wish-card    { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">⭐ My Wishlist</h1>
+        <p class="page-subtitle" id="wishSubtitle">Books I want to read</p>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn btn-share" onclick="toggleShareBox()">🔗 Share List</button>
+        <a href="search.html" class="header-btn btn-add">+ Add a Book</a>
+      </div>
+    </div>
+
+    <!-- Visibility Banner -->
+    <div class="visibility-banner">
+      <div class="visibility-info">
+        <span class="visibility-icon" id="visIcon">🌐</span>
+        <span id="visText">Your wishlist is <strong>public</strong> — anyone can view it</span>
+      </div>
+      <label class="visibility-toggle" title="Toggle wishlist visibility">
+        <span id="visToggleLabel">Public</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="visibilityToggle" checked onchange="toggleVisibility()">
+          <span class="toggle-track"></span>
+        </label>
+      </label>
+    </div>
+
+    <!-- Share Box -->
+    <div class="share-box" id="shareBox">
+      <p class="share-box-title">🔗 Share your wishlist</p>
+      <div class="share-link-row">
+        <input type="text" class="share-link-input" id="shareLinkInput" readonly>
+        <button class="copy-btn" onclick="copyShareLink()">Copy Link</button>
+      </div>
+      <p class="share-note">Anyone with this link can view your wishlist — no account needed.</p>
+    </div>
+
+    <!-- Books -->
+    <div id="booksArea">
+      <div class="skeleton-list">
+        <div class="skeleton-card"><div class="skeleton-cover"></div><div class="skeleton-lines"><div class="skeleton-line" style="width:65%;height:15px;"></div><div class="skeleton-line" style="width:40%"></div><div class="skeleton-line" style="width:30%"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-cover"></div><div class="skeleton-lines"><div class="skeleton-line" style="width:75%;height:15px;"></div><div class="skeleton-line" style="width:50%"></div><div class="skeleton-line" style="width:35%"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-cover"></div><div class="skeleton-lines"><div class="skeleton-line" style="width:60%;height:15px;"></div><div class="skeleton-line" style="width:45%"></div><div class="skeleton-line" style="width:28%"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-cover"></div><div class="skeleton-lines"><div class="skeleton-line" style="width:80%;height:15px;"></div><div class="skeleton-line" style="width:38%"></div><div class="skeleton-line" style="width:32%"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-cover"></div><div class="skeleton-lines"><div class="skeleton-line" style="width:70%;height:15px;"></div><div class="skeleton-line" style="width:42%"></div><div class="skeleton-line" style="width:26%"></div></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    let allBooks     = [];
+    let isPublic     = true;
+    let shareBoxOpen = false;
+
+    WR.initAuth(async (user) => {
+      if (!user) return;
+      await loadWishlistVisibility();
+      await loadWishlist();
+      setShareLink();
+    });
+
+    async function loadWishlistVisibility() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb().collection("users").doc(user.uid).get();
+        if (snap.exists) {
+          isPublic = snap.data().profileVisibility?.wishlist !== false;
+          updateVisibilityUI();
+        }
+      } catch (e) {
+        console.error("Error loading visibility:", e);
+      }
+    }
+
+    async function loadWishlist() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books")
+          .where("onWishlist", "==", true)
+          .get();
+        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        document.getElementById("wishSubtitle").textContent =
+          `${allBooks.length} book${allBooks.length === 1 ? "" : "s"} on your wishlist`;
+        renderBooks();
+      } catch (e) {
+        console.error("Error loading wishlist:", e);
+        WR.showToast("Error loading your wishlist.", "error");
+      }
+    }
+
+    function renderBooks() {
+      const area = document.getElementById("booksArea");
+      if (!allBooks.length) {
+        area.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">⭐</span>
+            <h2 class="empty-title">Your wishlist is empty</h2>
+            <p class="empty-desc">Add books you want to buy, borrow, or read and share the list with friends and family.</p>
+            <a href="search.html" class="empty-btn">🔍 Find a Book</a>
+          </div>`;
+        return;
+      }
+
+      area.innerHTML = `<div class="wish-list">${allBooks.map(b => buildCard(b)).join("")}</div>`;
+    }
+
+    function buildCard(book) {
+      const cover = book.coverURL
+        ? `<img class="book-cover-img" src="${WR.escapeHTML(book.coverURL)}" alt=""
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : "";
+      const placeholder = `<div class="book-cover-placeholder" ${book.coverURL ? 'style="display:none"' : ""}>⭐</div>`;
+
+      const addedDate = book.addedAt
+        ? "Added " + WR.formatRelativeTime(book.addedAt)
+        : "";
+
+      return `
+        <div class="wish-card">
+          ${cover}${placeholder}
+          <div class="wish-info">
+            <a class="wish-title" href="book.html?id=${encodeURIComponent(book.id)}">${WR.escapeHTML(book.title || "")}</a>
+            <div class="wish-author">${WR.escapeHTML(book.author || "")}</div>
+            <div class="wish-meta">${addedDate}</div>
+          </div>
+          <div class="wish-actions">
+            <button class="wish-btn wish-btn-add"    onclick="moveToLibrary('${book.id}')">📚 Own It</button>
+            <button class="wish-btn wish-btn-tbr"    onclick="moveToTBR('${book.id}')">🔖 Add to TBR</button>
+            <button class="wish-btn wish-btn-remove" onclick="removeFromWishlist('${book.id}')">Remove</button>
+          </div>
+        </div>`;
+    }
+
+    // ── Visibility ─────────────────────────────────────────────
+    function updateVisibilityUI() {
+      const toggle = document.getElementById("visibilityToggle");
+      const icon   = document.getElementById("visIcon");
+      const text   = document.getElementById("visText");
+      const label  = document.getElementById("visToggleLabel");
+
+      toggle.checked  = isPublic;
+      icon.textContent = isPublic ? "🌐" : "🔒";
+      label.textContent = isPublic ? "Public" : "Private";
+      text.innerHTML  = isPublic
+        ? "Your wishlist is <strong>public</strong> — anyone can view it"
+        : "Your wishlist is <strong>private</strong> — only you can see it";
+    }
+
+    async function toggleVisibility() {
+      const user = WR.getCurrentUser();
+      isPublic   = document.getElementById("visibilityToggle").checked;
+      updateVisibilityUI();
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set(
+          { profileVisibility: { wishlist: isPublic } }, { merge: true }
+        );
+        WR.showToast(isPublic ? "Wishlist set to public." : "Wishlist set to private.");
+      } catch (e) {
+        WR.showToast("Error saving visibility.", "error");
+      }
+    }
+
+    // ── Share ──────────────────────────────────────────────────
+    function setShareLink() {
+      const user = WR.getCurrentUser();
+      const link = `${location.origin}/wishlist-public.html?uid=${user.uid}`;
+      const input = document.getElementById("shareLinkInput");
+      if (input) input.value = link;
+    }
+
+    function toggleShareBox() {
+      shareBoxOpen = !shareBoxOpen;
+      document.getElementById("shareBox").classList.toggle("show", shareBoxOpen);
+    }
+
+    function copyShareLink() {
+      const input = document.getElementById("shareLinkInput");
+      if (!input) return;
+      navigator.clipboard.writeText(input.value)
+        .then(() => WR.showToast("Link copied! 🔗", "success"))
+        .catch(() => {
+          input.select();
+          document.execCommand("copy");
+          WR.showToast("Link copied! 🔗", "success");
+        });
+    }
+
+    // ── Actions ────────────────────────────────────────────────
+    async function moveToLibrary(bookId) {
+      const user = WR.getCurrentUser();
+      try {
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .set({ inLibrary: true, onWishlist: false,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        allBooks = allBooks.filter(b => b.id !== bookId);
+        updateSubtitle();
+        renderBooks();
+        WR.showToast("Added to your library! 📚", "success");
+      } catch (e) {
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    async function moveToTBR(bookId) {
+      const user = WR.getCurrentUser();
+      try {
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .set({ onTBR: true, tbrNeedsAcquisition: true,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        WR.showToast("Added to TBR list! 🔖", "success");
+      } catch (e) {
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    async function removeFromWishlist(bookId) {
+      const user = WR.getCurrentUser();
+      try {
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .update({ onWishlist: false,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        allBooks = allBooks.filter(b => b.id !== bookId);
+        updateSubtitle();
+        renderBooks();
+        WR.showToast("Removed from wishlist.");
+      } catch (e) {
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    function updateSubtitle() {
+      document.getElementById("wishSubtitle").textContent =
+        `${allBooks.length} book${allBooks.length === 1 ? "" : "s"} on your wishlist`;
+    }
+
+    window.toggleVisibility = toggleVisibility;
+    window.toggleShareBox   = toggleShareBox;
+    window.copyShareLink    = copyShareLink;
+    window.moveToLibrary    = moveToLibrary;
+    window.moveToTBR        = moveToTBR;
+    window.removeFromWishlist = removeFromWishlist;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>
