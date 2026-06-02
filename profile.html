@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Profile</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+    }
+
+    .page-wrap {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 6rem;
+    }
+
+    /* ── Profile Hero ── */
+    .profile-hero {
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 2rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .profile-photo-wrap { flex-shrink: 0; position: relative; }
+
+    .profile-photo {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--faded-moss);
+      display: block;
+    }
+
+    .profile-photo-placeholder {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--lavender-mist);
+      border: 3px solid var(--faded-moss);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 42px;
+    }
+
+    .profile-info { flex: 1; min-width: 0; }
+
+    .profile-display-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      margin-bottom: 4px;
+    }
+
+    .profile-handle {
+      font-size: 14px;
+      color: var(--terracotta);
+      margin-bottom: 8px;
+    }
+
+    .wellread-since {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amethyst);
+      background: var(--lavender-mist);
+      border: 1px solid #DDD6F3;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .profile-bio {
+      font-size: 14px;
+      color: var(--deep-plum);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .social-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .social-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amethyst);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: var(--lavender-mist);
+      border: 1px solid #DDD6F3;
+      transition: background 0.15s;
+      line-height: 1;
+    }
+
+    .social-link svg { display: block; flex-shrink: 0; border-radius: 3px; }
+
+    .social-link:hover { background: #EDE4F7; }
+
+    .profile-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .profile-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .profile-btn:hover { opacity: 0.85; }
+    .btn-primary   { background: var(--amethyst); color: #FAF6EE; }
+    .btn-secondary { background: var(--lavender-mist); color: var(--amethyst); border: 1.5px solid var(--amethyst); }
+    .btn-moss      { background: var(--faded-moss); color: #1A3D2E; }
+    .btn-pending   { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); cursor: default; }
+    .btn-settings  { background: var(--aged-paper); color: var(--terracotta); border: 1.5px solid var(--border); }
+
+    /* ── Quick Stats ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.15s;
+      cursor: pointer;
+    }
+
+    .stat-card:hover { box-shadow: 0 3px 10px rgba(45,27,78,0.07); }
+
+    .stat-num   { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--amethyst); display: block; }
+    .stat-label { font-size: 12px; color: var(--terracotta); margin-top: 2px; }
+
+    /* ── Content Sections ── */
+    .profile-section {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .section-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .section-toggle:hover { background: var(--lavender-mist); }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      color: var(--deep-plum);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-arrow {
+      font-size: 12px;
+      color: var(--terracotta);
+      transition: transform 0.2s;
+    }
+
+    .section-toggle.open .section-arrow { transform: rotate(180deg); }
+
+    .section-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 1.25rem;
+    }
+
+    .section-body.open { display: block; }
+
+    /* ── Currently Reading ── */
+    .reading-shelf {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: thin;
+    }
+
+    .reading-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 90px;
+      max-width: 90px;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .reading-cover-sm {
+      width: 90px;
+      height: 128px;
+      object-fit: cover;
+      border-radius: 5px;
+      box-shadow: 2px 3px 8px rgba(45,27,78,0.15);
+      display: block;
+    }
+
+    .reading-cover-sm-placeholder {
+      width: 90px;
+      height: 128px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .reading-card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      text-align: center;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    /* ── Read List ── */
+    .read-list-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 14px;
+    }
+
+    .read-grid-item {
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .read-cover {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      border-radius: 5px;
+      box-shadow: 1px 2px 8px rgba(45,27,78,0.14);
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .read-cover-placeholder {
+      width: 100%;
+      aspect-ratio: 2/3;
+      border-radius: 5px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 5px;
+    }
+
+    .read-title {
+      font-size: 10px;
+      color: var(--deep-plum);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    /* ── Wishlist ── */
+    .wishlist-items { display: flex; flex-direction: column; gap: 8px; }
+
+    .wishlist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+      border-radius: 8px;
+      background: var(--lavender-mist);
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s;
+    }
+
+    .wishlist-item:hover { background: #EDE4F7; }
+
+    .wl-cover {
+      width: 40px;
+      height: 58px;
+      object-fit: cover;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .wl-cover-placeholder {
+      width: 40px;
+      height: 58px;
+      border-radius: 3px;
+      background: linear-gradient(135deg, var(--warm-gold), #A07820);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .wl-info { flex: 1; min-width: 0; }
+    .wl-title  { font-size: 13px; font-weight: 600; color: var(--deep-plum); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wl-author { font-size: 11px; color: var(--terracotta); }
+
+    /* ── Clubs ── */
+    .clubs-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .club-item {
+      background: var(--faded-moss);
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: opacity 0.15s;
+    }
+
+    .club-item:hover { opacity: 0.88; }
+
+    .club-item-icon { font-size: 22px; flex-shrink: 0; }
+
+    .club-item-info { flex: 1; min-width: 0; }
+    .club-item-name { font-size: 14px; font-weight: 600; color: #1A3D2E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .club-item-meta { font-size: 12px; color: #2E5E47; }
+
+    /* ── Recently Finished ── */
+    .recent-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .recent-cover {
+      width: 48px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+      box-shadow: 1px 2px 6px rgba(45,27,78,0.14);
+    }
+
+    .recent-cover-placeholder {
+      width: 48px;
+      height: 68px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--amethyst), #4A2D7A);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .recent-info { flex: 1; min-width: 0; }
+    .recent-title  { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--deep-plum); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+    .recent-author { font-size: 12px; color: var(--terracotta); margin-bottom: 3px; }
+    .recent-date   { font-size: 11px; color: #BDB5CC; }
+    .recent-stars  { font-size: 13px; color: var(--warm-gold); }
+
+    /* ── Empty / Loading ── */
+    .section-empty {
+      text-align: center;
+      padding: 1rem;
+      font-size: 13px;
+      color: var(--terracotta);
+    }
+
+    .skeleton-line {
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      margin-bottom: 8px;
+    }
+
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Not Found ── */
+    .not-found {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .not-found-icon  { font-size: 52px; display: block; margin-bottom: 1rem; }
+    .not-found-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--deep-plum); margin-bottom: 0.5rem; }
+    .not-found-desc  { font-size: 14px; color: var(--terracotta); }
+
+    @media (max-width: 580px) {
+      .profile-hero { flex-direction: column; align-items: center; text-align: center; }
+      .social-links, .profile-actions { justify-content: center; }
+      .stats-row    { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap" id="pageWrap">
+    <!-- Skeleton while loading -->
+    <div style="background:#fff;border-radius:20px;border:1px solid var(--border);padding:2rem;margin-bottom:1.25rem;">
+      <div style="display:flex;gap:1.5rem;align-items:flex-start;">
+        <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(90deg,#ede8f5 25%,#e0d8ef 50%,#ede8f5 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="skeleton-line" style="width:55%;height:22px;margin-bottom:10px;"></div>
+          <div class="skeleton-line" style="width:35%"></div>
+          <div class="skeleton-line" style="width:70%;margin-top:12px;"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let profileData  = null;
+    let profileUid   = null;
+    let isOwnProfile = false;
+    let friendStatus = null; // null | 'pending' | 'accepted'
+    let friendshipId = null;
+    let userBooks    = [];
+    let userClubs    = [];
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+
+      const params = new URLSearchParams(location.search);
+      profileUid   = params.get("uid") || user.uid;
+      isOwnProfile = profileUid === user.uid;
+
+      await Promise.all([
+        loadProfile(),
+        loadUserBooks(),
+        loadUserClubs(),
+        isOwnProfile ? Promise.resolve() : checkFriendStatus()
+      ]);
+
+      if (!profileData) {
+        showNotFound();
+        return;
+      }
+
+      document.title = `${profileData.displayName} — WellRead Co.`;
+      renderPage();
+    });
+
+    // ── Loaders ───────────────────────────────────────────────
+    async function loadProfile() {
+      try {
+        const snap = await WR.getDb().collection("users").doc(profileUid).get();
+        if (snap.exists) profileData = snap.data();
+      } catch (e) { console.error("Profile load error:", e); }
+    }
+
+    async function loadUserBooks() {
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(profileUid)
+          .collection("books").get();
+        userBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.error("Books load error:", e); }
+    }
+
+    async function loadUserClubs() {
+      try {
+        const snap = await WR.getDb()
+          .collection("clubs")
+          .where("memberUids", "array-contains", profileUid)
+          .limit(10)
+          .get();
+        userClubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.error("Clubs load error:", e); }
+    }
+
+    async function checkFriendStatus() {
+      const currentUid = WR.getCurrentUser().uid;
+      friendshipId     = WR.getFriendshipId(currentUid, profileUid);
+      try {
+        const snap = await WR.getDb().collection("friends").doc(friendshipId).get();
+        if (snap.exists) {
+          const data = snap.data();
+          friendStatus = data.status; // 'pending' | 'accepted'
+        }
+      } catch (e) { console.error("Friend status error:", e); }
+    }
+
+    // ── Render ────────────────────────────────────────────────
+    function renderPage() {
+      const wrap = document.getElementById("pageWrap");
+      const vis  = profileData.profileVisibility || {};
+
+      // Derived book lists
+      const currentlyReading = userBooks.filter(b => {
+        const s = b.readingSessions?.[0];
+        return b.onReadList && s?.startDate && !s?.completed && !s?.dnf;
+      });
+
+      const recentlyFinished = userBooks.filter(b => {
+        const s = b.readingSessions?.[0];
+        if (!s?.endDate) return false;
+        const end  = new Date(s.endDate);
+        const diff = (Date.now() - end.getTime()) / (1000 * 60 * 60 * 24);
+        return diff <= 15;
+      });
+
+      const wishlistBooks = userBooks.filter(b => b.onWishlist);
+      const libraryBooks  = userBooks.filter(b => b.inLibrary);
+      const readBooks     = userBooks.filter(b => b.onReadList);
+
+      const joinedDate = profileData.joinedAt
+        ? profileData.joinedAt.toDate
+          ? profileData.joinedAt.toDate().toLocaleDateString("en-US", { month: "long", year: "numeric" })
+          : new Date(profileData.joinedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+        : null;
+
+      wrap.innerHTML = `
+        <!-- Profile Hero -->
+        <div class="profile-hero">
+          <div class="profile-photo-wrap">
+            ${profileData.photoURL
+              ? `<img class="profile-photo" src="${WR.escapeHTML(profileData.photoURL)}" alt="${WR.escapeHTML(profileData.displayName || "")}">`
+              : `<div class="profile-photo-placeholder">👤</div>`}
+          </div>
+          <div class="profile-info">
+            <h1 class="profile-display-name">${WR.escapeHTML(profileData.displayName || "")}</h1>
+            <p class="profile-handle">${WR.escapeHTML(profileData.firstName || "")} ${WR.escapeHTML(profileData.lastName || "")}</p>
+            ${joinedDate ? `<span class="wellread-since">📖 WellRead since ${joinedDate}</span>` : ""}
+            ${profileData.bio ? `<p class="profile-bio">${WR.escapeHTML(profileData.bio)}</p>` : ""}
+            ${buildSocialLinks()}
+            <div class="profile-actions">
+              ${buildActionButtons()}
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-row">
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html'" : ""}">
+            <span class="stat-num">${libraryBooks.length}</span>
+            <span class="stat-label">Books in Library</span>
+          </div>
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='readlist.html'" : ""}">
+            <span class="stat-num">${readBooks.length}</span>
+            <span class="stat-label">Lifetime Reads</span>
+          </div>
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='wishlist.html'" : ""}">
+            <span class="stat-num">${wishlistBooks.length}</span>
+            <span class="stat-label">Wishlist</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">${userClubs.length}</span>
+            <span class="stat-label">Book Clubs</span>
+          </div>
+        </div>
+
+        ${(isOwnProfile || vis.currentlyReading !== false) && currentlyReading.length ? `
+        <!-- Currently Reading -->
+        <div class="profile-section">
+          <div class="section-toggle open" onclick="toggleSection('reading', this)">
+            <span class="section-title">📖 Currently Reading</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body open" id="reading-body">
+            <div class="reading-shelf">
+              ${currentlyReading.map(b => `
+                <a class="reading-card" href="book.html?id=${encodeURIComponent(b.id)}">
+                  ${b.coverURL
+                    ? `<img class="reading-cover-sm" src="${WR.escapeHTML(b.coverURL)}" alt="">`
+                    : `<div class="reading-cover-sm-placeholder">📖</div>`}
+                  <div class="reading-card-title">${WR.escapeHTML(b.title || "")}</div>
+                </a>`).join("")}
+            </div>
+          </div>
+        </div>` : ""}
+
+        ${(isOwnProfile || vis.recentlyFinished !== false) && recentlyFinished.length ? `
+        <!-- Recently Finished -->
+        <div class="profile-section">
+          <div class="section-toggle open" onclick="toggleSection('recent', this)">
+            <span class="section-title">✅ Recently Finished</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body open" id="recent-body">
+            <div class="recent-list">
+              ${recentlyFinished.map(b => {
+                const s     = b.readingSessions?.[0] || {};
+                const stars = s.rating ? "★".repeat(s.rating) + "☆".repeat(5 - s.rating) : "";
+                return `
+                  <a class="recent-item" href="book.html?id=${encodeURIComponent(b.id)}">
+                    ${b.coverURL
+                      ? `<img class="recent-cover" src="${WR.escapeHTML(b.coverURL)}" alt="">`
+                      : `<div class="recent-cover-placeholder">📖</div>`}
+                    <div class="recent-info">
+                      <div class="recent-title">${WR.escapeHTML(b.title || "")}</div>
+                      <div class="recent-author">${WR.escapeHTML(b.author || "")}</div>
+                      ${s.endDate ? `<div class="recent-date">Finished ${WR.formatDateInput(s.endDate)}</div>` : ""}
+                      ${stars ? `<div class="recent-stars">${stars}</div>` : ""}
+                    </div>
+                  </a>`;
+              }).join("")}
+            </div>
+          </div>
+        </div>` : ""}
+
+        ${(isOwnProfile || vis.wishlist !== false) && wishlistBooks.length ? `
+        <!-- Wishlist -->
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('wishlist', this)">
+            <span class="section-title">⭐ Wishlist <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${wishlistBooks.length}</span></span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="wishlist-body">
+            <div class="wishlist-items">
+              ${wishlistBooks.slice(0, 10).map(b => `
+                <a class="wishlist-item" href="book.html?id=${encodeURIComponent(b.id)}">
+                  ${b.coverURL
+                    ? `<img class="wl-cover" src="${WR.escapeHTML(b.coverURL)}" alt="">`
+                    : `<div class="wl-cover-placeholder">⭐</div>`}
+                  <div class="wl-info">
+                    <div class="wl-title">${WR.escapeHTML(b.title || "")}</div>
+                    <div class="wl-author">${WR.escapeHTML(b.author || "")}</div>
+                  </div>
+                </a>`).join("")}
+              ${wishlistBooks.length > 10
+                ? `<a href="${isOwnProfile ? "wishlist.html" : `wishlist-public.html?uid=${profileUid}`}"
+                       style="font-size:13px;color:var(--amethyst);text-align:center;padding:4px;">
+                     View all ${wishlistBooks.length} books →
+                   </a>`
+                : ""}
+            </div>
+          </div>
+        </div>` : ""}
+
+        ${(isOwnProfile || vis.library !== false) && libraryBooks.length ? `
+        <!-- Library -->
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('library', this)">
+            <span class="section-title">📚 Library <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${libraryBooks.length}</span></span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="library-body">
+            <div class="read-list-grid">
+              ${libraryBooks.slice(0, 24).map(b => `
+                <a class="read-grid-item" href="book.html?id=${encodeURIComponent(b.id)}">
+                  ${b.coverURL
+                    ? `<img class="read-cover" src="${WR.escapeHTML(b.coverURL)}" alt="">`
+                    : `<div class="read-cover-placeholder">📚</div>`}
+                  <div class="read-title">${WR.escapeHTML(b.title || "")}</div>
+                </a>`).join("")}
+            </div>
+            ${libraryBooks.length > 24 && isOwnProfile
+              ? `<a href="library.html" style="display:block;text-align:center;font-size:13px;color:var(--amethyst);margin-top:12px;">View full library →</a>`
+              : ""}
+          </div>
+        </div>` : ""}
+
+        <!-- Book Clubs -->
+        ${userClubs.length ? `
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('clubs', this)">
+            <span class="section-title">👥 Book Clubs</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="clubs-body">
+            <div class="clubs-list">
+              ${userClubs.map(c => `
+                <a class="club-item" href="club.html?id=${c.id}">
+                  <span class="club-item-icon">👥</span>
+                  <div class="club-item-info">
+                    <div class="club-item-name">${WR.escapeHTML(c.name || "")}</div>
+                    <div class="club-item-meta">
+                      ${c.memberUids?.length || 0} members
+                      ${c.currentRead?.title ? ` · Reading: ${WR.escapeHTML(c.currentRead.title)}` : ""}
+                    </div>
+                  </div>
+                </a>`).join("")}
+            </div>
+          </div>
+        </div>` : ""}
+      `;
+    }
+
+    // Inline SVG logos for each social platform
+    const SOCIAL_SVGS = {
+      instagram: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#f09433"/>
+          <stop offset="25%" style="stop-color:#e6683c"/>
+          <stop offset="50%" style="stop-color:#dc2743"/>
+          <stop offset="75%" style="stop-color:#cc2366"/>
+          <stop offset="100%" style="stop-color:#bc1888"/>
+        </stop></linearGradient></defs>
+        <rect width="24" height="24" rx="6" fill="url(#ig)"/>
+        <path d="M12 7.2A4.8 4.8 0 1 0 12 16.8 4.8 4.8 0 0 0 12 7.2zm0 7.92A3.12 3.12 0 1 1 12 8.88 3.12 3.12 0 0 1 12 15.12z" fill="#fff"/>
+        <circle cx="16.92" cy="7.08" r="1.12" fill="#fff"/>
+      </svg>`,
+      facebook: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="6" fill="#1877F2"/>
+        <path d="M16.5 8H14.5C13.95 8 13.5 8.45 13.5 9V11H16.5L16 14H13.5V21H10.5V14H8.5V11H10.5V9C10.5 6.79 12.29 5 14.5 5H16.5V8Z" fill="#fff"/>
+      </svg>`,
+      x: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="6" fill="#000"/>
+        <path d="M17.75 4H20.5L14.5 10.78L21.5 20H15.97L11.65 14.35L6.73 20H3.97L10.38 12.76L3.5 4H9.16L13.08 9.14L17.75 4ZM16.77 18.36H18.3L8.3 5.53H6.65L16.77 18.36Z" fill="#fff"/>
+      </svg>`,
+      bluesky: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="6" fill="#0085FF"/>
+        <path d="M12 10.4C11.04 8.88 8.4 6.08 6 5.28C4.08 4.64 3.5 5.92 3.5 7.04C3.5 8.16 3.98 10.08 4.24 10.88C5.04 13.36 7.6 14.08 10.08 13.6C9.84 13.68 9.6 13.84 9.36 13.92C7.36 14.72 4.48 16 5.76 18.64C6.56 20.24 9.04 19.92 10.64 18.72C11.44 18.16 11.84 17.6 12 17.04C12.16 17.6 12.56 18.16 13.36 18.72C14.96 19.92 17.44 20.24 18.24 18.64C19.52 16 16.64 14.72 14.64 13.92C14.4 13.84 14.16 13.68 13.92 13.6C16.4 14.08 18.96 13.36 19.76 10.88C20.02 10.08 20.5 8.16 20.5 7.04C20.5 5.92 19.92 4.64 18 5.28C15.6 6.08 12.96 8.88 12 10.4Z" fill="#fff"/>
+      </svg>`
+    };
+
+    function buildSocialLinks() {
+      const links = profileData.socialLinks || {};
+      const items = [];
+      if (links.instagram) items.push({ key: "instagram", label: "Instagram", href: `https://instagram.com/${links.instagram.replace("@","")}` });
+      if (links.facebook)  items.push({ key: "facebook",  label: "Facebook",  href: links.facebook.startsWith("http") ? links.facebook : `https://facebook.com/${links.facebook}` });
+      if (links.x)         items.push({ key: "x",         label: "X",         href: `https://x.com/${links.x.replace("@","")}` });
+      if (links.bluesky)   items.push({ key: "bluesky",   label: "Bluesky",   href: `https://bsky.app/profile/${links.bluesky.replace("@","")}` });
+      if (!items.length) return "";
+      return `<div class="social-links">${items.map(i =>
+        `<a class="social-link" href="${WR.escapeHTML(i.href)}" target="_blank" rel="noopener">
+          ${SOCIAL_SVGS[i.key] || ""} ${i.label}
+        </a>`
+      ).join("")}</div>`;
+    }
+
+    function buildActionButtons() {
+      if (isOwnProfile) {
+        return `
+          <a class="profile-btn btn-settings" href="settings.html">⚙️ Edit Profile</a>
+          <a class="profile-btn btn-secondary" href="wishlist.html">⭐ My Wishlist</a>`;
+      }
+
+      let friendBtn = "";
+      if (friendStatus === "accepted") {
+        friendBtn = `<button class="profile-btn btn-moss" onclick="sendMessage()">✉️ Message</button>
+                     <button class="profile-btn btn-secondary" onclick="removeFriend()">Remove Friend</button>`;
+      } else if (friendStatus === "pending") {
+        friendBtn = `<button class="profile-btn btn-pending" disabled>⏳ Request Sent</button>`;
+      } else {
+        friendBtn = `<button class="profile-btn btn-primary" onclick="sendFriendRequest()">👤 Add Friend</button>`;
+      }
+
+      return friendBtn;
+    }
+
+    // ── Friend Actions ────────────────────────────────────────
+    async function sendFriendRequest() {
+      const currentUser = WR.getCurrentUser();
+      try {
+        await WR.getDb().collection("friends").doc(friendshipId).set({
+          users:        [currentUser.uid, profileUid],
+          initiatorUid: currentUser.uid,
+          status:       "pending",
+          createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          acceptedAt:   null
+        });
+
+        await WR.createNotification(profileUid, {
+          type:     "friend_request",
+          title:    "New Friend Request",
+          body:     `${currentUser._profile?.displayName || "Someone"} wants to be your friend on WellRead Co.`,
+          linkedId: friendshipId
+        });
+
+        friendStatus = "pending";
+        document.querySelector(".profile-actions").innerHTML = buildActionButtons();
+        WR.showToast("Friend request sent!", "success");
+      } catch (e) {
+        console.error("Friend request error:", e);
+        WR.showToast("Error sending friend request.", "error");
+      }
+    }
+
+    async function removeFriend() {
+      if (!confirm("Remove this friend?")) return;
+      try {
+        await WR.getDb().collection("friends").doc(friendshipId).delete();
+        friendStatus = null;
+        document.querySelector(".profile-actions").innerHTML = buildActionButtons();
+        WR.showToast("Friend removed.");
+      } catch (e) {
+        WR.showToast("Error removing friend.", "error");
+      }
+    }
+
+    function sendMessage() {
+      location.href = `messages.html?uid=${profileUid}`;
+    }
+
+    // ── Section Toggle ────────────────────────────────────────
+    function toggleSection(id, toggle) {
+      const body = document.getElementById(id + "-body");
+      if (!body) return;
+      const isOpen = body.classList.contains("open");
+      toggle.classList.toggle("open", !isOpen);
+      body.classList.toggle("open", !isOpen);
+    }
+
+    // ── Not Found ─────────────────────────────────────────────
+    function showNotFound() {
+      document.getElementById("pageWrap").innerHTML = `
+        <div class="not-found">
+          <span class="not-found-icon">👤</span>
+          <h2 class="not-found-title">Profile not found</h2>
+          <p class="not-found-desc">This user doesn't exist or their profile is unavailable.</p>
+        </div>`;
+    }
+
+    window.toggleSection     = toggleSection;
+    window.sendFriendRequest = sendFriendRequest;
+    window.removeFriend      = removeFriend;
+    window.sendMessage       = sendMessage;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>

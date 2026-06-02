@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellRead Co. — Settings</title>
+  <meta name="theme-color" content="#2D1B4E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon-96x96.png">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+    }
+
+    .page-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 6rem;
+    }
+
+    .page-header { margin-bottom: 1.75rem; }
+
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--deep-plum);
+      margin-bottom: 0.25rem;
+    }
+
+    .page-subtitle { font-size: 14px; color: var(--terracotta); }
+
+    /* ── Settings Card ── */
+    .settings-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--lavender-mist);
+    }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      color: var(--deep-plum);
+    }
+
+    .card-body { padding: 1.25rem; }
+
+    /* ── Form Fields ── */
+    .form-group { margin-bottom: 1.1rem; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--terracotta);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="url"],
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      color: var(--deep-plum);
+      background: var(--aged-paper);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--amethyst);
+      box-shadow: 0 0 0 3px rgba(123,94,167,0.12);
+      background: #fff;
+    }
+
+    textarea { resize: none; }
+
+    .char-count {
+      font-size: 11px;
+      color: #BDB5CC;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* ── Photo Upload ── */
+    .photo-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 1.1rem;
+    }
+
+    .current-photo {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--faded-moss);
+      flex-shrink: 0;
+    }
+
+    .current-photo-placeholder {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--lavender-mist);
+      border: 2px solid var(--faded-moss);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .photo-upload-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--amethyst);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .photo-upload-btn:hover { background: var(--lavender-mist); }
+    #photoInput { display: none; }
+
+    /* ── Toggle Rows ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toggle-row:last-child { border-bottom: none; }
+
+    .toggle-info { flex: 1; }
+    .toggle-label { font-size: 14px; font-weight: 600; color: var(--deep-plum); margin-bottom: 2px; }
+    .toggle-desc  { font-size: 12px; color: var(--terracotta); }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 12px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+
+    .toggle-track::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .toggle-switch input:checked + .toggle-track { background: var(--amethyst); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+
+    /* ── Social Links ── */
+    .social-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0.75rem;
+    }
+
+    .social-icon-label {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .social-icon-label svg { display: block; border-radius: 4px; }
+
+    .social-input-row input { margin-bottom: 0; flex: 1; }
+
+    /* ── Password Section ── */
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .pw-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--terracotta);
+      padding: 4px;
+    }
+
+    /* ── Buttons ── */
+    .save-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 24px;
+      border-radius: 8px;
+      border: none;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .save-btn:hover    { opacity: 0.88; }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .save-btn .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .save-btn.loading .spinner  { display: block; }
+    .save-btn.loading .btn-text { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .danger-zone {
+      border: 1.5px solid #F5C6C6;
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
+    }
+
+    .danger-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: #922B21;
+      margin-bottom: 0.5rem;
+    }
+
+    .danger-desc {
+      font-size: 13px;
+      color: var(--terracotta);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .danger-btn {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #F5C6C6;
+      background: #fff;
+      color: #922B21;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .danger-btn:hover { background: #FDECEC; }
+
+    .error-banner {
+      background: #FDECEC;
+      border: 1px solid #F5C6C6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #922B21;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-banner.show { display: block; }
+
+    @media (max-width: 480px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap">
+
+    <div class="page-header">
+      <h1 class="page-title">⚙️ Settings</h1>
+      <p class="page-subtitle">Manage your profile, preferences, and account</p>
+    </div>
+
+    <!-- ── Profile Info ── -->
+    <div class="settings-card">
+      <div class="card-header">
+        <h2 class="card-title">Profile Information</h2>
+      </div>
+      <div class="card-body">
+
+        <!-- Photo -->
+        <div class="photo-row">
+          <div id="photoPreviewWrap"></div>
+          <div>
+            <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
+              📷 Change Photo
+            </button>
+            <p style="font-size:11px;color:#BDB5CC;margin-top:6px;">JPG or PNG · Max 5MB</p>
+          </div>
+          <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp"
+                 onchange="handlePhotoSelect(event)">
+        </div>
+
+        <div class="error-banner" id="profileError"></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" maxlength="50" autocomplete="given-name">
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" maxlength="50" autocomplete="family-name">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="displayName">Display Name</label>
+          <input type="text" id="displayName" maxlength="30" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="bio">Bio</label>
+          <textarea id="bio" rows="4" maxlength="300"
+                    oninput="updateCharCount(this,'bioCount',300)"></textarea>
+          <p class="char-count"><span id="bioCount">0</span> / 300</p>
+        </div>
+
+        <button class="save-btn" id="saveProfileBtn" onclick="saveProfile()">
+          <div class="spinner"></div>
+          <span class="btn-text">Save Profile</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Social Links ── -->
+    <div class="settings-card">
+      <div class="card-header">
+        <h2 class="card-title">Social Links</h2>
+      </div>
+      <div class="card-body">
+        <div class="social-input-row">
+          <span class="social-icon-label">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs><linearGradient id="ig2" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#f09433"/>
+                <stop offset="25%" style="stop-color:#e6683c"/>
+                <stop offset="50%" style="stop-color:#dc2743"/>
+                <stop offset="75%" style="stop-color:#cc2366"/>
+                <stop offset="100%" style="stop-color:#bc1888"/>
+              </stop></linearGradient></defs>
+              <rect width="24" height="24" rx="6" fill="url(#ig2)"/>
+              <path d="M12 7.2A4.8 4.8 0 1 0 12 16.8 4.8 4.8 0 0 0 12 7.2zm0 7.92A3.12 3.12 0 1 1 12 8.88 3.12 3.12 0 0 1 12 15.12z" fill="#fff"/>
+              <circle cx="16.92" cy="7.08" r="1.12" fill="#fff"/>
+            </svg>
+          </span>
+          <input type="text" id="instagram" placeholder="@yourusername" maxlength="60">
+        </div>
+        <div class="social-input-row">
+          <span class="social-icon-label">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#1877F2"/>
+              <path d="M16.5 8H14.5C13.95 8 13.5 8.45 13.5 9V11H16.5L16 14H13.5V21H10.5V14H8.5V11H10.5V9C10.5 6.79 12.29 5 14.5 5H16.5V8Z" fill="#fff"/>
+            </svg>
+          </span>
+          <input type="text" id="facebook" placeholder="facebook.com/yourname" maxlength="100">
+        </div>
+        <div class="social-input-row">
+          <span class="social-icon-label">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#000"/>
+              <path d="M17.75 4H20.5L14.5 10.78L21.5 20H15.97L11.65 14.35L6.73 20H3.97L10.38 12.76L3.5 4H9.16L13.08 9.14L17.75 4ZM16.77 18.36H18.3L8.3 5.53H6.65L16.77 18.36Z" fill="#fff"/>
+            </svg>
+          </span>
+          <input type="text" id="xtwitter" placeholder="@yourusername" maxlength="60">
+        </div>
+        <div class="social-input-row" style="margin-bottom:1.25rem;">
+          <span class="social-icon-label">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#0085FF"/>
+              <path d="M12 10.4C11.04 8.88 8.4 6.08 6 5.28C4.08 4.64 3.5 5.92 3.5 7.04C3.5 8.16 3.98 10.08 4.24 10.88C5.04 13.36 7.6 14.08 10.08 13.6C9.84 13.68 9.6 13.84 9.36 13.92C7.36 14.72 4.48 16 5.76 18.64C6.56 20.24 9.04 19.92 10.64 18.72C11.44 18.16 11.84 17.6 12 17.04C12.16 17.6 12.56 18.16 13.36 18.72C14.96 19.92 17.44 20.24 18.24 18.64C19.52 16 16.64 14.72 14.64 13.92C14.4 13.84 14.16 13.68 13.92 13.6C16.4 14.08 18.96 13.36 19.76 10.88C20.02 10.08 20.5 8.16 20.5 7.04C20.5 5.92 19.92 4.64 18 5.28C15.6 6.08 12.96 8.88 12 10.4Z" fill="#fff"/>
+            </svg>
+          </span>
+          <input type="text" id="bluesky" placeholder="@you.bsky.social" maxlength="100">
+        </div>
+        <button class="save-btn" id="saveSocialBtn" onclick="saveSocial()">
+          <div class="spinner"></div>
+          <span class="btn-text">Save Social Links</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Profile Visibility ── -->
+    <div class="settings-card">
+      <div class="card-header">
+        <h2 class="card-title">Profile Visibility</h2>
+      </div>
+      <div class="card-body" style="padding-bottom:0.25rem;">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Show Currently Reading</div>
+            <div class="toggle-desc">Display books you're actively reading on your public profile</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vis-reading" onchange="saveVisibility()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Show Recently Finished</div>
+            <div class="toggle-desc">Show books you've finished in the last 15 days</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vis-recent" onchange="saveVisibility()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Show My Library</div>
+            <div class="toggle-desc">Let others see your book collection</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vis-library" onchange="saveVisibility()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Show My Wishlist</div>
+            <div class="toggle-desc">Make your wishlist visible on your profile and via share link</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vis-wishlist" onchange="saveVisibility()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Email Notifications ── -->
+    <div class="settings-card">
+      <div class="card-header">
+        <h2 class="card-title">Email Notifications</h2>
+      </div>
+      <div class="card-body" style="padding-bottom:0.25rem;">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Friend Requests</div>
+            <div class="toggle-desc">When someone sends you a friend request</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="email-friend" onchange="saveEmailPrefs()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Book Club Invites</div>
+            <div class="toggle-desc">When you're invited to join a book club</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="email-club" onchange="saveEmailPrefs()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Upcoming Club Events</div>
+            <div class="toggle-desc">Reminders one week and one day before events</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="email-events" onchange="saveEmailPrefs()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">New App Features</div>
+            <div class="toggle-desc">Announcements about new WellRead Co. features</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="email-features" onchange="saveEmailPrefs()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Change Password ── -->
+    <div class="settings-card" id="passwordCard">
+      <div class="card-header">
+        <h2 class="card-title">Change Password</h2>
+      </div>
+      <div class="card-body">
+        <div class="error-banner" id="passwordError"></div>
+
+        <div class="form-group">
+          <label for="currentPw">Current Password</label>
+          <div class="password-wrap">
+            <input type="password" id="currentPw" placeholder="Your current password" autocomplete="current-password">
+            <button class="pw-toggle" onclick="togglePw('currentPw',this)">👁️</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="newPw">New Password</label>
+          <div class="password-wrap">
+            <input type="password" id="newPw" placeholder="At least 8 characters" autocomplete="new-password">
+            <button class="pw-toggle" onclick="togglePw('newPw',this)">👁️</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPw">Confirm New Password</label>
+          <div class="password-wrap">
+            <input type="password" id="confirmPw" placeholder="Repeat new password" autocomplete="new-password">
+            <button class="pw-toggle" onclick="togglePw('confirmPw',this)">👁️</button>
+          </div>
+        </div>
+
+        <button class="save-btn" id="savePwBtn" onclick="changePassword()">
+          <div class="spinner"></div>
+          <span class="btn-text">Update Password</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Danger Zone ── -->
+    <div class="danger-zone">
+      <h3 class="danger-title">⚠️ Danger Zone</h3>
+      <p class="danger-desc">Deleting your account is permanent and cannot be undone. All your books, reviews, clubs, and messages will be removed.</p>
+      <button class="danger-btn" onclick="confirmDeleteAccount()">Delete My Account</button>
+    </div>
+
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────
+    let profile      = null;
+    let selectedPhoto = null;
+    let currentPhotoURL = null;
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+
+      try {
+        const snap = await WR.getDb().collection("users").doc(user.uid).get();
+        if (snap.exists) {
+          profile = snap.data();
+          populateForm();
+        }
+      } catch (e) {
+        console.error("Settings load error:", e);
+      }
+
+      // Hide password card for Google users
+      if (user.providerData?.[0]?.providerId === "google.com") {
+        const pwCard = document.getElementById("passwordCard");
+        if (pwCard) pwCard.style.display = "none";
+      }
+    });
+
+    // ── Populate Form ─────────────────────────────────────────
+    function populateForm() {
+      if (!profile) return;
+
+      // Photo
+      currentPhotoURL = profile.photoURL || null;
+      renderPhotoPreview(currentPhotoURL);
+
+      // Profile fields
+      setValue("firstName",   profile.firstName   || "");
+      setValue("lastName",    profile.lastName     || "");
+      setValue("displayName", profile.displayName  || "");
+      setValue("bio",         profile.bio          || "");
+      updateCharCount(document.getElementById("bio"), "bioCount", 300);
+
+      // Social
+      const s = profile.socialLinks || {};
+      setValue("instagram", s.instagram || "");
+      setValue("facebook",  s.facebook  || "");
+      setValue("xtwitter",  s.x         || "");
+      setValue("bluesky",   s.bluesky   || "");
+
+      // Visibility
+      const vis = profile.profileVisibility || {};
+      setChecked("vis-reading",  vis.currentlyReading !== false);
+      setChecked("vis-recent",   vis.recentlyFinished !== false);
+      setChecked("vis-library",  vis.library          !== false);
+      setChecked("vis-wishlist", vis.wishlist          !== false);
+
+      // Email prefs
+      const ep = profile.emailPreferences || {};
+      setChecked("email-friend",   ep.friendRequest  !== false);
+      setChecked("email-club",     ep.addedToClub    !== false);
+      setChecked("email-events",   ep.upcomingEvent  !== false);
+      setChecked("email-features", ep.appFeatures    !== false);
+    }
+
+    function setValue(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+
+    function setChecked(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.checked = val;
+    }
+
+    function renderPhotoPreview(url) {
+      const wrap = document.getElementById("photoPreviewWrap");
+      if (url) {
+        wrap.innerHTML = `<img class="current-photo" src="${WR.escapeHTML(url)}" alt="Profile photo"
+          onerror="this.outerHTML='<div class=\\'current-photo-placeholder\\'>👤</div>'">`;
+      } else {
+        wrap.innerHTML = `<div class="current-photo-placeholder">👤</div>`;
+      }
+    }
+
+    // ── Photo ─────────────────────────────────────────────────
+    function handlePhotoSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        WR.showToast("Photo must be under 5MB.", "error");
+        return;
+      }
+      selectedPhoto = file;
+      const reader  = new FileReader();
+      reader.onload = e => renderPhotoPreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+
+    async function uploadPhoto(uid) {
+      if (!selectedPhoto) return currentPhotoURL;
+      const storage = firebase.storage();
+      const ref     = storage.ref(`users/${uid}/profile/avatar.jpg`);
+      await ref.put(selectedPhoto);
+      return await ref.getDownloadURL();
+    }
+
+    // ── Save Profile ──────────────────────────────────────────
+    async function saveProfile() {
+      const user = WR.getCurrentUser();
+      const btn  = document.getElementById("saveProfileBtn");
+      const errEl = document.getElementById("profileError");
+      errEl.classList.remove("show");
+
+      const firstName   = document.getElementById("firstName").value.trim();
+      const lastName    = document.getElementById("lastName").value.trim();
+      const displayName = document.getElementById("displayName").value.trim();
+      const bio         = document.getElementById("bio").value.trim();
+
+      if (!firstName || !lastName || !displayName) {
+        errEl.textContent = "First name, last name, and display name are required.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        let photoURL = currentPhotoURL;
+        if (selectedPhoto) photoURL = await uploadPhoto(user.uid);
+
+        await WR.getDb().collection("users").doc(user.uid).set({
+          firstName, lastName, displayName, bio: bio || null, photoURL: photoURL || null
+        }, { merge: true });
+
+        await user.updateProfile({ displayName, photoURL: photoURL || user.photoURL });
+
+        if (profile) {
+          profile.firstName   = firstName;
+          profile.lastName    = lastName;
+          profile.displayName = displayName;
+          profile.bio         = bio;
+          profile.photoURL    = photoURL;
+        }
+
+        currentPhotoURL = photoURL;
+        selectedPhoto   = null;
+        WR.showToast("Profile saved! ✨", "success");
+      } catch (e) {
+        console.error("Save profile error:", e);
+        errEl.textContent = "Something went wrong. Please try again.";
+        errEl.classList.add("show");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    // ── Save Social ───────────────────────────────────────────
+    async function saveSocial() {
+      const user = WR.getCurrentUser();
+      const btn  = document.getElementById("saveSocialBtn");
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set({
+          socialLinks: {
+            instagram: document.getElementById("instagram").value.trim() || null,
+            facebook:  document.getElementById("facebook").value.trim()  || null,
+            x:         document.getElementById("xtwitter").value.trim()  || null,
+            bluesky:   document.getElementById("bluesky").value.trim()   || null
+          }
+        }, { merge: true });
+
+        WR.showToast("Social links saved!", "success");
+      } catch (e) {
+        WR.showToast("Error saving social links.", "error");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    // ── Save Visibility ───────────────────────────────────────
+    async function saveVisibility() {
+      const user = WR.getCurrentUser();
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set({
+          profileVisibility: {
+            currentlyReading: document.getElementById("vis-reading").checked,
+            recentlyFinished: document.getElementById("vis-recent").checked,
+            library:          document.getElementById("vis-library").checked,
+            wishlist:         document.getElementById("vis-wishlist").checked
+          }
+        }, { merge: true });
+        WR.showToast("Visibility updated.");
+      } catch (e) {
+        WR.showToast("Error saving visibility.", "error");
+      }
+    }
+
+    // ── Save Email Prefs ──────────────────────────────────────
+    async function saveEmailPrefs() {
+      const user = WR.getCurrentUser();
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set({
+          emailPreferences: {
+            friendRequest: document.getElementById("email-friend").checked,
+            addedToClub:   document.getElementById("email-club").checked,
+            upcomingEvent: document.getElementById("email-events").checked,
+            appFeatures:   document.getElementById("email-features").checked
+          }
+        }, { merge: true });
+        WR.showToast("Email preferences saved.");
+      } catch (e) {
+        WR.showToast("Error saving email preferences.", "error");
+      }
+    }
+
+    // ── Change Password ───────────────────────────────────────
+    async function changePassword() {
+      const user    = WR.getCurrentUser();
+      const errEl   = document.getElementById("passwordError");
+      const btn     = document.getElementById("savePwBtn");
+      const current = document.getElementById("currentPw").value;
+      const newPw   = document.getElementById("newPw").value;
+      const confirm = document.getElementById("confirmPw").value;
+
+      errEl.classList.remove("show");
+
+      if (!current || !newPw || !confirm) {
+        errEl.textContent = "Please fill in all password fields.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      if (newPw.length < 8) {
+        errEl.textContent = "New password must be at least 8 characters.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      if (newPw !== confirm) {
+        errEl.textContent = "New passwords do not match.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        // Re-authenticate then update
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, current);
+        await user.reauthenticateWithCredential(credential);
+        await user.updatePassword(newPw);
+
+        document.getElementById("currentPw").value = "";
+        document.getElementById("newPw").value      = "";
+        document.getElementById("confirmPw").value  = "";
+        WR.showToast("Password updated successfully!", "success");
+      } catch (e) {
+        errEl.textContent = e.code === "auth/wrong-password"
+          ? "Current password is incorrect."
+          : "Error updating password. Please try again.";
+        errEl.classList.add("show");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    // ── Delete Account ────────────────────────────────────────
+    async function confirmDeleteAccount() {
+      const confirmed = confirm(
+        "Are you absolutely sure? This will permanently delete your account, library, reviews, and all your data. This cannot be undone."
+      );
+      if (!confirmed) return;
+
+      const confirmed2 = confirm("Last chance — delete your WellRead Co. account forever?");
+      if (!confirmed2) return;
+
+      try {
+        const user = WR.getCurrentUser();
+        // Mark as deleted in Firestore (Worker handles full cleanup)
+        await WR.getDb().collection("users").doc(user.uid).set({
+          deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          suspended: true
+        }, { merge: true });
+
+        await user.delete();
+        location.href = "login.html";
+      } catch (e) {
+        if (e.code === "auth/requires-recent-login") {
+          WR.showToast("Please sign out and sign back in before deleting your account.", "error");
+        } else {
+          WR.showToast("Error deleting account. Please try again.", "error");
+        }
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const show  = input.type === "password";
+      input.type  = show ? "text" : "password";
+      btn.textContent = show ? "🙈" : "👁️";
+    }
+
+    function updateCharCount(textarea, countId, max) {
+      const el = document.getElementById(countId);
+      if (el) el.textContent = textarea.value.length;
+    }
+
+    // ── Expose ────────────────────────────────────────────────
+    window.handlePhotoSelect    = handlePhotoSelect;
+    window.saveProfile          = saveProfile;
+    window.saveSocial           = saveSocial;
+    window.saveVisibility       = saveVisibility;
+    window.saveEmailPrefs       = saveEmailPrefs;
+    window.changePassword       = changePassword;
+    window.confirmDeleteAccount = confirmDeleteAccount;
+    window.togglePw             = togglePw;
+    window.updateCharCount      = updateCharCount;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+
+</body>
+</html>
