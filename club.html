@@ -601,10 +601,12 @@
             <div class="admin-actions">
               ${isAdmin ? `
                 <button class="action-btn btn-primary" onclick="openModal('eventModal')">+ Add Event</button>
-                <button class="action-btn btn-outline" onclick="openModal('inviteModal');loadFriends()">👤 Invite</button>
                 <button class="action-btn btn-outline" onclick="openEditModal()">✏️ Edit Club</button>
               ` : ""}
-              ${isMember ? `<button class="action-btn btn-danger" onclick="leaveClub()">Leave Club</button>` : ""}
+              ${isMember ? `
+                <button class="action-btn btn-outline" onclick="openModal('inviteModal');loadFriends()">👤 Invite</button>
+                <button class="action-btn btn-danger" onclick="leaveClub()">Leave Club</button>
+              ` : ""}
             </div>
           </div>
           <!-- Admins -->
@@ -718,6 +720,26 @@
               <div class="section-body">
                 <!-- Members grid -->
                 <div id="membersTabContent">
+                  ${isAdmin ? `
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    ${members.map(m => `
+                      <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--lavender-mist);">
+                        <a href="profile.html?uid=${WR.escapeHTML(m.uid)}" style="flex-shrink:0;">
+                          ${m.photoURL
+                            ? `<img src="${WR.escapeHTML(m.photoURL)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">`
+                            : `<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>`}
+                        </a>
+                        <div style="flex:1;min-width:0;">
+                          <div style="font-size:13px;font-weight:600;color:var(--deep-plum);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${WR.escapeHTML(m.displayName || "")}</div>
+                          ${m.role === "admin" ? `<div style="font-size:10px;color:var(--warm-gold);font-weight:600;">Admin</div>` : ""}
+                        </div>
+                        ${m.uid !== WR.getCurrentUser().uid ? `
+                        <button onclick="${m.role === "admin" ? `demoteAdmin('${m.uid}')` : `promoteAdmin('${m.uid}')`}"
+                          style="font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--terracotta);cursor:pointer;white-space:nowrap;">
+                          ${m.role === "admin" ? "Remove Admin" : "Make Admin"}
+                        </button>` : ""}
+                      </div>`).join("")}
+                  </div>` : `
                   <div class="members-grid">
                     ${members.map(m => `
                       <a class="member-item" href="profile.html?uid=${WR.escapeHTML(m.uid)}">
@@ -727,7 +749,7 @@
                         <div class="member-name">${WR.escapeHTML(m.displayName || "")}</div>
                         ${m.role === "admin" ? `<div class="member-admin-tag">Admin</div>` : ""}
                       </a>`).join("")}
-                  </div>
+                  </div>`}
                 </div>
                 <!-- Invited list (hidden by default) -->
                 <div id="invitedTabContent" style="display:none;">
@@ -1129,6 +1151,47 @@
       } catch (e) {
         console.error("RSVP error:", e);
         WR.showToast("Error saving RSVP.", "error");
+      }
+    }
+
+    async function promoteAdmin(uid) {
+      if (!confirm("Make this member an admin?")) return;
+      try {
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          adminUids: firebase.firestore.FieldValue.arrayUnion(uid)
+        });
+        await WR.getDb().collection("clubs").doc(clubId)
+          .collection("members").doc(uid).update({ role: "admin" });
+        const m = members.find(m => m.uid === uid);
+        if (m) m.role = "admin";
+        if (!club.adminUids) club.adminUids = [];
+        club.adminUids.push(uid);
+        renderPage();
+        startPostsListener();
+        WR.showToast("Promoted to admin! ⭐", "success");
+      } catch (e) {
+        console.error("Promote error:", e);
+        WR.showToast("Error promoting member.", "error");
+      }
+    }
+
+    async function demoteAdmin(uid) {
+      if (!confirm("Remove admin role from this member?")) return;
+      try {
+        await WR.getDb().collection("clubs").doc(clubId).update({
+          adminUids: firebase.firestore.FieldValue.arrayRemove(uid)
+        });
+        await WR.getDb().collection("clubs").doc(clubId)
+          .collection("members").doc(uid).update({ role: "member" });
+        const m = members.find(m => m.uid === uid);
+        if (m) m.role = "member";
+        club.adminUids = (club.adminUids || []).filter(u => u !== uid);
+        renderPage();
+        startPostsListener();
+        WR.showToast("Admin role removed.");
+      } catch (e) {
+        console.error("Demote error:", e);
+        WR.showToast("Error removing admin role.", "error");
       }
     }
 
@@ -1687,6 +1750,8 @@
     window.searchFriends       = searchFriends;
     window.inviteFriend          = inviteFriend;
     window.cancelInvite          = cancelInvite;
+    window.promoteAdmin          = promoteAdmin;
+    window.demoteAdmin           = demoteAdmin;
     window.showMembersTab        = showMembersTab;
     window.cancelInviteFromPanel = cancelInviteFromPanel;
     window.openEditModal       = openEditModal;
