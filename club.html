@@ -1102,11 +1102,33 @@
           <button class="rsvp-btn${userRsvp === "no"    ? " rsvp-no"    : ""}" onclick="rsvp('${ev.id}','no')">✗ Can't Go</button>
         </div>`;
 
-      const rsvpCounts = ev.rsvps
-        ? `<div style="font-size:11px;color:#BDB5CC;margin-bottom:6px;">
-            ✓ ${(ev.rsvps.yes||[]).length} going · ? ${(ev.rsvps.maybe||[]).length} maybe · ✗ ${(ev.rsvps.no||[]).length} not going
-           </div>`
-        : "";
+      // Build RSVP summary — clickable toggle showing names per group
+      const rsvps     = ev.rsvps || {};
+      const yesUids   = rsvps.yes   || [];
+      const maybeUids = rsvps.maybe || [];
+      const noUids    = rsvps.no    || [];
+      const totalRsvp = yesUids.length + maybeUids.length + noUids.length;
+
+      function rsvpNames(uids) {
+        return uids.map(u => {
+          if (u === uid) return "You";
+          return members.find(m => m.uid === u)?.displayName || "Someone";
+        }).join(", ") || "—";
+      }
+
+      const rsvpCounts = totalRsvp > 0 ? `
+        <div style="margin-bottom:4px;">
+          <button onclick="toggleRsvpList('rsvp-${ev.id}')"
+            style="background:none;border:none;padding:0;font-family:'Nunito Sans',sans-serif;font-size:11px;color:#BDB5CC;cursor:pointer;display:flex;align-items:center;gap:4px;">
+            ✓ ${yesUids.length} going · ? ${maybeUids.length} maybe · ✗ ${noUids.length} not going
+            <span id="rsvp-arrow-${ev.id}" style="font-size:9px;transition:transform 0.2s;">▼</span>
+          </button>
+          <div id="rsvp-${ev.id}" style="display:none;margin-top:8px;padding:10px;background:var(--lavender-mist);border-radius:8px;font-size:12px;">
+            <div style="margin-bottom:6px;"><span style="font-weight:600;color:#2E6B50;">✓ Going</span><span style="color:var(--deep-plum);margin-left:6px;">${rsvpNames(yesUids)}</span></div>
+            <div style="margin-bottom:6px;"><span style="font-weight:600;color:#8B6914;">? Maybe</span><span style="color:var(--deep-plum);margin-left:6px;">${rsvpNames(maybeUids)}</span></div>
+            <div><span style="font-weight:600;color:#8B2020;">✗ Can't Go</span><span style="color:var(--deep-plum);margin-left:6px;">${rsvpNames(noUids)}</span></div>
+          </div>
+        </div>` : "";
 
       return `
         <div class="event-item${isPast ? " event-past" : ""}">
@@ -1138,6 +1160,15 @@
             </div>
           </div>
         </div>`;
+    }
+
+    function toggleRsvpList(id) {
+      const el    = document.getElementById(id);
+      const arrow = document.getElementById("rsvp-arrow-" + id.replace("rsvp-", ""));
+      if (!el) return;
+      const open = el.style.display === "none";
+      el.style.display    = open ? "block" : "none";
+      if (arrow) arrow.style.transform = open ? "rotate(180deg)" : "rotate(0deg)";
     }
 
     function getUserRsvp(ev, uid) {
@@ -1910,6 +1941,7 @@
     window.searchFriends       = searchFriends;
     window.inviteFriend          = inviteFriend;
     window.cancelInvite          = cancelInvite;
+    window.toggleRsvpList        = toggleRsvpList;
     window.editEvent             = editEvent;
     window.deleteEvent           = deleteEvent;
     window.promoteAdmin          = promoteAdmin;
