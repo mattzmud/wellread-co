@@ -28,12 +28,16 @@
     .messages-layout {
       display: grid;
       grid-template-columns: 320px 1fr;
-      height: 100vh;
-      padding-top: 60px; /* nav height */
+      height: calc(100vh - 60px);
+      margin-top: 60px;
     }
 
     @media (max-width: 768px) {
-      .messages-layout { grid-template-columns: 1fr; padding-top: 0; padding-bottom: 64px; }
+      .messages-layout {
+        grid-template-columns: 1fr;
+        margin-top: 0;
+        height: calc(100vh - 64px);
+      }
       .thread-panel { display: none; }
       .thread-panel.mobile-open { display: flex; }
       .sidebar-panel.mobile-hidden { display: none; }
@@ -634,11 +638,11 @@
     // ── Open Thread ───────────────────────────────────────────
     async function openThread(threadId, threadObj) {
       activeThreadId = threadId;
-      // Accept a pre-built thread object directly to avoid a race condition
-      // where onSnapshot replaces the threads array before the find() runs.
+      // Accept a pre-built thread object to avoid the race where onSnapshot
+      // replaces the threads array before threads.find() runs.
       let thread = threadObj || threads.find(t => t.id === threadId);
 
-      // Fallback: if still not found (snapshot hasn't landed yet), read from Firestore directly
+      // Last-resort fallback: fetch directly from Firestore
       if (!thread) {
         try {
           const snap = await WR.getDb().collection("messages").doc(threadId).get();
@@ -655,7 +659,7 @@
         } catch (e) { console.error("openThread fallback fetch failed:", e); }
       }
 
-      if (!thread) { console.error("openThread: thread not found for id", threadId); return; }
+      if (!thread) { console.error("openThread: thread not found", threadId); return; }
 
       // Mobile: show thread, hide sidebar
       document.getElementById("sidebarPanel").classList.add("mobile-hidden");
