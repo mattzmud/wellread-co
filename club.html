@@ -339,10 +339,26 @@
         <input type="date" id="evDate">
       </div>
       <div class="form-group">
-        <label>Time</label>
+        <label>Time <span class="label-opt">(optional)</span></label>
         <div class="time-row">
           <div><label style="text-transform:none;letter-spacing:0;font-size:11px;">Start</label><input type="time" id="evStart"></div>
           <div><label style="text-transform:none;letter-spacing:0;font-size:11px;">End</label><input type="time" id="evEnd"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <label style="text-transform:none;letter-spacing:0;font-size:11px;">Timezone</label>
+          <select id="evTimezone" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);background:#fff;margin-top:4px;">
+            <option value="America/New_York">Eastern Time (ET)</option>
+            <option value="America/Chicago">Central Time (CT)</option>
+            <option value="America/Denver">Mountain Time (MT)</option>
+            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+            <option value="America/Anchorage">Alaska Time (AKT)</option>
+            <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+            <option value="Europe/London">London (GMT/BST)</option>
+            <option value="Europe/Paris">Central European (CET)</option>
+            <option value="Asia/Tokyo">Japan (JST)</option>
+            <option value="Australia/Sydney">Sydney (AEST)</option>
+            <option value="UTC">UTC</option>
+          </select>
         </div>
       </div>
       <div class="form-group">
@@ -451,7 +467,8 @@
     let isMember         = false;
     let selectedRead     = null;
     let postsUnsub       = null;
-    let pendingInvitesList = []; // pending invites with profile data
+    let pendingInvitesList = [];
+    let editingEventId   = null; // null = creating, set = editing
     let readSearchTimeout = null;
 
     const REACTIONS = ["❤️","😂","😮","👍","😢","😡"];
@@ -1099,10 +1116,21 @@
               <div class="event-day">${day}</div>
             </div>
             <div class="event-info">
-              <div class="event-name">${WR.escapeHTML(ev.name || "Club Event")}</div>
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                <div class="event-name">${WR.escapeHTML(ev.name || "Club Event")}</div>
+                ${isAdmin ? `
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                  <button onclick="editEvent('${ev.id}')" title="Edit event"
+                    style="background:none;border:none;font-size:14px;color:#BDB5CC;cursor:pointer;padding:0 2px;line-height:1;"
+                    onmouseover="this.style.color='var(--amethyst)'" onmouseout="this.style.color='#BDB5CC'">✏️</button>
+                  <button onclick="deleteEvent('${ev.id}')" title="Delete event"
+                    style="background:none;border:none;font-size:14px;color:#BDB5CC;cursor:pointer;padding:0 2px;line-height:1;"
+                    onmouseover="this.style.color='var(--terracotta)'" onmouseout="this.style.color='#BDB5CC'">🗑</button>
+                </div>` : ""}
+              </div>
               <div class="event-detail">
-                ${ev.startTime ? `${WR.escapeHTML(ev.startTime)}${ev.endTime ? " – " + WR.escapeHTML(ev.endTime) : ""}` : ""}
-                ${ev.location ? ` · ${WR.escapeHTML(ev.location)}` : ""}
+                ${ev.startTime ? `${to12h(ev.startTime)}${ev.endTime ? " – " + to12h(ev.endTime) : ""}${ev.timezone ? " " + tzAbbr(ev.timezone) : ""}` : ""}
+                ${ev.location ? ` · <a href="https://maps.google.com/?q=${encodeURIComponent(ev.location)}" target="_blank" rel="noopener" style="color:var(--amethyst);text-decoration:none;" onclick="event.stopPropagation()">📍 ${WR.escapeHTML(ev.location)}</a>` : ""}
               </div>
               ${ev.description ? `<div class="event-desc">${WR.escapeHTML(ev.description)}</div>` : ""}
               ${rsvpCounts}
@@ -1195,7 +1223,36 @@
       }
     }
 
-    // ── Members Tab ───────────────────────────────────────────
+    async function deleteEvent(eventId) {
+      if (!confirm("Delete this event? This cannot be undone.")) return;
+      try {
+        await WR.getDb()
+          .collection("clubs").doc(clubId)
+          .collection("events").doc(eventId).delete();
+
+        events = events.filter(e => e.id !== eventId);
+
+        const uid = WR.getCurrentUser().uid;
+        const now = new Date().toISOString().split("T")[0];
+        const upcoming = events.filter(e => e.date >= now).reverse();
+        const past     = events.filter(e => e.date < now);
+
+        const upEl = document.getElementById("upcomingEventsArea");
+        if (upEl) upEl.innerHTML = upcoming.length
+          ? upcoming.map(ev => buildEventItem(ev, false, uid)).join("")
+          : `<p style="text-align:center;padding:1rem;font-size:13px;color:var(--terracotta);">No upcoming events.</p>`;
+
+        const paEl = document.getElementById("pastEventsArea");
+        if (paEl) paEl.innerHTML = past.length
+          ? past.map(ev => buildEventItem(ev, true, uid)).join("")
+          : `<p style="text-align:center;padding:1rem;font-size:13px;color:var(--terracotta);">No past events.</p>`;
+
+        WR.showToast("Event deleted.", "success");
+      } catch (e) {
+        console.error("Delete event error:", e);
+        WR.showToast("Error deleting event.", "error");
+      }
+    }
     function showMembersTab(tab) {
       const membersContent = document.getElementById("membersTabContent");
       const invitedContent = document.getElementById("invitedTabContent");
@@ -1229,12 +1286,63 @@
       }
     }
 
+    function to12h(time24) {
+      if (!time24) return "";
+      const [h, m] = time24.split(":").map(Number);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12  = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    }
+
+    function tzAbbr(tz) {
+      // Return a short label for the timezone
+      const map = {
+        "America/New_York":    "ET",
+        "America/Chicago":     "CT",
+        "America/Denver":      "MT",
+        "America/Los_Angeles": "PT",
+        "America/Anchorage":   "AKT",
+        "Pacific/Honolulu":    "HT",
+        "Europe/London":       "GMT",
+        "Europe/Paris":        "CET",
+        "Asia/Tokyo":          "JST",
+        "Australia/Sydney":    "AEST",
+        "UTC":                 "UTC"
+      };
+      return map[tz] || tz;
+    }
+
+    function editEvent(eventId) {
+      const ev = events.find(e => e.id === eventId);
+      if (!ev) return;
+      editingEventId = eventId;
+
+      // Pre-populate modal fields
+      document.getElementById("evName").value     = ev.name     || "";
+      document.getElementById("evDate").value     = ev.date     || "";
+      document.getElementById("evStart").value    = ev.startTime || "";
+      document.getElementById("evEnd").value      = ev.endTime   || "";
+      document.getElementById("evLocation").value = ev.location  || "";
+      document.getElementById("evDesc").value     = ev.description || "";
+      if (ev.timezone) {
+        const tzSel = document.getElementById("evTimezone");
+        if (tzSel) tzSel.value = ev.timezone;
+      }
+
+      // Update modal title and description
+      document.getElementById("eventModalTitle").textContent = "Edit Event";
+      document.querySelector("#eventModal .modal-desc").textContent = "Update the event details below.";
+
+      openModal("eventModal");
+    }
+
     // ── Save Event ────────────────────────────────────────────
     async function saveEvent() {
       const name  = document.getElementById("evName").value.trim();
       const date  = document.getElementById("evDate").value;
       const start = document.getElementById("evStart").value;
       const end   = document.getElementById("evEnd").value;
+      const tz    = document.getElementById("evTimezone").value || "America/New_York";
       const loc   = document.getElementById("evLocation").value.trim();
       const desc  = document.getElementById("evDesc").value.trim();
       const errEl = document.getElementById("eventError");
@@ -1249,49 +1357,79 @@
 
       btn.classList.add("loading"); btn.disabled = true;
 
+      const eventData = {
+        name, date,
+        startTime:   start || null,
+        endTime:     end   || null,
+        timezone:    tz,
+        location:    loc   || null,
+        description: desc  || null,
+      };
+
       try {
-        const ref = await WR.getDb()
-          .collection("clubs").doc(clubId)
-          .collection("events").add({
-            name, date, startTime: start || null, endTime: end || null,
-            location: loc || null, description: desc || null,
-            rsvps: { yes: [], no: [], maybe: [] },
-            notificationSent: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+        if (editingEventId) {
+          // ── Update existing event ──
+          await WR.getDb()
+            .collection("clubs").doc(clubId)
+            .collection("events").doc(editingEventId)
+            .update(eventData);
 
-        // Notify all members
-        const profile = WR.getCurrentUser()._profile;
-        const memberUids = club.memberUids || [];
-        await Promise.all(memberUids.map(uid =>
-          uid !== WR.getCurrentUser().uid
-            ? WR.createNotification(uid, {
-                type:     "club_event",
-                title:    `New event in ${club.name}`,
-                body:     `${name} · ${date}${loc ? " · " + loc : ""}`,
-                linkedId: clubId
-              })
-            : Promise.resolve()
-        ));
+          const idx = events.findIndex(e => e.id === editingEventId);
+          if (idx !== -1) events[idx] = { ...events[idx], ...eventData };
 
-        events.unshift({ id: ref.id, name, date, startTime: start||null, endTime: end||null, location: loc||null, description: desc||null, rsvps: {yes:[],no:[],maybe:[]} });
-        closeModal("eventModal");
-        WR.showToast("Event added! 📅", "success");
+          closeModal("eventModal");
+          WR.showToast("Event updated! 📅", "success");
+        } else {
+          // ── Create new event ──
+          const ref = await WR.getDb()
+            .collection("clubs").doc(clubId)
+            .collection("events").add({
+              ...eventData,
+              rsvps: { yes: [], no: [], maybe: [] },
+              notificationSent: false,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
-        // Refresh upcoming events
+          // Notify all members
+          const memberUids = club.memberUids || [];
+          await Promise.all(memberUids.map(uid =>
+            uid !== WR.getCurrentUser().uid
+              ? WR.createNotification(uid, {
+                  type:     "club_event",
+                  title:    `New event in ${club.name}`,
+                  body:     `${name} · ${date}${loc ? " · " + loc : ""}`,
+                  linkedId: clubId
+                })
+              : Promise.resolve()
+          ));
+
+          events.unshift({ id: ref.id, ...eventData, rsvps: { yes:[], no:[], maybe:[] } });
+          closeModal("eventModal");
+          WR.showToast("Event added! 📅", "success");
+        }
+
+        // Re-render events
         const uid = WR.getCurrentUser().uid;
         const now = new Date().toISOString().split("T")[0];
         const upcoming = events.filter(e => e.date >= now).reverse();
+        const past     = events.filter(e => e.date < now);
         const upEl = document.getElementById("upcomingEventsArea");
-        if (upEl) upEl.innerHTML = upcoming.map(ev => buildEventItem(ev, false, uid)).join("");
+        const paEl = document.getElementById("pastEventsArea");
+        if (upEl) upEl.innerHTML = upcoming.length
+          ? upcoming.map(ev => buildEventItem(ev, false, uid)).join("")
+          : `<p style="text-align:center;padding:1rem;font-size:13px;color:var(--terracotta);">No upcoming events.</p>`;
+        if (paEl) paEl.innerHTML = past.length
+          ? past.map(ev => buildEventItem(ev, true, uid)).join("")
+          : "";
+
       } catch (e) {
         console.error("Save event error:", e);
-        errEl.textContent = "Something went wrong. Please try again.";
-        errEl.classList.add("show");
+        WR.showToast("Error saving event.", "error");
       } finally {
         btn.classList.remove("loading"); btn.disabled = false;
       }
     }
+
 
     // ── Set Current Read ──────────────────────────────────────
     let readSearchTimeout2 = null;
@@ -1699,11 +1837,33 @@
     function openModal(id) {
       document.getElementById(id)?.classList.add("open");
       document.body.style.overflow = "hidden";
+
+      // Pre-select local timezone when event modal opens
+      if (id === "eventModal") {
+        const tzSelect = document.getElementById("evTimezone");
+        if (tzSelect) {
+          const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          // Try exact match first, then fall back to first option
+          const opt = Array.from(tzSelect.options).find(o => o.value === localTz);
+          if (opt) tzSelect.value = localTz;
+        }
+      }
     }
 
     function closeModal(id) {
       document.getElementById(id)?.classList.remove("open");
       document.body.style.overflow = "";
+      if (id === "eventModal") {
+        editingEventId = null;
+        document.getElementById("eventModalTitle").textContent = "Add Club Event";
+        document.querySelector("#eventModal .modal-desc").textContent = "Events are visible to all club members and they'll be notified.";
+        document.getElementById("evName").value     = "";
+        document.getElementById("evDate").value     = "";
+        document.getElementById("evStart").value    = "";
+        document.getElementById("evEnd").value      = "";
+        document.getElementById("evLocation").value = "";
+        document.getElementById("evDesc").value     = "";
+      }
       // Reset read modal
       if (id === "readModal") {
         selectedRead = null;
@@ -1750,6 +1910,8 @@
     window.searchFriends       = searchFriends;
     window.inviteFriend          = inviteFriend;
     window.cancelInvite          = cancelInvite;
+    window.editEvent             = editEvent;
+    window.deleteEvent           = deleteEvent;
     window.promoteAdmin          = promoteAdmin;
     window.demoteAdmin           = demoteAdmin;
     window.showMembersTab        = showMembersTab;
