@@ -170,6 +170,34 @@
     .review-text { font-size: 13px; line-height: 1.7; color: var(--deep-plum); font-style: italic; }
     .no-review-text { font-size: 13px; color: #BDB5CC; }
 
+    /* ── TBR Drag and Drop ── */
+    .tbr-drag-handle {
+      cursor: grab;
+      color: #BDB5CC;
+      font-size: 18px;
+      padding: 0 8px 0 4px;
+      flex-shrink: 0;
+      user-select: none;
+      touch-action: none;
+    }
+    .tbr-drag-handle:active { cursor: grabbing; }
+    .book-card.dragging {
+      opacity: 0.4;
+      border: 2px dashed var(--amethyst);
+    }
+    .book-card.drag-over {
+      border-color: var(--amethyst);
+      background: var(--lavender-mist);
+      transform: scale(1.01);
+    }
+    .tbr-drag-note {
+      font-size: 12px;
+      color: #BDB5CC;
+      text-align: center;
+      padding: 6px 0 2px;
+      margin-bottom: 8px;
+    }
+
     /* ── TBR specific ── */
     .tbr-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
     .tbr-btn { font-family: 'Nunito Sans', sans-serif; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
@@ -315,6 +343,7 @@
   <script>
     // ── State ─────────────────────────────────────────────────
     let allBooks     = [];
+    let tbrOrder     = []; // persisted order of TBR book IDs
     let activeTab    = "library";
     let currentView  = "grid";
     let activeFilter = "all";
@@ -349,15 +378,20 @@
 
         allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         updateCounts();
-        renderTab();
 
-        // Load wishlist visibility
+        // Load user settings (wishlist visibility + TBR order) BEFORE rendering
+        // so TBR order is available on first render
         try {
           const usnap = await WR.getDb().collection("users").doc(user.uid).get();
-          if (usnap.exists) isPublic = usnap.data().profileVisibility?.wishlist !== false;
+          if (usnap.exists) {
+            isPublic = usnap.data().profileVisibility?.wishlist !== false;
+            tbrOrder = usnap.data().tbrOrder || [];
+          }
         } catch (e) {
-          console.error("Visibility load error:", e);
+          console.error("User settings load error:", e);
         }
+
+        renderTab();
       } catch (e) {
         console.error("Error loading books:", e);
         WR.showToast("Error loading your books. Please refresh.", "error");
@@ -797,41 +831,59 @@
     // ════════════════════════════════════════════════════════
     // ── TBR TAB ──────────────────────────────────────────────
     // ════════════════════════════════════════════════════════
+    function sortByTbrOrder(books) {
+      // Sort books according to tbrOrder, unordered books go to the end
+      const orderMap = {};
+      tbrOrder.forEach((id, i) => { orderMap[id] = i; });
+      return [...books].sort((a, b) => {
+        const ai = orderMap[a.id] ?? 9999;
+        const bi = orderMap[b.id] ?? 9999;
+        return ai - bi;
+      });
+    }
+
     function renderTBR() {
-      let books = allBooks.filter(b => b.onTBR);
+      let books = sortByTbrOrder(allBooks.filter(b => b.onTBR));
       document.getElementById("pageTitle").textContent    = "🔖 To Be Read";
       document.getElementById("pageSubtitle").textContent = `${books.length} book${books.length === 1 ? "" : "s"} to read`;
 
       document.getElementById("contentArea").innerHTML = `
-        <div class="filter-row" style="margin-bottom:1.25rem;">
+        <div class="filter-row" style="margin-bottom:0.75rem;">
           <button class="filter-pill active" id="pill-all"     onclick="setTBRFilter('all')">All</button>
           <button class="filter-pill"        id="pill-owned"   onclick="setTBRFilter('owned')">In My Library</button>
           <button class="filter-pill"        id="pill-acquire" onclick="setTBRFilter('acquire')">Need to Acquire</button>
         </div>
+        <p class="tbr-drag-note">☰ Drag cards to arrange your reading order — changes save automatically.</p>
         <div id="tbrBooks">${buildTBRBooks(books)}</div>`;
+
+      initTBRDragDrop();
     }
 
     function setTBRFilter(filter) {
       activeFilter = filter;
       document.querySelectorAll("#contentArea .filter-pill").forEach(p => p.classList.remove("active"));
       document.getElementById("pill-" + filter)?.classList.add("active");
-      let books = allBooks.filter(b => b.onTBR);
+      let books = sortByTbrOrder(allBooks.filter(b => b.onTBR));
       if (filter === "owned")   books = books.filter(b => b.inLibrary);
       if (filter === "acquire") books = books.filter(b => b.tbrNeedsAcquisition);
       const area = document.getElementById("tbrBooks");
-      if (area) area.innerHTML = buildTBRBooks(books);
+      if (area) {
+        area.innerHTML = buildTBRBooks(books);
+        initTBRDragDrop();
+      }
     }
 
     function buildTBRBooks(books) {
       if (!books.length) return `<div class="empty-state"><span class="empty-icon">🔖</span><h2 class="empty-title">Your TBR list is empty</h2><p class="empty-desc">Add books you're planning to read.</p><a href="search.html" class="empty-btn">🔍 Find a Book</a></div>`;
-      return `<div class="books-list">${books.map(b => {
+      return `<div class="books-list" id="tbrList">${books.map(b => {
         const cover = b.coverURL ? `<img class="book-cover-img" src="${WR.escapeHTML(b.coverURL)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : "";
         const ph    = `<div class="book-cover-placeholder" ${b.coverURL ? 'style="display:none"' : ""}>🔖</div>`;
         let flags   = "";
         if (b.inLibrary)           flags += `<span class="flag-badge flag-owned">In My Library</span>`;
         if (b.tbrNeedsAcquisition) flags += `<span class="flag-badge flag-acquire">Need to Acquire</span>`;
-        return `<div class="book-card">
+        return `<div class="book-card" draggable="true" data-id="${b.id}">
           <div class="card-main">
+            <span class="tbr-drag-handle" title="Drag to reorder">☰</span>
             ${cover}${ph}
             <div class="card-info" onclick="location.href='book.html?id=${encodeURIComponent(b.id)}'">
               <div class="card-title">${WR.escapeHTML(b.title||"")}</div>
@@ -845,6 +897,175 @@
           </div>
         </div>`;
       }).join("")}</div>`;
+    }
+
+    // ── Drag and Drop Logic ───────────────────────────────────
+    let dragSrcId = null;
+    let saveTbrOrderTimer = null;
+
+    function initTBRDragDrop() {
+      const list = document.getElementById("tbrList");
+      if (!list) return;
+
+      list.querySelectorAll(".book-card[draggable]").forEach(card => {
+        // Desktop drag events
+        card.addEventListener("dragstart", onDragStart);
+        card.addEventListener("dragover",  onDragOver);
+        card.addEventListener("dragleave", onDragLeave);
+        card.addEventListener("drop",      onDrop);
+        card.addEventListener("dragend",   onDragEnd);
+
+        // Touch events for mobile
+        const handle = card.querySelector(".tbr-drag-handle");
+        if (handle) {
+          handle.addEventListener("touchstart", onTouchStart, { passive: false });
+        }
+      });
+    }
+
+    let touchDragCard  = null;
+    let touchClone     = null;
+    let touchOffsetY   = 0;
+
+    function onTouchStart(e) {
+      e.preventDefault();
+      const card = this.closest(".book-card");
+      if (!card) return;
+      touchDragCard = card;
+      dragSrcId     = card.dataset.id;
+      const rect    = card.getBoundingClientRect();
+      touchOffsetY  = e.touches[0].clientY - rect.top;
+
+      // Create a visual clone
+      touchClone = card.cloneNode(true);
+      touchClone.style.cssText = `
+        position:fixed;left:${rect.left}px;top:${rect.top}px;
+        width:${rect.width}px;opacity:0.85;z-index:9999;
+        pointer-events:none;border-radius:14px;
+        box-shadow:0 8px 24px rgba(45,27,78,0.2);
+        transition:none;`;
+      document.body.appendChild(touchClone);
+      card.style.opacity = "0.3";
+
+      document.addEventListener("touchmove", onTouchMove, { passive: false });
+      document.addEventListener("touchend",  onTouchEnd);
+    }
+
+    function onTouchMove(e) {
+      e.preventDefault();
+      if (!touchClone) return;
+      const y = e.touches[0].clientY - touchOffsetY;
+      const x = parseFloat(touchClone.style.left);
+      touchClone.style.top = y + "px";
+
+      // Find card under touch point
+      touchClone.style.display = "none";
+      const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+      touchClone.style.display = "";
+      const targetCard = el?.closest(".book-card[data-id]");
+      document.querySelectorAll(".book-card.drag-over").forEach(c => c.classList.remove("drag-over"));
+      if (targetCard && targetCard !== touchDragCard) {
+        targetCard.classList.add("drag-over");
+      }
+    }
+
+    function onTouchEnd(e) {
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend",  onTouchEnd);
+
+      if (touchClone) { touchClone.remove(); touchClone = null; }
+      if (touchDragCard) touchDragCard.style.opacity = "";
+
+      // Find drop target
+      const pt = e.changedTouches[0];
+      const el = document.elementFromPoint(pt.clientX, pt.clientY);
+      const targetCard = el?.closest(".book-card[data-id]");
+      document.querySelectorAll(".book-card.drag-over").forEach(c => c.classList.remove("drag-over"));
+
+      if (targetCard && touchDragCard && targetCard !== touchDragCard) {
+        const list    = document.getElementById("tbrList");
+        const cards   = [...list.querySelectorAll(".book-card[data-id]")];
+        const srcIdx  = cards.indexOf(touchDragCard);
+        const tgtIdx  = cards.indexOf(targetCard);
+        if (srcIdx < tgtIdx) targetCard.after(touchDragCard);
+        else targetCard.before(touchDragCard);
+
+        tbrOrder = [...list.querySelectorAll(".book-card[data-id]")].map(c => c.dataset.id);
+        clearTimeout(saveTbrOrderTimer);
+        saveTbrOrderTimer = setTimeout(saveTbrOrder, 800);
+        WR.showToast("Order saved 🔖", "success");
+      }
+
+      touchDragCard = null;
+      dragSrcId     = null;
+    }
+
+    function onDragStart(e) {
+      dragSrcId = this.dataset.id;
+      this.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", dragSrcId);
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (this.dataset.id !== dragSrcId) {
+        this.classList.add("drag-over");
+      }
+    }
+
+    function onDragLeave() {
+      this.classList.remove("drag-over");
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      this.classList.remove("drag-over");
+      const targetId = this.dataset.id;
+      if (!dragSrcId || dragSrcId === targetId) return;
+
+      const list  = document.getElementById("tbrList");
+      const cards = [...list.querySelectorAll(".book-card[data-id]")];
+      const srcEl = list.querySelector(`[data-id="${dragSrcId}"]`);
+      const tgtEl = list.querySelector(`[data-id="${targetId}"]`);
+      if (!srcEl || !tgtEl) return;
+
+      // Reorder in DOM
+      const srcIdx = cards.indexOf(srcEl);
+      const tgtIdx = cards.indexOf(tgtEl);
+      if (srcIdx < tgtIdx) {
+        tgtEl.after(srcEl);
+      } else {
+        tgtEl.before(srcEl);
+      }
+
+      // Update tbrOrder from new DOM order
+      tbrOrder = [...list.querySelectorAll(".book-card[data-id]")].map(c => c.dataset.id);
+
+      // Debounce save to Firestore
+      clearTimeout(saveTbrOrderTimer);
+      saveTbrOrderTimer = setTimeout(() => {
+        saveTbrOrder().then(() => WR.showToast("Order saved 🔖", "success"));
+      }, 800);
+    }
+
+    function onDragEnd() {
+      this.classList.remove("dragging");
+      document.querySelectorAll(".book-card.drag-over").forEach(c => c.classList.remove("drag-over"));
+    }
+
+    async function saveTbrOrder() {
+      const user = WR.getCurrentUser();
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set(
+          { tbrOrder },
+          { merge: true }
+        );
+      } catch (e) {
+        console.error("Save TBR order error:", e);
+        WR.showToast("Could not save order.", "error");
+      }
     }
 
     async function markReading(bookId) {
@@ -899,8 +1120,17 @@
     async function removeFromTBR(bookId) {
       const user = WR.getCurrentUser();
       try {
-        await WR.getDb().collection("users").doc(user.uid).collection("books").doc(bookId)
-          .update({ onTBR: false, tbrNeedsAcquisition: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        tbrOrder = tbrOrder.filter(id => id !== bookId);
+        await WR.getDb().collection("users").doc(user.uid).update({
+          onTBR: false,
+          tbrNeedsAcquisition: false,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // Also update tbrOrder on user doc
+        await WR.getDb().collection("users").doc(user.uid).set(
+          { tbrOrder },
+          { merge: true }
+        );
         const idx = allBooks.findIndex(b => b.id === bookId);
         if (idx !== -1) allBooks[idx].onTBR = false;
         updateCounts();
