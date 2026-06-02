@@ -627,11 +627,11 @@
             <span class="stat-num">${libraryBooks.length}</span>
             <span class="stat-label">Books in Library</span>
           </div>
-          <div class="stat-card" onclick="${isOwnProfile ? "location.href='readlist.html'" : ""}">
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html?tab=readlist'" : ""}">
             <span class="stat-num">${readBooks.length}</span>
             <span class="stat-label">Lifetime Reads</span>
           </div>
-          <div class="stat-card" onclick="${isOwnProfile ? "location.href='wishlist.html'" : ""}">
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html?tab=wishlist'" : ""}">
             <span class="stat-num">${wishlistBooks.length}</span>
             <span class="stat-label">Wishlist</span>
           </div>
@@ -710,7 +710,7 @@
                   </div>
                 </a>`).join("")}
               ${wishlistBooks.length > 10
-                ? `<a href="${isOwnProfile ? "wishlist.html" : `wishlist-public.html?uid=${profileUid}`}"
+                ? `<a href="${isOwnProfile ? "library.html?tab=wishlist" : `wishlist-public.html?uid=${profileUid}`}"
                        style="font-size:13px;color:var(--amethyst);text-align:center;padding:4px;">
                      View all ${wishlistBooks.length} books →
                    </a>`
@@ -815,7 +815,7 @@
       if (isOwnProfile) {
         return `
           <a class="profile-btn btn-settings" href="settings.html">⚙️ Edit Profile</a>
-          <a class="profile-btn btn-secondary" href="wishlist.html">⭐ My Wishlist</a>`;
+          <a class="profile-btn btn-secondary" href="library.html?tab=wishlist">⭐ My Wishlist</a>`;
       }
 
       let friendBtn = "";
