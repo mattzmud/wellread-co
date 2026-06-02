@@ -518,25 +518,14 @@
       setLoading("requestBtn", true);
 
       try {
-        await WR.getAuth().sendPasswordResetEmail(email, {
-          url: location.origin + "/reset.html" // redirect back here after link click
-        });
+        // Route through Worker so email comes from hello@wellreadco.app via Resend
+        await WR.callWorker("send_password_reset_email", { email });
         resetEmail = email;
         document.getElementById("sentEmailDisplay").textContent = email;
         showPanel("panelSent");
       } catch (e) {
         setLoading("requestBtn", false);
-        // Don't reveal whether the email exists — always show success-like message
-        // but for network/config errors, show a real error
-        if (e.code === "auth/network-request-failed") {
-          showBanner("requestError", "Network error. Please check your connection and try again.");
-        } else {
-          // For auth/user-not-found we still show the "sent" panel
-          // so we don't leak which emails are registered
-          resetEmail = email;
-          document.getElementById("sentEmailDisplay").textContent = email;
-          showPanel("panelSent");
-        }
+        showBanner("requestError", "Network error. Please check your connection and try again.");
       }
     }
 
@@ -549,9 +538,7 @@
       resendCooldown = true;
 
       try {
-        await WR.getAuth().sendPasswordResetEmail(resetEmail, {
-          url: location.origin + "/reset.html"
-        });
+        await WR.callWorker("send_password_reset_email", { email: resetEmail });
         btn.textContent = "Email sent!";
         setTimeout(() => {
           btn.textContent  = "Resend email";
