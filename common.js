@@ -1744,6 +1744,10 @@ window.WR = {
   buildBookCard,
   initCollapsibles,
 
+  // Geocoding (via Radar.io through Cloudflare Worker)
+  // Returns { found, results: [{ label, city, state, lat, lng, ... }] }
+  geocode: async (query) => callWorker("geocode", { query }),
+
   // Worker
   callWorker,
 

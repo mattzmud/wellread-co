@@ -1938,15 +1938,35 @@
 
       btn.classList.add("loading"); btn.disabled = true;
       try {
+        // Geocode the location if provided
+        let lat = null, lng = null, locationLabel = location || null;
+        if (location) {
+          try {
+            const geo = await WR.geocode(location);
+            if (geo?.found && geo.results?.length) {
+              lat           = geo.results[0].lat;
+              lng           = geo.results[0].lng;
+              locationLabel = geo.results[0].label || location;
+            }
+          } catch (geoErr) {
+            console.warn("Geocoding failed, saving location as text only:", geoErr);
+          }
+        }
+
         await WR.getDb().collection("clubs").doc(clubId).update({
           name, details: details || null, sessionFrequency: freq,
-          location: location || null, discoverable,
+          location: locationLabel || null,
+          lat:      lat,
+          lng:      lng,
+          discoverable,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         club.name              = name;
         club.details           = details;
         club.sessionFrequency  = freq;
-        club.location          = location;
+        club.location          = locationLabel;
+        club.lat               = lat;
+        club.lng               = lng;
         club.discoverable      = discoverable;
         closeModal("editModal");
         WR.showToast("Club updated!", "success");

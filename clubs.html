@@ -182,12 +182,29 @@
 
     <!-- Browse Discoverable Clubs -->
     <div id="browseSection" style="display:none;">
-      <div style="margin-bottom:1.25rem;">
-        <input type="text" placeholder="Filter by location (city, state, or zip — exact text match)..."
-          oninput="filterDiscoverClubs(this.value)"
-          style="width:100%;max-width:420px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);background:#fff;outline:none;">
-        <p style="font-size:12px;color:#BDB5CC;margin-top:6px;">Searches club location fields by text — e.g. "Ann Arbor", "MI", or "48197".</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:flex-end;">
+        <div style="flex:1;min-width:200px;">
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Filter by Location</label>
+          <input type="text" id="locationFilterInput" placeholder="City, state, or zip..."
+            oninput="filterDiscoverClubs(this.value)"
+            style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);background:#fff;outline:none;">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Radius</label>
+          <select id="radiusFilter" onchange="filterDiscoverClubs(document.getElementById('locationFilterInput').value)"
+            style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);background:#fff;outline:none;cursor:pointer;">
+            <option value="any">Any distance</option>
+            <option value="25">Within 25 miles</option>
+            <option value="50">Within 50 miles</option>
+            <option value="100">Within 100 miles</option>
+          </select>
+        </div>
+        <button onclick="applyLocationSearch()" id="locationSearchBtn"
+          style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 18px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;white-space:nowrap;">
+          🔍 Search
+        </button>
       </div>
+      <p style="font-size:12px;color:#BDB5CC;margin-bottom:1rem;">Text search matches club location fields. For distance filtering, enter a location and select a radius.</p>
       <div id="browseGrid">
         <p style="font-size:14px;color:var(--terracotta);text-align:center;padding:2rem;">Click Browse Clubs to discover reading communities.</p>
       </div>
@@ -412,6 +429,21 @@
         const profile = user._profile;
         const clubRef = WR.getDb().collection("clubs").doc();
 
+        // Geocode location if provided
+        let lat = null, lng = null, locationLabel = location || null;
+        if (location) {
+          try {
+            const geo = await WR.geocode(location);
+            if (geo?.found && geo.results?.length) {
+              lat           = geo.results[0].lat;
+              lng           = geo.results[0].lng;
+              locationLabel = geo.results[0].label || location;
+            }
+          } catch (geoErr) {
+            console.warn("Geocoding failed, saving location as text only:", geoErr);
+          }
+        }
+
         await clubRef.set({
           clubId:           clubRef.id,
           name,
@@ -421,7 +453,9 @@
           adminUids:        [user.uid],
           memberUids:       [user.uid],
           sessionFrequency: freq,
-          location:         location || null,
+          location:         locationLabel || null,
+          lat,
+          lng,
           discoverable,
           currentRead:      null,
           pastReads:        [],
@@ -455,9 +489,12 @@
     }
 
     // ── Browse Discoverable Clubs ─────────────────────────────
-    let activeTab       = "my";
-    let discoverClubs   = [];
-    let locationFilter  = "";
+    let activeTab          = "my";
+    let discoverClubs      = [];
+    let locationFilter     = "";
+    let searchLat          = null;
+    let searchLng          = null;
+    let searchRadiusMiles  = null;
 
     function switchTab(tab) {
       activeTab = tab;
@@ -490,17 +527,80 @@
       }
     }
 
-    function filterDiscoverClubs(val) {
-      locationFilter = val.toLowerCase().trim();
+    // Geocode the search input then filter by distance
+    async function applyLocationSearch() {
+      const btn   = document.getElementById("locationSearchBtn");
+      const query = document.getElementById("locationFilterInput").value.trim();
+      const radius = document.getElementById("radiusFilter").value;
+
+      // Reset distance search state
+      searchLat   = null;
+      searchLng   = null;
+      searchRadiusMiles = radius === "any" ? null : parseInt(radius);
+
+      if (!query) {
+        locationFilter = "";
+        renderDiscoverClubs();
+        return;
+      }
+
+      // If a radius is selected, geocode to get lat/lng for distance calc
+      if (searchRadiusMiles && query) {
+        btn.textContent = "Searching...";
+        btn.disabled    = true;
+        try {
+          const geo = await WR.geocode(query);
+          if (geo?.found && geo.results?.length) {
+            searchLat = geo.results[0].lat;
+            searchLng = geo.results[0].lng;
+          } else {
+            WR.showToast("Location not found — try a different search.", "error");
+          }
+        } catch (e) {
+          console.error("Geocode error:", e);
+          WR.showToast("Geocoding failed. Falling back to text search.", "error");
+        } finally {
+          btn.textContent = "🔍 Search";
+          btn.disabled    = false;
+        }
+      }
+
+      locationFilter = query.toLowerCase();
       renderDiscoverClubs();
+    }
+
+    function filterDiscoverClubs(val) {
+      locationFilter    = val.toLowerCase().trim();
+      searchLat         = null;
+      searchLng         = null;
+      searchRadiusMiles = null;
+      renderDiscoverClubs();
+    }
+
+    // Haversine formula — distance in miles between two lat/lng points
+    function haversineMiles(lat1, lng1, lat2, lng2) {
+      const R  = 3958.8; // Earth radius in miles
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a  = Math.sin(dLat/2) * Math.sin(dLat/2)
+               + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180)
+               * Math.sin(dLng/2) * Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     function renderDiscoverClubs() {
       const el   = document.getElementById("browseGrid");
-      const user = WR.getCurrentUser();
-      let clubs  = discoverClubs;
+      let clubs  = [...discoverClubs];
 
-      if (locationFilter) {
+      if (searchLat && searchLng && searchRadiusMiles) {
+        // Distance-based filter — clubs must have lat/lng stored
+        clubs = clubs
+          .filter(c => c.lat && c.lng)
+          .map(c => ({ ...c, _dist: haversineMiles(searchLat, searchLng, c.lat, c.lng) }))
+          .filter(c => c._dist <= searchRadiusMiles)
+          .sort((a, b) => a._dist - b._dist);
+      } else if (locationFilter) {
+        // Text filter fallback
         clubs = clubs.filter(c =>
           (c.location || "").toLowerCase().includes(locationFilter)
         );
@@ -511,7 +611,9 @@
           <div class="empty-state" style="padding:3rem 1rem;">
             <span class="empty-icon">🔍</span>
             <h2 class="empty-title">No clubs found</h2>
-            <p class="empty-desc">${locationFilter ? "Try a different location or clear the filter." : "No discoverable clubs yet — be the first to create one!"}</p>
+            <p class="empty-desc">${locationFilter || searchRadiusMiles
+              ? "Try a different location or clear the filter."
+              : "No discoverable clubs yet — be the first to create one!"}</p>
           </div>`;
         return;
       }
@@ -524,6 +626,8 @@
       const headerStyle = club.headerImageURL ? `style="background:none;"` : "";
       const headerImg   = club.headerImageURL
         ? `<img class="club-card-header-img" src="${WR.escapeHTML(club.headerImageURL)}" alt="">` : "";
+      const distLabel   = club._dist != null
+        ? `<span style="font-size:11px;font-weight:600;background:#DCF0E8;color:#2E6B50;padding:2px 7px;border-radius:8px;">📍 ${Math.round(club._dist)} mi away</span>` : "";
 
       return `
         <div class="club-card" style="cursor:default;">
@@ -535,6 +639,7 @@
               ${club.sessionFrequency === "quarterly" ? "Quarterly" : "Monthly"} reads
               ${club.location ? ` · 📍 ${WR.escapeHTML(club.location)}` : ""}
             </div>
+            ${distLabel ? `<div style="margin-top:4px;">${distLabel}</div>` : ""}
             ${club.details ? `<p style="font-size:12px;color:var(--terracotta);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${WR.escapeHTML(club.details)}</p>` : ""}
             ${club.currentRead?.title ? `<div class="club-current-read"><div class="club-read-dot"></div><span class="club-read-text">Reading: <strong>${WR.escapeHTML(club.currentRead.title)}</strong></span></div>` : ""}
             <div style="margin-top:10px;display:flex;gap:8px;">
@@ -542,6 +647,7 @@
             </div>
           </div>
         </div>`;
+    }
         </div>`;
     }
 
@@ -551,6 +657,7 @@
     window.createClub           = createClub;
     window.switchTab            = switchTab;
     window.filterDiscoverClubs  = filterDiscoverClubs;
+    window.applyLocationSearch  = applyLocationSearch;
   </script>
 
   <script>
