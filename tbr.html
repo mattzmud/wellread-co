@@ -259,19 +259,26 @@
 
     async function loadTBR() {
       const user = WR.getCurrentUser();
-      try {
-        const snap = await WR.getDb()
-          .collection("users").doc(user.uid)
-          .collection("books")
-          .where("onTBR", "==", true)
-          .get();
-        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        document.getElementById("tbrSubtitle").textContent =
-          `${allBooks.length} book${allBooks.length === 1 ? "" : "s"} to read`;
-        applyFilter();
-      } catch (e) {
-        console.error("Error loading TBR:", e);
-        WR.showToast("Error loading your TBR list.", "error");
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const snap = await WR.getDb()
+            .collection("users").doc(user.uid)
+            .collection("books")
+            .where("onTBR", "==", true)
+            .get();
+          allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          document.getElementById("tbrSubtitle").textContent =
+            `${allBooks.length} book${allBooks.length === 1 ? "" : "s"} to read`;
+          applyFilter();
+          return;
+        } catch (e) {
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 500));
+          } else {
+            console.error("Error loading TBR:", e);
+            WR.showToast("Error loading your TBR list.", "error");
+          }
+        }
       }
     }
 

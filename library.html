@@ -846,21 +846,28 @@
 
     async function loadLibrary() {
       const user = WR.getCurrentUser();
-      try {
-        const snap = await WR.getDb()
-          .collection("users").doc(user.uid)
-          .collection("books")
-          .where("inLibrary", "==", true)
-          .get();
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const snap = await WR.getDb()
+            .collection("users").doc(user.uid)
+            .collection("books")
+            .where("inLibrary", "==", true)
+            .get();
 
-        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        displayBooks = [...allBooks];
-        applySort();
-        renderStats();
-        renderLending();
-      } catch (e) {
-        console.error("Error loading library:", e);
-        WR.showToast("Error loading your library.", "error");
+          allBooks     = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          displayBooks = [...allBooks];
+          applySort();
+          renderStats();
+          renderLending();
+          return; // success
+        } catch (e) {
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 500));
+          } else {
+            console.error("Error loading library:", e);
+            WR.showToast("Error loading your library.", "error");
+          }
+        }
       }
     }
 

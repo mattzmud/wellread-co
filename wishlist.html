@@ -400,19 +400,26 @@
 
     async function loadWishlist() {
       const user = WR.getCurrentUser();
-      try {
-        const snap = await WR.getDb()
-          .collection("users").doc(user.uid)
-          .collection("books")
-          .where("onWishlist", "==", true)
-          .get();
-        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        document.getElementById("wishSubtitle").textContent =
-          `${allBooks.length} book${allBooks.length === 1 ? "" : "s"} on your wishlist`;
-        renderBooks();
-      } catch (e) {
-        console.error("Error loading wishlist:", e);
-        WR.showToast("Error loading your wishlist.", "error");
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const snap = await WR.getDb()
+            .collection("users").doc(user.uid)
+            .collection("books")
+            .where("onWishlist", "==", true)
+            .get();
+          allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          document.getElementById("wishSubtitle").textContent =
+            `${allBooks.length} book${allBooks.length === 1 ? "" : "s"} on your wishlist`;
+          renderBooks();
+          return;
+        } catch (e) {
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 500));
+          } else {
+            console.error("Error loading wishlist:", e);
+            WR.showToast("Error loading your wishlist.", "error");
+          }
+        }
       }
     }
 

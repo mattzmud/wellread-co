@@ -396,18 +396,25 @@
 
     async function loadReadList() {
       const user = WR.getCurrentUser();
-      try {
-        const snap = await WR.getDb()
-          .collection("users").doc(user.uid)
-          .collection("books")
-          .where("onReadList", "==", true)
-          .get();
-        allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderStats();
-        applyFilters();
-      } catch (e) {
-        console.error("Error loading read list:", e);
-        WR.showToast("Error loading your read list.", "error");
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const snap = await WR.getDb()
+            .collection("users").doc(user.uid)
+            .collection("books")
+            .where("onReadList", "==", true)
+            .get();
+          allBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderStats();
+          applyFilters();
+          return;
+        } catch (e) {
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 500));
+          } else {
+            console.error("Error loading read list:", e);
+            WR.showToast("Error loading your read list.", "error");
+          }
+        }
       }
     }
 
