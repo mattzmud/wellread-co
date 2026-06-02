@@ -632,9 +632,12 @@
     function filterThreads(val) { renderThreadsList(val); }
 
     // ── Open Thread ───────────────────────────────────────────
-    async function openThread(threadId) {
+    async function openThread(threadId, threadObj) {
       activeThreadId = threadId;
-      const thread   = threads.find(t => t.id === threadId);
+      // Accept a thread object directly (e.g. from openOrCreateDM) to avoid
+      // a race condition where the onSnapshot overwrites the threads array
+      // before this lookup runs.
+      const thread = threadObj || threads.find(t => t.id === threadId);
       if (!thread) return;
 
       // Mobile: show thread, hide sidebar
@@ -872,7 +875,7 @@
         }
 
         renderThreadsList();
-        await openThread(threadId);
+        await openThread(threadId, thread);
       } catch (e) {
         console.error("Open DM error:", e);
         WR.showToast("Could not open conversation. Please try again.", "error");
