@@ -632,11 +632,24 @@
 
     <!-- Page Header -->
     <div class="page-header">
-      <h1 class="page-title">Discover Books</h1>
-      <p class="page-subtitle">Search by title, author, or ISBN</p>
+      <h1 class="page-title" id="pageTitle">🔍 Discover</h1>
+      <p class="page-subtitle" id="pageSubtitle">Search for books, authors, or readers</p>
     </div>
 
-    <!-- Search Bar -->
+    <!-- Tab Bar -->
+    <div style="display:flex;background:#fff;border-radius:12px;border:1px solid var(--border);padding:5px;gap:4px;margin-bottom:1.25rem;">
+      <button id="tab-books" onclick="switchSearchTab('books')"
+        style="flex:1;padding:10px 8px;border:none;border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;background:var(--amethyst);color:#FAF6EE;transition:all 0.2s;">
+        📚 Books
+      </button>
+      <button id="tab-people" onclick="switchSearchTab('people')"
+        style="flex:1;padding:10px 8px;border:none;border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;background:none;color:var(--terracotta);transition:all 0.2s;">
+        👤 People
+      </button>
+    </div>
+
+    <!-- Books Search Panel -->
+    <div id="booksPanel">
     <div class="search-form">
       <div class="search-input-wrap">
         <span class="search-icon">🔍</span>
@@ -666,6 +679,29 @@
         <span class="state-icon">📚</span>
         <h2 class="state-title">Find your next great read</h2>
         <p class="state-desc">Search for any book by title, author, or ISBN number.<br>We'll check our community database first, then the full Google Books catalog.</p>
+      </div>
+    </div>
+
+    </div><!-- end booksPanel -->
+
+    <!-- People Search Panel -->
+    <div id="peoplePanel" style="display:none;">
+      <div class="search-form">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="peopleInput"
+                 placeholder="Search by name..."
+                 oninput="onPeopleSearch(this.value)"
+                 autocomplete="off">
+          <button class="search-clear" onclick="clearPeopleSearch()" aria-label="Clear">✕</button>
+        </div>
+      </div>
+      <div id="peopleResults">
+        <div class="state-box">
+          <span class="state-icon">👤</span>
+          <h2 class="state-title">Find fellow readers</h2>
+          <p class="state-desc">Search for other WellRead Co. members by name.</p>
+        </div>
       </div>
     </div>
 
@@ -1188,18 +1224,219 @@
       });
     }
 
+    // ── Tab Switching ─────────────────────────────────────────
+    let activeSearchTab   = "books";
+    let peopleSearchTimer = null;
+
+    function switchSearchTab(tab) {
+      activeSearchTab = tab;
+      const isBooks = tab === "books";
+
+      document.getElementById("booksPanel").style.display  = isBooks ? "" : "none";
+      document.getElementById("peoplePanel").style.display = isBooks ? "none" : "";
+
+      const booksBtn  = document.getElementById("tab-books");
+      const peopleBtn = document.getElementById("tab-people");
+      booksBtn.style.background  = isBooks ? "var(--amethyst)" : "none";
+      booksBtn.style.color       = isBooks ? "#FAF6EE" : "var(--terracotta)";
+      peopleBtn.style.background = isBooks ? "none" : "var(--amethyst)";
+      peopleBtn.style.color      = isBooks ? "var(--terracotta)" : "#FAF6EE";
+
+      document.getElementById("pageTitle").textContent    = isBooks ? "🔍 Discover" : "👤 Find Readers";
+      document.getElementById("pageSubtitle").textContent = isBooks
+        ? "Search for books, authors, or ISBNs"
+        : "Search for other WellRead Co. members";
+
+      if (!isBooks) {
+        setTimeout(() => document.getElementById("peopleInput")?.focus(), 100);
+      }
+    }
+
+    // ── People Search ─────────────────────────────────────────
+    function onPeopleSearch(val) {
+      clearTimeout(peopleSearchTimer);
+      const q = val.trim();
+      if (!q || q.length < 2) {
+        document.getElementById("peopleResults").innerHTML = `
+          <div class="state-box">
+            <span class="state-icon">👤</span>
+            <h2 class="state-title">Find fellow readers</h2>
+            <p class="state-desc">Search for other WellRead Co. members by name.</p>
+          </div>`;
+        return;
+      }
+      peopleSearchTimer = setTimeout(() => searchPeople(q), 400);
+    }
+
+    async function searchPeople(query) {
+      const el  = document.getElementById("peopleResults");
+      const uid = WR.getCurrentUser().uid;
+      el.innerHTML = `<div class="state-box"><span class="state-icon" style="font-size:32px;">⏳</span><p class="state-desc">Searching...</p></div>`;
+
+      try {
+        const q     = query.toLowerCase();
+        const db    = WR.getDb();
+
+        // Firestore doesn't support full-text search, so we query by
+        // displayName range — gets names starting with the query string
+        const snap  = await db.collection("users")
+          .orderBy("displayName")
+          .startAt(query)
+          .endAt(query + "\uf8ff")
+          .limit(20)
+          .get();
+
+        // Also try firstName field
+        const snap2 = await db.collection("users")
+          .orderBy("firstName")
+          .startAt(query)
+          .endAt(query + "\uf8ff")
+          .limit(20)
+          .get();
+
+        // Merge and deduplicate results, exclude self
+        const seen   = new Set();
+        const people = [];
+        [...snap.docs, ...snap2.docs].forEach(d => {
+          if (d.id === uid || seen.has(d.id)) return;
+          seen.add(d.id);
+          people.push({ uid: d.id, ...d.data() });
+        });
+
+        if (!people.length) {
+          el.innerHTML = `
+            <div class="state-box">
+              <span class="state-icon">😕</span>
+              <h2 class="state-title">No readers found</h2>
+              <p class="state-desc">No WellRead Co. members match "${WR.escapeHTML(query)}". Try a different name.</p>
+            </div>`;
+          return;
+        }
+
+        // Check friendship status for each result
+        const friendStatuses = await Promise.all(people.map(async p => {
+          const fid  = WR.getFriendshipId(uid, p.uid);
+          const fsnap = await db.collection("friends").doc(fid).get();
+          return fsnap.exists ? fsnap.data().status : null;
+        }));
+
+        el.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;">
+          ${people.map((p, i) => buildPersonCard(p, friendStatuses[i])).join("")}
+        </div>`;
+
+      } catch (e) {
+        console.error("People search error:", e);
+        el.innerHTML = `<div class="state-box"><p class="state-desc">Search failed. Please try again.</p></div>`;
+      }
+    }
+
+    function buildPersonCard(person, friendStatus) {
+      const uid      = WR.getCurrentUser().uid;
+      const joinedDate = person.joinedAt
+        ? (person.joinedAt.toDate
+            ? person.joinedAt.toDate().toLocaleDateString("en-US", { month: "short", year: "numeric" })
+            : new Date(person.joinedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }))
+        : null;
+
+      let actionBtn = "";
+      if (friendStatus === "accepted") {
+        actionBtn = `<span style="font-size:12px;font-weight:600;color:var(--faded-moss);padding:7px 14px;">✓ Friends</span>`;
+      } else if (friendStatus === "pending") {
+        actionBtn = `<span style="font-size:12px;font-weight:600;color:#BDB5CC;padding:7px 14px;">⏳ Pending</span>`;
+      } else {
+        actionBtn = `<button onclick="addFriendFromSearch('${person.uid}')" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:7px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;white-space:nowrap;">+ Add Friend</button>`;
+      }
+
+      return `
+        <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:1rem;display:flex;align-items:center;gap:14px;">
+          <a href="profile.html?uid=${person.uid}" style="flex-shrink:0;">
+            ${person.photoURL
+              ? `<img src="${WR.escapeHTML(person.photoURL)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--border);display:block;">`
+              : `<div style="width:52px;height:52px;border-radius:50%;background:var(--lavender-mist);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;">👤</div>`}
+          </a>
+          <div style="flex:1;min-width:0;">
+            <a href="profile.html?uid=${person.uid}" style="text-decoration:none;">
+              <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--deep-plum);margin-bottom:2px;">${WR.escapeHTML(person.displayName || "")}</div>
+            </a>
+            <div style="font-size:12px;color:var(--terracotta);">
+              ${person.firstName ? WR.escapeHTML(person.firstName) + " " + WR.escapeHTML(person.lastName || "") : ""}
+              ${joinedDate ? `· WellRead since ${joinedDate}` : ""}
+            </div>
+            ${person.bio ? `<div style="font-size:12px;color:#BDB5CC;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${WR.escapeHTML(person.bio)}</div>` : ""}
+          </div>
+          <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+            ${actionBtn}
+            <a href="profile.html?uid=${person.uid}" style="font-family:'Nunito Sans',sans-serif;font-size:11px;color:var(--amethyst);text-decoration:none;padding:0 4px;">View Profile →</a>
+          </div>
+        </div>`;
+    }
+
+    async function addFriendFromSearch(targetUid) {
+      const user       = WR.getCurrentUser();
+      const friendshipId = WR.getFriendshipId(user.uid, targetUid);
+      try {
+        await WR.getDb().collection("friends").doc(friendshipId).set({
+          users:        [user.uid, targetUid],
+          initiatorUid: user.uid,
+          status:       "pending",
+          createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          acceptedAt:   null
+        });
+        await WR.createNotification(targetUid, {
+          type:     "friend_request",
+          title:    "New Friend Request",
+          body:     `${user._profile?.displayName || "Someone"} wants to be your friend on WellRead Co.`,
+          linkedId: friendshipId
+        });
+
+        // Send email if they have it enabled
+        try {
+          const snap = await WR.getDb().collection("users").doc(targetUid).get();
+          const them = snap.data();
+          if (them?.emailPreferences?.friendRequest !== false && them?.email) {
+            WR.callWorker("send_friend_request_email", {
+              to:            them.email,
+              recipientName: them.displayName,
+              requesterName: user._profile?.displayName || "Someone"
+            });
+          }
+        } catch (e) {}
+
+        WR.showToast("Friend request sent! 👤", "success");
+        // Refresh the search to update button state
+        onPeopleSearch(document.getElementById("peopleInput").value);
+      } catch (e) {
+        console.error("Add friend error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
+    function clearPeopleSearch() {
+      document.getElementById("peopleInput").value = "";
+      document.getElementById("peopleResults").innerHTML = `
+        <div class="state-box">
+          <span class="state-icon">👤</span>
+          <h2 class="state-title">Find fellow readers</h2>
+          <p class="state-desc">Search for other WellRead Co. members by name.</p>
+        </div>`;
+    }
+
     // ── Expose for HTML handlers ──────────────────────────────
-    window.setSearchType   = setSearchType;
-    window.onSearchInput   = onSearchInput;
-    window.onSearchKey     = onSearchKey;
-    window.clearSearch     = clearSearch;
-    window.doSearch        = doSearch;
-    window.openAddModal    = openAddModal;
-    window.closeModal      = closeModal;
+    window.setSearchType      = setSearchType;
+    window.onSearchInput      = onSearchInput;
+    window.onSearchKey        = onSearchKey;
+    window.clearSearch        = clearSearch;
+    window.doSearch           = doSearch;
+    window.openAddModal       = openAddModal;
+    window.closeModal         = closeModal;
     window.handleModalOverlayClick = handleModalOverlayClick;
-    window.selectOption    = selectOption;
-    window.selectSubOption = selectSubOption;
-    window.confirmAdd      = confirmAdd;
+    window.selectOption       = selectOption;
+    window.selectSubOption    = selectSubOption;
+    window.confirmAdd         = confirmAdd;
+    window.switchSearchTab    = switchSearchTab;
+    window.onPeopleSearch     = onPeopleSearch;
+    window.clearPeopleSearch  = clearPeopleSearch;
+    window.addFriendFromSearch = addFriendFromSearch;
   </script>
 
   <script>

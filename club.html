@@ -393,7 +393,7 @@
       <h2 class="modal-title">Invite Members</h2>
       <p class="modal-desc">Search your friends to invite them to the club.</p>
       <input type="text" class="invite-search-input" id="inviteSearch"
-             placeholder="Search friends by name..." oninput="searchFriends(this.value)">
+             placeholder="Search all members by name..." oninput="searchFriends(this.value)">
       <div id="friendResults"></div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" onclick="closeModal('inviteModal')">Done</button>
@@ -1136,40 +1136,53 @@
 
     // ── Invite Members ────────────────────────────────────────
     async function loadFriends() {
-      const user = WR.getCurrentUser();
+      // Show search input immediately, search all users
+      document.getElementById("friendResults").innerHTML =
+        `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">Type a name to search all WellRead Co. members.</p>`;
+    }
+
+    let inviteSearchTimer = null;
+    function searchFriends(val) {
+      clearTimeout(inviteSearchTimer);
+      const q = val.trim();
+      if (!q || q.length < 2) {
+        document.getElementById("friendResults").innerHTML =
+          `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">Type a name to search all WellRead Co. members.</p>`;
+        return;
+      }
+      inviteSearchTimer = setTimeout(() => doInviteSearch(q), 400);
+    }
+
+    async function doInviteSearch(query) {
+      const el  = document.getElementById("friendResults");
+      const uid = WR.getCurrentUser().uid;
+      el.innerHTML = `<p style="font-size:13px;color:#BDB5CC;padding:4px 0;">Searching...</p>`;
+
       try {
-        const snap = await WR.getDb()
-          .collection("friends")
-          .where("users", "array-contains", user.uid)
-          .where("status", "==", "accepted")
-          .get();
+        const db = WR.getDb();
+        const [snap1, snap2] = await Promise.all([
+          db.collection("users").orderBy("displayName").startAt(query).endAt(query + "\uf8ff").limit(15).get(),
+          db.collection("users").orderBy("firstName").startAt(query).endAt(query + "\uf8ff").limit(15).get()
+        ]);
 
-        const friendUids = snap.docs
-          .map(d => d.data().users.find(u => u !== user.uid))
-          .filter(Boolean);
+        const seen   = new Set([uid]); // exclude self
+        const people = [];
+        [...snap1.docs, ...snap2.docs].forEach(d => {
+          if (seen.has(d.id)) return;
+          seen.add(d.id);
+          people.push({ uid: d.id, ...d.data() });
+        });
 
-        if (!friendUids.length) {
-          document.getElementById("friendResults").innerHTML =
-            `<p style="font-size:13px;color:var(--terracotta);padding:8px 0;">You don't have any friends to invite yet.</p>`;
+        if (!people.length) {
+          el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);padding:4px 0;">No members found matching "${WR.escapeHTML(query)}".</p>`;
           return;
         }
 
-        const profileSnaps = await Promise.all(
-          friendUids.slice(0,20).map(uid => WR.getDb().collection("users").doc(uid).get())
-        );
-        myFriends = profileSnaps.filter(s => s.exists).map(s => ({ uid: s.id, ...s.data() }));
-        renderFriendResults(myFriends);
+        renderFriendResults(people);
       } catch (e) {
-        console.error("Load friends error:", e);
+        console.error("Invite search error:", e);
+        el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);">Search failed. Please try again.</p>`;
       }
-    }
-
-    function searchFriends(val) {
-      const q = val.toLowerCase().trim();
-      const filtered = q
-        ? myFriends.filter(f => (f.displayName||"").toLowerCase().includes(q))
-        : myFriends;
-      renderFriendResults(filtered);
     }
 
     function renderFriendResults(friends) {
