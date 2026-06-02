@@ -819,21 +819,6 @@
       if (!user) return;
 
       profile = user._profile;
-
-      // If profile didn't load via initAuth (can happen on first navigation),
-      // fetch it directly before rendering
-      if (!profile) {
-        try {
-          const snap = await WR.getDb().collection("users").doc(user.uid).get();
-          if (snap.exists) {
-            profile = snap.data();
-            user._profile = profile;
-          }
-        } catch (e) {
-          console.error("Index profile fetch error:", e);
-        }
-      }
-
       renderWelcome();
 
       // Load all sections in parallel

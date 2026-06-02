@@ -516,14 +516,6 @@
       profileUid   = params.get("uid") || user.uid;
       isOwnProfile = profileUid === user.uid;
 
-      // Ensure current user's profile is loaded (fallback for first navigation)
-      if (!user._profile) {
-        try {
-          const snap = await WR.getDb().collection("users").doc(user.uid).get();
-          if (snap.exists) user._profile = snap.data();
-        } catch (e) { console.error("Current user profile fallback error:", e); }
-      }
-
       await Promise.all([
         loadProfile(),
         loadUserBooks(),

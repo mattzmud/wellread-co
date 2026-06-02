@@ -95,16 +95,25 @@ function initAuth(onReady) {
         return;
       }
 
-      // Fetch user profile doc
-      try {
-        const snap = await _db.collection("users").doc(user.uid).get();
-        if (!snap.exists && page !== "setup.html") {
-          location.href = "setup.html";
-          return;
+      // Fetch user profile doc — with one retry on failure
+      // (Firestore can be slow to connect on first page navigation)
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const snap = await _db.collection("users").doc(user.uid).get();
+          if (!snap.exists && page !== "setup.html") {
+            location.href = "setup.html";
+            return;
+          }
+          _currentUser._profile = snap.exists ? snap.data() : null;
+          break; // success — stop retrying
+        } catch (e) {
+          if (attempt === 0) {
+            // First attempt failed — wait briefly then retry
+            await new Promise(r => setTimeout(r, 500));
+          } else {
+            console.error("Error fetching user profile:", e);
+          }
         }
-        _currentUser._profile = snap.exists ? snap.data() : null;
-      } catch (e) {
-        console.error("Error fetching user profile:", e);
       }
 
       // Render nav and start notification listener
