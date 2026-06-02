@@ -63,6 +63,23 @@ function initFirebase() {
   _db   = firebase.firestore();
 }
 
+// Resolves once Firestore can successfully respond to a query.
+// Retries up to 5 times with increasing delays.
+async function waitForFirestore() {
+  const delays = [0, 300, 600, 1000, 2000];
+  for (const delay of delays) {
+    if (delay) await new Promise(r => setTimeout(r, delay));
+    try {
+      await _db.collection("users").limit(1).get();
+      return true; // Firestore is ready
+    } catch (e) {
+      // Not ready yet — try again
+    }
+  }
+  console.warn("Firestore did not become ready after retries");
+  return false;
+}
+
 // ─── Auth State ──────────────────────────────────────────────
 // Call this on every authenticated page.
 // onReady(user) fires once auth is confirmed.
@@ -94,6 +111,9 @@ function initAuth(onReady) {
         location.href = "index.html";
         return;
       }
+
+      // Ensure Firestore connection is ready before any queries
+      await waitForFirestore();
 
       // Fetch user profile doc — with one retry on failure
       // (Firestore can be slow to connect on first page navigation)
