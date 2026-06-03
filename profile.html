@@ -552,6 +552,30 @@
 
       document.title = `${profileData.displayName} — WellRead Co.`;
       renderPage();
+
+      // If viewing own profile, run badge check and refresh the badges section
+      // in case new badges were just awarded
+      if (isOwnProfile) {
+        setTimeout(async () => {
+          await WR.checkBadges();
+          await WR.showBadgePopupIfNeeded();
+          // Re-fetch profile to pick up any newly written badges
+          try {
+            const refreshed = await WR.getDb().collection("users").doc(profileUid).get();
+            if (refreshed.exists) {
+              const newBadges = refreshed.data().badges || [];
+              if (newBadges.length !== (profileData.badges || []).length) {
+                profileData.badges = newBadges;
+                // Re-render just the badges section
+                const badgesEl = document.querySelector("#badges-body")?.closest(".profile-section");
+                if (badgesEl) {
+                  badgesEl.outerHTML = buildBadgesSection(profileData, true);
+                }
+              }
+            }
+          } catch (e) { console.error("Badge refresh error:", e); }
+        }, 2000);
+      }
     });
 
     // ── Loaders ───────────────────────────────────────────────
@@ -936,10 +960,31 @@
       const badges  = profile?.badges || [];
       const earned  = badges.filter(b => b.id);
 
-      if (!earned.length && !isOwn) return ""; // don't show empty section on other profiles
+      // On other profiles — hide the section entirely if no badges
+      if (!earned.length && !isOwn) return "";
 
-      const gridHTML = WR.buildBadgeGrid(earned);
       const count    = earned.length;
+      const total    = Object.keys(WR.BADGE_DEFS).length;
+
+      // On own profile with no badges — show empty state
+      if (!count && isOwn) {
+        return `
+          <div class="profile-section">
+            <div class="section-toggle" onclick="toggleSection('badges', this)">
+              <span class="section-title">🏅 Earned Badges</span>
+              <span class="section-arrow">▼</span>
+            </div>
+            <div class="section-body" id="badges-body">
+              <div style="text-align:center;padding:1.25rem;">
+                <p style="font-size:13px;color:#BDB5CC;margin-bottom:4px;">No badges earned yet — keep reading!</p>
+                <p style="font-size:12px;color:#BDB5CC;">Badges are earned by completing books, writing reviews, meeting goals, and more.</p>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      // Show only earned badges — no greyed-out silhouettes
+      const gridHTML = WR.buildBadgeGrid(earned);
 
       return `
         <div class="profile-section">
@@ -950,13 +995,10 @@
             <span class="section-arrow">▼</span>
           </div>
           <div class="section-body" id="badges-body">
-            ${count ? `
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">
               ${gridHTML}
-            </div>` : `
-            <div style="text-align:center;padding:1rem;">
-              <p style="font-size:13px;color:#BDB5CC;">No badges earned yet — keep reading!</p>
-            </div>`}
+            </div>
+            ${isOwn ? `<p style="font-size:11px;color:#BDB5CC;text-align:center;margin-top:10px;">${count} of ${total} badges earned</p>` : ""}
           </div>
         </div>`;
     }

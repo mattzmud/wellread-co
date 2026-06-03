@@ -140,8 +140,18 @@ function initAuth(onReady) {
     // Run async so it doesn't block page render
     if (user && !isPublic) {
       setTimeout(async () => {
-        await checkBadges();
+        const newBadges = await checkBadges();
         await showBadgePopupIfNeeded();
+
+        // If new badges were awarded, re-read the profile and refresh badges section
+        if (newBadges?.length && page === "profile.html" && profileUid === user.uid) {
+          try {
+            const snap = await _db.collection("users").doc(user.uid).get();
+            if (snap.exists && snap.data().badges?.length) {
+              _currentUser._profile = { ..._currentUser._profile, badges: snap.data().badges };
+            }
+          } catch (e) { /* silent */ }
+        }
       }, 1500);
     }
   });
@@ -1670,39 +1680,27 @@ async function showBadgePopupIfNeeded() {
   }
 }
 
-function buildBadgeGrid(badges, allDefs) {
-  // badges = array of {id, earnedAt, seen} from user doc
-  const earnedIds = new Set(badges.map(b => b.id));
+function buildBadgeGrid(badges) {
+  // badges = array of {id, earnedAt, seen} — only earned badges
+  if (!badges.length) return "";
 
-  // Build list of all possible badge defs including earned monthly ones
-  const allIds = [
-    ...Object.keys(BADGE_DEFS),
-    ...badges.map(b => b.id).filter(id =>
-      id.startsWith("goal_met_") || id.startsWith("goal_surpassed_"))
-  ];
-  const uniqueIds = [...new Set(allIds)];
-
-  return uniqueIds.map(id => {
-    const def     = getBadgeDef(id);
+  return badges.map(entry => {
+    const def    = getBadgeDef(entry.id);
     if (!def) return "";
-    const earned  = earnedIds.has(id);
-    const entry   = badges.find(b => b.id === id);
-    const rarity  = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
-    const monthLabel = (id.startsWith("goal_met_") || id.startsWith("goal_surpassed_"))
-      ? getBadgeMonthLabel(id) : "";
+    const rarity = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
+    const monthLabel = (entry.id.startsWith("goal_met_") || entry.id.startsWith("goal_surpassed_"))
+      ? getBadgeMonthLabel(entry.id) : "";
 
     return `
       <div title="${def.name}: ${def.desc}" style="
         display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;
-        border-radius:12px;border:1.5px solid ${earned ? rarity.border : "var(--border)"};
-        background:${earned ? rarity.bg : "#F5F3F8"};
-        opacity:${earned ? "1" : "0.45"};
-        cursor:${earned ? "default" : "default"};
+        border-radius:12px;border:1.5px solid ${rarity.border};
+        background:${rarity.bg};
         text-align:center;">
-        <span style="font-size:24px;${earned ? "" : "filter:grayscale(1);"}">${def.icon}</span>
-        <span style="font-size:10px;font-weight:600;color:${earned ? rarity.text : "#BDB5CC"};line-height:1.3;">${def.name}</span>
-        ${monthLabel ? `<span style="font-size:9px;color:${earned ? rarity.text : "#BDB5CC"};opacity:0.7;">${monthLabel}</span>` : ""}
-        ${earned && entry?.earnedAt ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;">Earned</span>` : ""}
+        <span style="font-size:24px;">${def.icon}</span>
+        <span style="font-size:10px;font-weight:600;color:${rarity.text};line-height:1.3;">${def.name}</span>
+        ${monthLabel ? `<span style="font-size:9px;color:${rarity.text};opacity:0.7;">${monthLabel}</span>` : ""}
+        ${entry.earnedAt ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;">Earned</span>` : ""}
       </div>`;
   }).join("");
 }
