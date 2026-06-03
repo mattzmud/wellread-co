@@ -821,6 +821,18 @@
         switchSearchTab("people");
       }
 
+      // Author search — bypass Firestore, go straight to Google Books
+      const author = params.get("author");
+      if (author) {
+        const input = document.getElementById("searchInput");
+        input.value = author;
+        document.getElementById("searchClear").classList.add("show");
+        document.getElementById("pageTitle").textContent = `Books by ${author}`;
+        document.getElementById("pageSubtitle").textContent = `Google Books results for ${author}`;
+        await doAuthorSearch(author);
+        return;
+      }
+
       // Pre-fill search from URL param e.g. search.html?q=dune
       const q = params.get("q");
       if (q) {
@@ -880,6 +892,23 @@
     }
 
     // ── Main Search ───────────────────────────────────────────
+    // Author search — skips Firestore, hits Google Books inauthor: query directly
+    async function doAuthorSearch(author) {
+      setSearchLoading(true);
+      showSkeleton();
+      try {
+        // inauthor: is Google Books' special operator for author searches
+        const results = await WR.searchGoogleBooks(`inauthor:${author}`);
+        lastResults   = results;
+        renderResults(results, author);
+      } catch (e) {
+        console.error("Author search error:", e);
+        showError();
+      } finally {
+        setSearchLoading(false);
+      }
+    }
+
     async function doSearch() {
       const query = document.getElementById("searchInput").value.trim();
       if (!query) return;
@@ -1423,6 +1452,7 @@
     window.onSearchKey        = onSearchKey;
     window.clearSearch        = clearSearch;
     window.doSearch           = doSearch;
+    window.doAuthorSearch     = doAuthorSearch;
     window.openAddModal       = openAddModal;
     window.closeModal         = closeModal;
     window.handleModalOverlayClick = handleModalOverlayClick;
