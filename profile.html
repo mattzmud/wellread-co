@@ -587,17 +587,18 @@
         const snap = await WR.getDb()
           .collection("friends")
           .where("users", "array-contains", profileUid)
-          .where("status", "==", "accepted")
           .get();
 
-        const friendUids = snap.docs
+        // Filter accepted client-side to avoid needing a composite index
+        const accepted = snap.docs
+          .filter(d => d.data().status === "accepted")
           .map(d => d.data().users.find(u => u !== profileUid))
           .filter(Boolean);
 
-        if (!friendUids.length) { userFriends = []; return; }
+        if (!accepted.length) { userFriends = []; return; }
 
         const profiles = await Promise.all(
-          friendUids.slice(0, 24).map(uid =>
+          accepted.slice(0, 24).map(uid =>
             WR.getDb().collection("users").doc(uid).get()
           )
         );
