@@ -681,12 +681,12 @@ function getNavStyles() {
       .wr-nav-spacer { height: 0; }
       .wr-tab-bar { display: flex; z-index: 950; }
       .wr-notif-overlay {
-        bottom: 64px; /* don't cover tab bar */
+        bottom: calc(64px + env(safe-area-inset-bottom));
         z-index: 940;
       }
       .wr-notif-tray {
         top: auto;
-        bottom: 64px;
+        bottom: calc(64px + env(safe-area-inset-bottom));
         right: 0; left: 0;
         width: 100%;
         border-radius: 16px 16px 0 0;
