@@ -37,7 +37,12 @@
     .stat-label { font-size: 13px; color: var(--terracotta); margin-top: 4px; }
 
     /* ── Notification Panel ── */
-    .notif-card { background: #fff; border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.75rem; }
+    .ql-toolbar { border-radius: 8px 8px 0 0 !important; border-color: var(--border) !important; background: var(--lavender-mist) !important; }
+    .ql-container { border-radius: 0 0 8px 8px !important; border-color: var(--border) !important; font-family: 'Nunito Sans', sans-serif !important; font-size: 14px !important; }
+    .ql-editor { min-height: 100px; color: var(--deep-plum); }
+    .ql-editor.ql-blank::before { color: #BDB5CC; font-style: normal; }
+    #notifBodyEditor .ql-toolbar { border-top: none; border-left: none; border-right: none; }
+    #notifBodyEditor { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; } background: #fff; border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.75rem; }
     .card-title  { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--deep-plum); margin-bottom: 1rem; }
 
     .notif-input {
@@ -222,7 +227,8 @@
 
       <div class="form-group" style="margin-bottom:0.75rem;">
         <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Body</label>
-        <textarea class="notif-body" id="notifBody" placeholder="Notification body — plain text, supports emojis..." style="margin-bottom:0;"></textarea>
+        <div id="notifBodyEditor" style="background:#fff;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--deep-plum);min-height:120px;"></div>
+        <input type="hidden" id="notifBody">
       </div>
 
       <div class="notif-options" style="margin-bottom:1.25rem;">
@@ -267,25 +273,6 @@
       </div>
     </div>
 
-    <!-- Users Table -->
-    <div class="users-card">
-      <div class="users-header">
-        <h2 class="card-title" style="margin-bottom:0;">👤 All Users</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input type="text" class="search-input" id="userSearch" placeholder="Search by name or email..." oninput="filterUsers(this.value)">
-          <select class="sort-select" id="userSort" onchange="applySort()">
-            <option value="joinedAt-desc">Newest First</option>
-            <option value="joinedAt-asc">Oldest First</option>
-            <option value="displayName-asc">Name A–Z</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
-      </div>
-      <div id="usersTableWrap">
-        <p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">Loading users...</p>
-      </div>
-    </div>
-
   </div>
 
   <!-- ── User Detail Modal ── -->
@@ -304,6 +291,10 @@
       </div>
     </div>
   </div>
+
+  <!-- Quill rich text editor -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -328,6 +319,7 @@
         return;
       }
       await Promise.all([loadStats(), loadUsers(), loadNotifLedger()]);
+      initQuill();
     });
 
     // ── Stats ─────────────────────────────────────────────────
@@ -400,14 +392,11 @@
       renderUsersTable();
     }
 
-    function renderUsersTable() {
-      const wrap = document.getElementById("usersTableWrap");
+    function renderUsersTableHTML() {
       if (!displayUsers.length) {
-        wrap.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">No users found.</p>`;
-        return;
+        return `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">No users found.</p>`;
       }
-
-      wrap.innerHTML = `
+      return `
         <table class="users-table">
           <thead>
             <tr>
@@ -445,6 +434,11 @@
               </tr>`).join("")}
           </tbody>
         </table>`;
+    }
+
+    function renderUsersTable() {
+      const wrap = document.getElementById("usersTableWrap");
+      if (wrap) wrap.innerHTML = renderUsersTableHTML();
     }
 
     // ── User Detail Modal ─────────────────────────────────────
@@ -647,7 +641,20 @@
 
       if (type === "users") {
         title.textContent = "👤 All Users";
-        content.innerHTML = document.getElementById("usersTableWrap").innerHTML;
+        content.innerHTML = `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding:1rem;border-bottom:1px solid var(--border);">
+            <input type="text" class="search-input" id="userSearch" placeholder="Search by name or email..."
+              oninput="filterUsers(this.value)"
+              style="flex:1;min-width:200px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);outline:none;">
+            <select id="userSort" onchange="applySort()"
+              style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);background:#fff;cursor:pointer;outline:none;">
+              <option value="joinedAt-desc">Newest First</option>
+              <option value="joinedAt-asc">Oldest First</option>
+              <option value="displayName-asc">Name A–Z</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+          <div id="usersTableWrap">${renderUsersTableHTML()}</div>`;
       } else if (type === "books") {
         title.textContent = "📚 Books in Database";
         content.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">Loading books...</p>`;
@@ -667,18 +674,22 @@
       try {
         const snap  = await WR.getDb().collection("books").orderBy("title").limit(200).get();
         const books = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (!books.length) {
+          container.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--terracotta);font-size:14px;">No books in database yet.</p>`;
+          return;
+        }
         container.innerHTML = `
           <table class="users-table">
             <thead><tr>
-              <th>Title</th><th>Author</th><th>ISBN</th><th>Added</th>
+              <th>Title</th><th>Author</th><th>ISBN</th><th>Source</th>
             </tr></thead>
             <tbody>
               ${books.map(b => `
                 <tr onclick="location.href='book.html?id=${b.id}'" style="cursor:pointer;">
-                  <td style="font-weight:600;">${WR.escapeHTML(b.title||"")}</td>
-                  <td>${WR.escapeHTML(b.author||"")}</td>
-                  <td style="font-size:11px;color:#BDB5CC;">${b.isbn13||b.isbn||""}</td>
-                  <td style="font-size:11px;color:#BDB5CC;">${b.createdAt ? WR.formatRelativeTime(b.createdAt) : "—"}</td>
+                  <td style="font-weight:600;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${WR.escapeHTML(b.title || "—")}</td>
+                  <td style="color:var(--terracotta);">${WR.escapeHTML(b.author || b.authors?.[0] || "—")}</td>
+                  <td style="font-size:11px;color:#BDB5CC;font-family:monospace;">${b.isbn13 || b.isbn || b.googleBooksId?.slice(0,10) || "—"}</td>
+                  <td style="font-size:11px;color:#BDB5CC;">${b.googleBooksId ? "Google Books" : b.openLibraryId ? "Open Library" : "Manual"}</td>
                 </tr>`).join("")}
             </tbody>
           </table>`;
@@ -711,23 +722,42 @@
       }
     }
 
+    // ── Quill Rich Text Editor ────────────────────────────────
+    let quillEditor = null;
+
+    function initQuill() {
+      quillEditor = new Quill("#notifBodyEditor", {
+        theme: "snow",
+        placeholder: "Notification body — supports bold, italic, links, emoji...",
+        modules: {
+          toolbar: [
+            ["bold", "italic", "underline"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            ["link"],
+            ["clean"]
+          ]
+        }
+      });
+    }
+
     // ── Notification Helpers ──────────────────────────────────
     function getNotifFields() {
       const title   = document.getElementById("notifTitle").value.trim();
-      const body    = document.getElementById("notifBody").value.trim();
+      const body    = quillEditor ? quillEditor.getText().trim() : "";
+      const bodyHTML = quillEditor ? quillEditor.root.innerHTML.trim() : "";
       const inApp   = document.getElementById("notifInApp").checked;
       const email   = document.getElementById("notifEmail").checked;
-      return { title, body, inApp, email };
+      return { title, body, bodyHTML, inApp, email };
     }
 
     function clearNotifForm() {
       document.getElementById("notifTitle").value = "";
-      document.getElementById("notifBody").value  = "";
+      if (quillEditor) quillEditor.setContents([]);
     }
 
     // ── Test In-App Notification ──────────────────────────────
     async function sendTestInApp() {
-      const { title, body } = getNotifFields();
+      const { title, body, bodyHTML } = getNotifFields();
       if (!title || !body) { WR.showToast("Enter a title and body first.", "error"); return; }
       const btn = document.getElementById("testInAppBtn");
       btn.classList.add("loading"); btn.disabled = true;
@@ -738,7 +768,7 @@
             type:      "app_admin",
             title,
             body,
-            bodyHTML:  null,
+            bodyHTML:  bodyHTML || null,
             linkedId:  null,
             read:      false,
             dismissed: false,
@@ -780,7 +810,7 @@
 
     // ── Send to All Users ─────────────────────────────────────
     async function sendAppNotification() {
-      const { title, body, inApp, email } = getNotifFields();
+      const { title, body, bodyHTML, inApp, email } = getNotifFields();
 
       if (!title || !body) {
         WR.showToast("Please enter a title and body.", "error");
@@ -823,7 +853,7 @@
                     .collection("items").doc();
                   batch.set(ref, {
                     type: "app_admin", title, body,
-                    bodyHTML: null, linkedId: null,
+                    bodyHTML: bodyHTML || null, linkedId: null,
                     read: false, dismissed: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                   });
