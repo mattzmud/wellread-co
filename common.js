@@ -1214,6 +1214,16 @@ function normalizeGoogleBook(item) {
   const isbn10  = isbns.find(i => i.type === "ISBN_10")?.identifier || null;
   const cover   = info.imageLinks?.thumbnail?.replace("http://", "https://") || null;
 
+  // Surface series info if Google Books provides it
+  // seriesInfo.bookDisplayNumber is typically like "Book 1" or "1"
+  let seriesInfo = null;
+  if (info.seriesInfo) {
+    const series = info.seriesInfo;
+    const num    = series.bookDisplayNumber || "";
+    const name   = series.volumeSeries?.[0]?.seriesId ? "" : ""; // name not reliably in API
+    seriesInfo   = num ? `Book ${num} in series` : null;
+  }
+
   return {
     bookId:        isbn13 || item.id,
     googleBooksId: item.id,
@@ -1227,6 +1237,7 @@ function normalizeGoogleBook(item) {
     pageCount:     info.pageCount      || null,
     categories:    info.categories     || [],
     coverURL:      cover,
+    seriesInfo,
     averageRating: null,
     ratingsCount:  0
   };

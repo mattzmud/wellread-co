@@ -656,11 +656,13 @@
         ${club.currentRead?.title ? `
         <div class="current-read-bar">
           ${club.currentRead.coverURL
-            ? `<img class="cr-cover" src="${WR.escapeHTML(club.currentRead.coverURL)}" alt="">`
+            ? `<a href="book.html?id=${encodeURIComponent(club.currentRead.bookId||'')}" style="display:contents;"><img class="cr-cover" src="${WR.escapeHTML(club.currentRead.coverURL)}" alt="" style="cursor:pointer;"></a>`
             : `<div class="cr-cover-placeholder">📖</div>`}
           <div class="cr-info">
             <div class="cr-label">${WR.escapeHTML(club.currentRead.session || "Current Read")}</div>
-            <div class="cr-title">${WR.escapeHTML(club.currentRead.title)}</div>
+            <a href="book.html?id=${encodeURIComponent(club.currentRead.bookId||'')}" style="text-decoration:none;">
+              <div class="cr-title" style="cursor:pointer;">${WR.escapeHTML(club.currentRead.title)}</div>
+            </a>
             <div class="cr-author">${WR.escapeHTML(club.currentRead.author || "")}</div>
           </div>
           ${isAdmin ? `
