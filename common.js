@@ -1214,14 +1214,20 @@ function normalizeGoogleBook(item) {
   const isbn10  = isbns.find(i => i.type === "ISBN_10")?.identifier || null;
   const cover   = info.imageLinks?.thumbnail?.replace("http://", "https://") || null;
 
-  // Surface series info if Google Books provides it
-  // seriesInfo.bookDisplayNumber is typically like "Book 1" or "1"
+  // Surface series info — check seriesInfo field first, then subtitle
+  // (Google often encodes series in the subtitle e.g. "Harry Potter, Book 1")
   let seriesInfo = null;
-  if (info.seriesInfo) {
-    const series = info.seriesInfo;
-    const num    = series.bookDisplayNumber || "";
-    const name   = series.volumeSeries?.[0]?.seriesId ? "" : ""; // name not reliably in API
-    seriesInfo   = num ? `Book ${num} in series` : null;
+  if (info.seriesInfo?.bookDisplayNumber) {
+    seriesInfo = `Book ${info.seriesInfo.bookDisplayNumber} in series`;
+  } else if (info.subtitle) {
+    // Many series books have subtitles like "Book 1 of the XYZ series" or "Harry Potter #1"
+    const sub = info.subtitle;
+    const seriesMatch = sub.match(/book\s+(\d+)/i) || sub.match(/#(\d+)/);
+    if (seriesMatch) {
+      seriesInfo = `Book ${seriesMatch[1]}${sub.length < 60 ? " — " + sub : ""}`;
+    } else if (/series|trilogy|saga|chronicles|sequence/i.test(sub)) {
+      seriesInfo = sub;
+    }
   }
 
   return {
@@ -1245,39 +1251,48 @@ function normalizeGoogleBook(item) {
 
 // ─── Firestore — Book DB ─────────────────────────────────────
 async function lookupBook(query, type = "text") {
-  // 1. Search internal DB first
-  let internal = [];
-  try {
-    if (type === "isbn") {
+  // ISBN search — check Firestore first, it's exact match so no need for Google
+  if (type === "isbn") {
+    try {
       const snap = await _db.collection("books")
         .where("isbn13", "==", query).limit(1).get();
-      if (!snap.empty) internal = [{ id: snap.docs[0].id, ...snap.docs[0].data() }];
-    } else {
-      // Title/author search — Firestore doesn't support full-text,
-      // so we fetch recently added books and filter client-side for now.
-      // In production, add Algolia or Typesense for full-text search.
-      const snap = await _db.collection("books")
-        .orderBy("addedAt", "desc").limit(100).get();
-      const q = query.toLowerCase();
-      internal = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(b =>
-          (b.title  || "").toLowerCase().includes(q) ||
-          (b.authors || []).some(a => a.toLowerCase().includes(q))
-        );
-    }
-  } catch (e) {
-    console.error("Internal DB search error:", e);
+      if (!snap.empty) return [{ id: snap.docs[0].id, ...snap.docs[0].data() }];
+    } catch (e) { console.error("ISBN DB search error:", e); }
+    const result = await getGoogleBookByISBN(query);
+    return result ? [result] : [];
   }
 
-  if (internal.length) return internal;
+  // Text search — always hit Google Books for comprehensive results.
+  // Merge in any Firestore matches so we keep community data (ratings etc)
+  // but never let Firestore results block the Google Books response.
+  const [apiResults, internalMap] = await Promise.all([
+    searchGoogleBooks(query).catch(() => []),
+    (async () => {
+      const map = {};
+      try {
+        const snap = await _db.collection("books")
+          .orderBy("addedAt", "desc").limit(200).get();
+        const q = query.toLowerCase();
+        snap.docs.forEach(d => {
+          const b = d.data();
+          if (
+            (b.title  || "").toLowerCase().includes(q) ||
+            (b.authors || []).some(a => a.toLowerCase().includes(q))
+          ) {
+            map[b.isbn13 || b.googleBooksId] = { id: d.id, ...b };
+          }
+        });
+      } catch (e) { console.error("Internal DB search error:", e); }
+      return map;
+    })()
+  ]);
 
-  // 2. Fall back to Google Books API
-  const apiResults = type === "isbn"
-    ? [await getGoogleBookByISBN(query)].filter(Boolean)
-    : await searchGoogleBooks(query);
-
-  return apiResults;
+  // Merge: if a Google Books result is already in Firestore, use the Firestore
+  // doc (richer data) but keep Google Books position in the list
+  return apiResults.map(book => {
+    const key = book.isbn13 || book.googleBooksId;
+    return internalMap[key] || book;
+  });
 }
 
 async function saveBookToDb(book) {
