@@ -615,11 +615,11 @@
       canvas.width  = 1080;
       canvas.height = 1080;
 
-      // 1. Draw the template background
-      const bg = await loadImage(template.file);
+      // 1. Draw the template background (same origin — no proxy needed)
+      const bg = await loadImage(template.file, false);
       ctx.drawImage(bg, 0, 0, 1080, 1080);
 
-      // 2. Draw each book cover into its slot
+      // 2. Draw each book cover into its slot (proxied through Worker for CORS)
       const slots = template.slots.slice(0, books.length);
       await Promise.all(slots.map(async (slot, i) => {
         const book = books[i];
@@ -627,11 +627,11 @@
 
         if (book.coverURL) {
           try {
-            const img = await loadImage(book.coverURL);
-            // Fill slot while maintaining aspect ratio (cover fit)
+            const img = await loadImage(book.coverURL, true); // proxy=true
             const { sx, sy, sw, sh } = coverFit(img.naturalWidth, img.naturalHeight, slot.w, slot.h);
             ctx.drawImage(img, sx, sy, sw, sh, slot.x, slot.y, slot.w, slot.h);
-          } catch {
+          } catch (e) {
+            console.warn("Cover load failed:", book.coverURL, e);
             drawPlaceholder(ctx, slot);
           }
         } else {
@@ -642,14 +642,28 @@
       // 3. If fewer than 6 books, leave remaining slots as-is (transparent over template)
     }
 
-    function loadImage(src) {
+    const WORKER_URL = "https://wellread-worker.matt-zmud.workers.dev";
+
+    function loadImage(src, proxy = false) {
       return new Promise((resolve, reject) => {
-        const img  = new Image();
+        const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload  = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load: ${src}`));
-        // Cache bust for CORS
-        img.src = src + (src.includes("?") ? "&" : "?") + "cb=" + Date.now();
+        img.onerror = () => reject(new Error(`Failed: ${src}`));
+
+        if (proxy) {
+          // Fetch via Worker to bypass CORS
+          fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "proxy_image", url: src })
+          })
+            .then(r => r.blob())
+            .then(blob => { img.src = URL.createObjectURL(blob); })
+            .catch(reject);
+        } else {
+          img.src = src;
+        }
       });
     }
 
