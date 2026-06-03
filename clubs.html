@@ -570,15 +570,19 @@
         btn.disabled    = true;
         try {
           const geo = await WR.geocode(query);
-          if (geo?.found && geo.results?.length) {
+          if (geo?.error) {
+            console.error("Geocode error from worker:", geo.error);
+            WR.showToast("Geocoding unavailable. Showing text results instead.", "error");
+            // Fall through to text search
+          } else if (geo?.found && geo.results?.length) {
             searchLat = geo.results[0].lat;
             searchLng = geo.results[0].lng;
           } else {
-            WR.showToast("Location not found — try a different search.", "error");
+            WR.showToast("Location not found — try a city/state or zip code.", "error");
           }
         } catch (e) {
           console.error("Geocode error:", e);
-          WR.showToast("Geocoding failed. Falling back to text search.", "error");
+          WR.showToast("Geocoding failed. Showing text results instead.", "error");
         } finally {
           btn.textContent = "🔍 Search";
           btn.disabled    = false;
