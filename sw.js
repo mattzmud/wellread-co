@@ -3,16 +3,15 @@
 // Service Worker for PWA installability and basic caching
 // ============================================================
 
-const CACHE_NAME    = "wellread-v1";
+// ⚠️ Bump this version number every time you deploy changes.
+// This forces the old cache to be cleared and fresh files fetched.
+const CACHE_NAME    = "wellread-v8";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/search.html",
   "/book.html",
   "/library.html",
-  "/readlist.html",
-  "/tbr.html",
-  "/wishlist.html",
   "/wishlist-public.html",
   "/profile.html",
   "/settings.html",
@@ -22,6 +21,7 @@ const STATIC_ASSETS = [
   "/login.html",
   "/setup.html",
   "/reset.html",
+  "/share.html",
   "/admin.html",
   "/common.js",
   "/manifest.json",
@@ -83,18 +83,19 @@ self.addEventListener("fetch", (event) => {
   ];
   if (bypassHosts.some(host => url.hostname.includes(host))) return;
 
-  // Network-first for HTML pages — always try to get the latest
-  if (request.headers.get("accept")?.includes("text/html")) {
+  // Network-first for HTML pages and common.js — always try to get the latest
+  const isHtml = request.headers.get("accept")?.includes("text/html");
+  const isCommonJs = url.pathname === "/common.js";
+
+  if (isHtml || isCommonJs) {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          // Cache a copy of the fresh response
           const clone = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
           return res;
         })
         .catch(() => {
-          // Offline fallback — serve from cache
           return caches.match(request).then(cached => {
             return cached || caches.match("/index.html");
           });
