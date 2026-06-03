@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share My Reads — WellRead Co.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lavender-mist: #F7F3FF;
+      --aged-paper:    #FAF6EE;
+      --deep-plum:     #2D1B4E;
+      --amethyst:      #7B5EA7;
+      --faded-moss:    #9DC4B0;
+      --warm-gold:     #C9A84C;
+      --terracotta:    #A0674A;
+      --border:        #E8DFC8;
+    }
+    body {
+      font-family: 'Nunito Sans', sans-serif;
+      background: var(--lavender-mist);
+      color: var(--deep-plum);
+      min-height: 100vh;
+      visibility: hidden;
+    }
+
+    .page-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 6rem;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.75rem;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      color: var(--deep-plum);
+      line-height: 1;
+    }
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      color: var(--deep-plum);
+    }
+
+    /* ── Step Cards ── */
+    .step-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amethyst);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+    .step-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      color: var(--deep-plum);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Mode toggle ── */
+    .mode-row {
+      display: flex;
+      background: var(--lavender-mist);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 1.25rem;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 9px 8px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: none;
+      color: var(--terracotta);
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      background: var(--deep-plum);
+      color: #FAF6EE;
+    }
+
+    /* ── Book list ── */
+    .book-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .book-check-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .book-check-item:hover { background: var(--lavender-mist); }
+    .book-check-item.selected {
+      border-color: var(--amethyst);
+      background: var(--lavender-mist);
+    }
+    .book-check-item input[type="checkbox"] {
+      width: 18px; height: 18px;
+      accent-color: var(--amethyst);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .book-check-cover {
+      width: 36px;
+      height: 54px;
+      object-fit: cover;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    .book-check-cover-ph {
+      width: 36px;
+      height: 54px;
+      border-radius: 3px;
+      background: var(--lavender-mist);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .book-check-info { flex: 1; min-width: 0; }
+    .book-check-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--deep-plum);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .book-check-author {
+      font-size: 12px;
+      color: var(--terracotta);
+      margin-top: 2px;
+    }
+    .book-check-date {
+      font-size: 11px;
+      color: #BDB5CC;
+      margin-top: 2px;
+    }
+    .selection-note {
+      font-size: 12px;
+      color: #BDB5CC;
+      text-align: center;
+      margin-top: 8px;
+    }
+    .selection-note span {
+      font-weight: 700;
+      color: var(--amethyst);
+    }
+
+    /* ── Template picker ── */
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .template-thumb {
+      border-radius: 10px;
+      border: 2.5px solid var(--border);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+      aspect-ratio: 1;
+    }
+    .template-thumb:hover { transform: scale(1.03); }
+    .template-thumb.selected { border-color: var(--amethyst); }
+    .template-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .template-name {
+      font-size: 11px;
+      color: var(--terracotta);
+      text-align: center;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    /* ── Generate button ── */
+    .generate-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--amethyst);
+      color: #FAF6EE;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 1.25rem;
+    }
+    .generate-btn:hover { opacity: 0.88; }
+    .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .generate-btn .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .generate-btn.loading .spinner { display: block; }
+    .generate-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result ── */
+    #resultSection { display: none; }
+    .result-canvas-wrap {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    #resultCanvas {
+      width: 100%;
+      display: block;
+    }
+    .download-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--faded-moss);
+      color: #1A3D2E;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .download-btn:hover { opacity: 0.88; }
+    .regenerate-btn {
+      width: 100%;
+      padding: 11px;
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--terracotta);
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      padding: 2rem;
+      font-size: 14px;
+      color: var(--terracotta);
+    }
+    .error-banner {
+      background: #FDECEC;
+      border: 1px solid #F5C6C6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #922B21;
+      margin-top: 1rem;
+      display: none;
+    }
+    .error-banner.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-header">
+      <button class="back-btn" onclick="history.back()">←</button>
+      <h1 class="page-title">📸 Share My Reads</h1>
+    </div>
+
+    <!-- Step 1: Mode -->
+    <div class="step-card">
+      <div class="step-label">Step 1</div>
+      <div class="step-title">Which reads?</div>
+      <div class="mode-row">
+        <button class="mode-btn active" id="modeRolling" onclick="switchMode('rolling')">📅 Last 30 Days</button>
+        <button class="mode-btn" id="modeMonthly" onclick="switchMode('monthly')">📆 Last Full Month</button>
+      </div>
+      <div id="modeDesc" style="font-size:12px;color:var(--terracotta);margin-bottom:1rem;">
+        Books you completed in the past 30 days.
+      </div>
+
+      <!-- Book checklist -->
+      <div id="bookListWrap">
+        <div class="empty-msg">Loading your reads…</div>
+      </div>
+      <div class="selection-note" id="selectionNote"></div>
+    </div>
+
+    <!-- Step 2: Template -->
+    <div class="step-card">
+      <div class="step-label">Step 2</div>
+      <div class="step-title">Pick a template</div>
+      <div class="template-grid" id="templateGrid"></div>
+    </div>
+
+    <!-- Generate -->
+    <button class="generate-btn" id="generateBtn" onclick="generateGraphic()">
+      <div class="spinner"></div>
+      <span class="btn-text">✨ Generate Graphic</span>
+    </button>
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- Result -->
+    <div id="resultSection" class="step-card" style="margin-top:1.25rem;">
+      <div class="step-label">Your Graphic</div>
+      <div class="step-title" style="margin-bottom:0.75rem;">Ready to share!</div>
+      <div class="result-canvas-wrap">
+        <canvas id="resultCanvas" width="1080" height="1080"></canvas>
+      </div>
+      <button class="download-btn" onclick="downloadGraphic()">⬇️ Download PNG</button>
+      <button class="regenerate-btn" onclick="generateGraphic()">🔄 Try Another Template</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="common.js"></script>
+
+  <script>
+    // ── Template definitions ──────────────────────────────────
+    const TEMPLATES = [
+      {
+        id: "90s-reads",
+        name: "90s Vibes",
+        file: "templates/90s-reads.png",
+        slots: [
+          { x: 42,    y: 339.5, w: 217.5, h: 326.9 },
+          { x: 325.1, y: 339.5, w: 217.5, h: 326.9 },
+          { x: 608.2, y: 339.5, w: 217.5, h: 326.9 },
+          { x: 172.7, y: 727.2, w: 217.5, h: 326.9 },
+          { x: 451.3, y: 727.2, w: 217.5, h: 326.9 },
+          { x: 729.8, y: 727.2, w: 217.5, h: 326.9 }
+        ]
+      },
+      {
+        id: "adventures",
+        name: "Adventure Awaits",
+        file: "templates/adventures.png",
+        slots: [
+          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
+        ]
+      },
+      {
+        id: "summer-reads",
+        name: "Summer Reads",
+        file: "templates/summer-reads.png",
+        slots: [
+          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
+        ]
+      }
+    ];
+
+    // ── State ─────────────────────────────────────────────────
+    let mode           = "rolling"; // rolling | monthly
+    let allUserBooks   = [];
+    let filteredBooks  = [];
+    let selectedBooks  = new Set();
+    let selectedTemplate = TEMPLATES[0];
+
+    // ── Init ──────────────────────────────────────────────────
+    WR.initAuth(async (user) => {
+      if (!user) return;
+      await loadBooks();
+      buildTemplateGrid();
+
+      // Check URL param for mode
+      const params = new URLSearchParams(location.search);
+      if (params.get("mode") === "monthly") switchMode("monthly");
+    });
+
+    // ── Load books ────────────────────────────────────────────
+    async function loadBooks() {
+      const user = WR.getCurrentUser();
+      try {
+        const snap = await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").get();
+        allUserBooks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        filterBooks();
+      } catch (e) {
+        console.error("Load books error:", e);
+        document.getElementById("bookListWrap").innerHTML =
+          `<div class="empty-msg">Error loading books.</div>`;
+      }
+    }
+
+    function filterBooks() {
+      const now      = new Date();
+      let startDate;
+
+      if (mode === "rolling") {
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 30);
+        document.getElementById("modeDesc").textContent =
+          "Books you completed in the past 30 days.";
+      } else {
+        // Last full calendar month
+        const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        startDate = new Date(firstOfThisMonth);
+        startDate.setMonth(startDate.getMonth() - 1);
+        const lastMonth = startDate.toLocaleString("default", { month: "long", year: "numeric" });
+        document.getElementById("modeDesc").textContent =
+          `Books you completed in ${lastMonth}.`;
+      }
+
+      const startKey = startDate.toISOString().split("T")[0];
+      const endKey   = mode === "monthly"
+        ? new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0]
+        : now.toISOString().split("T")[0];
+
+      // Find books with completed sessions in the date range
+      filteredBooks = [];
+      allUserBooks.forEach(b => {
+        (b.readingSessions || []).forEach(s => {
+          if (s.completed && s.endDate && s.endDate >= startKey && s.endDate <= endKey) {
+            filteredBooks.push({ ...b, _endDate: s.endDate });
+          }
+        });
+      });
+
+      // Sort by most recently finished
+      filteredBooks.sort((a, b) => b._endDate.localeCompare(a._endDate));
+
+      // Auto-select up to 6
+      selectedBooks.clear();
+      filteredBooks.slice(0, 6).forEach(b => selectedBooks.add(b.id));
+
+      renderBookList();
+    }
+
+    function renderBookList() {
+      const wrap = document.getElementById("bookListWrap");
+
+      if (!filteredBooks.length) {
+        wrap.innerHTML = `<div class="empty-msg">No completed books found for this period.<br>Try switching to "Last 30 Days".</div>`;
+        updateSelectionNote();
+        return;
+      }
+
+      wrap.innerHTML = `<div class="book-list">
+        ${filteredBooks.map(b => {
+          const checked = selectedBooks.has(b.id);
+          const date    = b._endDate
+            ? new Date(b._endDate + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })
+            : "";
+          return `
+            <label class="book-check-item${checked ? " selected" : ""}" id="item-${b.id}">
+              <input type="checkbox" ${checked ? "checked" : ""}
+                onchange="toggleBook('${b.id}', this.checked)"
+                ${!checked && selectedBooks.size >= 6 ? "disabled" : ""}>
+              ${b.coverURL
+                ? `<img class="book-check-cover" src="${WR.escapeHTML(b.coverURL)}" alt="" crossorigin="anonymous">`
+                : `<div class="book-check-cover-ph">📖</div>`}
+              <div class="book-check-info">
+                <div class="book-check-title">${WR.escapeHTML(b.title || "")}</div>
+                <div class="book-check-author">${WR.escapeHTML(b.author || "")}</div>
+                ${date ? `<div class="book-check-date">Finished ${date}</div>` : ""}
+              </div>
+            </label>`;
+        }).join("")}
+      </div>`;
+
+      updateSelectionNote();
+    }
+
+    function toggleBook(bookId, checked) {
+      if (checked) {
+        if (selectedBooks.size >= 6) return;
+        selectedBooks.add(bookId);
+      } else {
+        selectedBooks.delete(bookId);
+      }
+
+      // Update item styling
+      const item = document.getElementById(`item-${bookId}`);
+      if (item) item.classList.toggle("selected", checked);
+
+      // Enable/disable unchecked boxes at the limit
+      document.querySelectorAll(".book-check-item input[type='checkbox']").forEach(cb => {
+        const id = cb.closest(".book-check-item")?.id?.replace("item-", "");
+        if (!selectedBooks.has(id)) {
+          cb.disabled = selectedBooks.size >= 6;
+        }
+      });
+
+      updateSelectionNote();
+    }
+
+    function updateSelectionNote() {
+      const note  = document.getElementById("selectionNote");
+      const count = selectedBooks.size;
+      if (count === 0) {
+        note.innerHTML = "Select books to include in your graphic.";
+      } else {
+        note.innerHTML = `<span>${count}</span> of 6 books selected`;
+      }
+    }
+
+    function switchMode(m) {
+      mode = m;
+      document.getElementById("modeRolling").classList.toggle("active", m === "rolling");
+      document.getElementById("modeMonthly").classList.toggle("active", m === "monthly");
+      filterBooks();
+    }
+
+    // ── Template grid ─────────────────────────────────────────
+    function buildTemplateGrid() {
+      const grid = document.getElementById("templateGrid");
+      grid.innerHTML = TEMPLATES.map(t => `
+        <div>
+          <div class="template-thumb${t.id === selectedTemplate.id ? " selected" : ""}"
+            id="tmpl-${t.id}" onclick="selectTemplate('${t.id}')">
+            <img src="${t.file}" alt="${t.name}" crossorigin="anonymous">
+          </div>
+          <div class="template-name">${t.name}</div>
+        </div>`).join("");
+    }
+
+    function selectTemplate(id) {
+      selectedTemplate = TEMPLATES.find(t => t.id === id) || TEMPLATES[0];
+      document.querySelectorAll(".template-thumb").forEach(el => el.classList.remove("selected"));
+      document.getElementById(`tmpl-${id}`)?.classList.add("selected");
+    }
+
+    // ── Generate graphic ──────────────────────────────────────
+    async function generateGraphic() {
+      const btn     = document.getElementById("generateBtn");
+      const errEl   = document.getElementById("errorBanner");
+      errEl.classList.remove("show");
+
+      const chosen = filteredBooks.filter(b => selectedBooks.has(b.id));
+      if (!chosen.length) {
+        errEl.textContent = "Please select at least one book.";
+        errEl.classList.add("show");
+        return;
+      }
+
+      btn.classList.add("loading");
+      btn.disabled = true;
+
+      try {
+        await compositeGraphic(chosen, selectedTemplate);
+        document.getElementById("resultSection").style.display = "block";
+        document.getElementById("resultSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (e) {
+        console.error("Generate error:", e);
+        errEl.textContent = "Something went wrong generating the graphic. Please try again.";
+        errEl.classList.add("show");
+      } finally {
+        btn.classList.remove("loading");
+        btn.disabled = false;
+      }
+    }
+
+    // ── Canvas compositing ────────────────────────────────────
+    async function compositeGraphic(books, template) {
+      const canvas  = document.getElementById("resultCanvas");
+      const ctx     = canvas.getContext("2d");
+      canvas.width  = 1080;
+      canvas.height = 1080;
+
+      // 1. Draw the template background
+      const bg = await loadImage(template.file);
+      ctx.drawImage(bg, 0, 0, 1080, 1080);
+
+      // 2. Draw each book cover into its slot
+      const slots = template.slots.slice(0, books.length);
+      await Promise.all(slots.map(async (slot, i) => {
+        const book = books[i];
+        if (!book) return;
+
+        if (book.coverURL) {
+          try {
+            const img = await loadImage(book.coverURL);
+            // Fill slot while maintaining aspect ratio (cover fit)
+            const { sx, sy, sw, sh } = coverFit(img.naturalWidth, img.naturalHeight, slot.w, slot.h);
+            ctx.drawImage(img, sx, sy, sw, sh, slot.x, slot.y, slot.w, slot.h);
+          } catch {
+            drawPlaceholder(ctx, slot);
+          }
+        } else {
+          drawPlaceholder(ctx, slot);
+        }
+      }));
+
+      // 3. If fewer than 6 books, leave remaining slots as-is (transparent over template)
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img  = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload  = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load: ${src}`));
+        // Cache bust for CORS
+        img.src = src + (src.includes("?") ? "&" : "?") + "cb=" + Date.now();
+      });
+    }
+
+    // Calculates source crop to fill dest slot (object-fit: cover)
+    function coverFit(imgW, imgH, destW, destH) {
+      const imgAR  = imgW / imgH;
+      const destAR = destW / destH;
+      let sx = 0, sy = 0, sw = imgW, sh = imgH;
+      if (imgAR > destAR) {
+        // Image wider than slot — crop sides
+        sw = imgH * destAR;
+        sx = (imgW - sw) / 2;
+      } else {
+        // Image taller than slot — crop top/bottom
+        sh = imgW / destAR;
+        sy = (imgH - sh) / 2;
+      }
+      return { sx, sy, sw, sh };
+    }
+
+    function drawPlaceholder(ctx, slot) {
+      ctx.fillStyle = "rgba(123, 94, 167, 0.15)";
+      ctx.beginPath();
+      ctx.roundRect(slot.x, slot.y, slot.w, slot.h, 8);
+      ctx.fill();
+      ctx.fillStyle = "rgba(123, 94, 167, 0.4)";
+      ctx.font = `${slot.h * 0.3}px serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("📖", slot.x + slot.w / 2, slot.y + slot.h / 2);
+    }
+
+    // ── Download ──────────────────────────────────────────────
+    function downloadGraphic() {
+      const canvas   = document.getElementById("resultCanvas");
+      const link     = document.createElement("a");
+      const now      = new Date();
+      const month    = now.toLocaleString("default", { month: "long" });
+      link.download  = `wellread-${month.toLowerCase()}-reads.png`;
+      link.href      = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    window.switchMode      = switchMode;
+    window.toggleBook      = toggleBook;
+    window.selectTemplate  = selectTemplate;
+    window.generateGraphic = generateGraphic;
+    window.downloadGraphic = downloadGraphic;
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+  </script>
+</body>
+</html>

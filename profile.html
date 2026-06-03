@@ -880,9 +880,12 @@
           <div style="font-size:11px;color:var(--terracotta);">
             ${pct >= 100 ? (booksThisMonth > goal.target ? "🏆 Goal surpassed!" : "🎉 Goal complete!") : `${pct}% complete`}
           </div>` : ""}
-          <div style="margin-top:10px;">
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
             <button onclick="openProfileGoalModal()" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 14px;border-radius:7px;border:none;background:var(--amethyst);color:#FAF6EE;cursor:pointer;">
               ${hasGoal ? "✏️ Edit Goal" : "🎯 Set Goal"}
+            </button>
+            <button onclick="location.href='share.html'" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--amethyst);cursor:pointer;">
+              📸 Share Reads
             </button>
           </div>
         </div>`;

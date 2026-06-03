@@ -701,9 +701,14 @@
         </div>
         <p class="goal-progress-label" id="goalLabel">No goal set yet</p>
       </div>
-      <button class="goal-set-btn" onclick="openGoalModal()">
-        <span id="goalBtnText">Set Goal</span>
-      </button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        <button class="goal-set-btn" onclick="openGoalModal()">
+          <span id="goalBtnText">Set Goal</span>
+        </button>
+        <button onclick="location.href='share.html'" style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--amethyst);cursor:pointer;white-space:nowrap;">
+          📸 Share Reads
+        </button>
+      </div>
     </div>
 
     <!-- Quick Stats -->
