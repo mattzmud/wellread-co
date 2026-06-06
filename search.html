@@ -670,6 +670,18 @@
     <div class="search-type-row">
       <button class="type-pill active" id="pill-text"  onclick="setSearchType('text')">📖 Title / Author</button>
       <button class="type-pill"        id="pill-isbn"  onclick="setSearchType('isbn')">🔢 ISBN</button>
+      <button class="type-pill"        id="pill-scan"  onclick="toggleScanMode()" title="For use with a USB barcode scanner"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:4px;"><rect x="1" y="3" width="2" height="18"/><rect x="5" y="3" width="1" height="18"/><rect x="8" y="3" width="2" height="18"/><rect x="12" y="3" width="1" height="18"/><rect x="15" y="3" width="3" height="18"/><rect x="20" y="3" width="1" height="18"/><rect x="22" y="3" width="2" height="18"/></svg> Scan Mode</button>
+    </div>
+
+    <!-- Scan Mode Banner -->
+    <div id="scanBanner" style="display:none;background:var(--deep-plum);color:#FAF6EE;border-radius:10px;padding:12px 16px;margin-bottom:1rem;align-items:center;gap:10px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;"><rect x="1" y="3" width="2" height="18"/><rect x="5" y="3" width="1" height="18"/><rect x="8" y="3" width="2" height="18"/><rect x="12" y="3" width="1" height="18"/><rect x="15" y="3" width="3" height="18"/><rect x="20" y="3" width="1" height="18"/><rect x="22" y="3" width="2" height="18"/></svg>
+      <div>
+        <div style="font-size:13px;font-weight:700;">Scan Mode Active</div>
+        <div style="font-size:12px;opacity:0.75;">Point your scanner at a book's barcode. Books are added to your library automatically.</div>
+        <div id="scanCount" style="font-size:12px;color:var(--faded-moss);margin-top:2px;display:none;"></div>
+      </div>
+      <button onclick="toggleScanMode()" style="margin-left:auto;font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.3);background:none;color:#FAF6EE;cursor:pointer;white-space:nowrap;">Exit</button>
     </div>
 
     <!-- Results Area -->
@@ -879,6 +891,17 @@
       if (e.key === "Enter") doSearch();
     }
 
+    // After a scan completes, clear the input and refocus for next scan
+    function afterScanComplete() {
+      if (!scanMode) return;
+      setTimeout(() => {
+        const input = document.getElementById("searchInput");
+        input.value = "";
+        document.getElementById("searchClear").classList.remove("show");
+        input.focus();
+      }, 300);
+    }
+
     function clearSearch() {
       document.getElementById("searchInput").value = "";
       document.getElementById("searchClear").classList.remove("show");
@@ -897,7 +920,6 @@
       setSearchLoading(true);
       showSkeleton();
       try {
-        // inauthor: is Google Books' special operator for author searches
         const results = await WR.searchGoogleBooks(`inauthor:${author}`);
         lastResults   = results;
         renderResults(results, author);
@@ -912,19 +934,100 @@
     async function doSearch() {
       const query = document.getElementById("searchInput").value.trim();
       if (!query) return;
-
       setSearchLoading(true);
       showSkeleton();
-
       try {
         const results = await WR.lookupBook(query, searchType);
         lastResults   = results;
+
+        // Scan mode + ISBN + exactly one result = auto-add to library
+        if (scanMode && searchType === "isbn" && results.length === 1) {
+          await autoAddFromScan(results[0]);
+          return;
+        }
+
         renderResults(results, query);
+        afterScanComplete();
       } catch (e) {
         console.error("Search error:", e);
         showError();
       } finally {
         setSearchLoading(false);
+      }
+    }
+
+    async function autoAddFromScan(book) {
+      try {
+        const bookId   = book.bookId || book.isbn13 || book.id;
+        const existing = userBooks[bookId] || {};
+
+        // Don't re-add if already in library
+        if (existing.inLibrary) {
+          WR.showToast(`"${book.title}" is already in your library.`, "error");
+          afterScanComplete();
+          return;
+        }
+
+        const flags = { inLibrary: true, onReadList: false, onTBR: false, onWishlist: false };
+        const success = await WR.addBookToUserCollection(book, flags);
+
+        if (success) {
+          userBooks[bookId] = { ...existing, ...flags };
+          scanCount++;
+          const countEl = document.getElementById("scanCount");
+          if (countEl) {
+            countEl.style.display = "block";
+            countEl.textContent   = `✓ ${scanCount} book${scanCount === 1 ? "" : "s"} added this session`;
+          }
+          WR.showToast(`📚 "${book.title}" added to your library!`, "success");
+        } else {
+          WR.showToast("Couldn't add book — please try again.", "error");
+        }
+      } catch (e) {
+        console.error("Auto-add error:", e);
+        WR.showToast("Error adding book.", "error");
+      } finally {
+        afterScanComplete();
+      }
+    }
+
+    let scanMode  = false;
+    let scanCount = 0;
+
+    function toggleScanMode() {
+      scanMode = !scanMode;
+      const banner  = document.getElementById("scanBanner");
+      const pill    = document.getElementById("pill-scan");
+
+      if (scanMode) {
+        // Activate scan mode
+        scanCount = 0;
+        banner.style.display = "flex";
+        pill.classList.add("active");
+        setSearchType("isbn");
+        // Keep the search input focused so scanner can type into it
+        const input = document.getElementById("searchInput");
+        input.value = "";
+        input.placeholder = "Ready to scan...";
+        input.focus();
+        // Prevent the input from losing focus while scan mode is active
+        input.addEventListener("blur", refocusForScan);
+      } else {
+        // Deactivate scan mode
+        banner.style.display = "none";
+        pill.classList.remove("active");
+        const input = document.getElementById("searchInput");
+        input.placeholder = "Enter ISBN number (e.g. 9780743273565)";
+        input.removeEventListener("blur", refocusForScan);
+      }
+    }
+
+    function refocusForScan() {
+      if (scanMode) {
+        // Small delay so clicks on buttons still register before we steal focus back
+        setTimeout(() => {
+          if (scanMode) document.getElementById("searchInput").focus();
+        }, 150);
       }
     }
 
@@ -1451,6 +1554,7 @@
     window.onSearchInput      = onSearchInput;
     window.onSearchKey        = onSearchKey;
     window.clearSearch        = clearSearch;
+    window.toggleScanMode      = toggleScanMode;
     window.doSearch           = doSearch;
     window.doAuthorSearch     = doAuthorSearch;
     window.openAddModal       = openAddModal;
