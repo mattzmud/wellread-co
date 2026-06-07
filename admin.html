@@ -319,7 +319,7 @@
         return;
       }
       await Promise.all([loadStats(), loadUsers(), loadNotifLedger()]);
-      initQuill();
+      try { initQuill(); } catch(e) { console.error("Quill init error:", e); }
     });
 
     // ── Stats ─────────────────────────────────────────────────
@@ -366,7 +366,9 @@
     }
 
     function applySort() {
-      const val   = document.getElementById("userSort").value;
+      const sortEl = document.getElementById("userSort");
+      if (!sortEl) { renderUsersTable(); return; }
+      const val   = sortEl.value;
       const [field, dir] = val.split("-");
 
       if (val === "suspended") {
