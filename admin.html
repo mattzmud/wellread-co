@@ -160,7 +160,7 @@
     .action-btn.success { border-color: #9DC4B0; color: #2E6B50; }
     .action-btn.success:hover { background: #DCF0E8; }
 
-    .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(45,27,78,0.6); z-index: 600; align-items: center; justify-content: center; }
+    .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(45,27,78,0.6); z-index: 9999; align-items: center; justify-content: center; }
     .confirm-overlay.open { display: flex; }
     .confirm-box { background: var(--aged-paper); border-radius: 16px; padding: 1.5rem; width: min(400px, 94vw); box-shadow: 0 8px 32px rgba(45,27,78,0.22); }
     .confirm-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--deep-plum); margin-bottom: 0.5rem; }
@@ -320,6 +320,21 @@
       }
       await Promise.all([loadStats(), loadUsers(), loadNotifLedger()]);
       try { initQuill(); } catch(e) { console.error("Quill init error:", e); }
+
+      // Belt-and-suspenders: attach confirm button listener directly
+      // in case inline onclick can't reach proceedConfirm
+      const confirmBtn = document.getElementById("confirmProceedBtn");
+      if (confirmBtn) {
+        confirmBtn.addEventListener("click", async () => {
+          console.log("Confirm button clicked via event listener, confirmAction:", !!confirmAction);
+          document.getElementById("confirmOverlay").classList.remove("open");
+          if (confirmAction) {
+            const fn = confirmAction;
+            confirmAction = null;
+            await fn();
+          }
+        });
+      }
     });
 
     // ── Stats ─────────────────────────────────────────────────
