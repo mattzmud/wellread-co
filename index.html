@@ -1188,11 +1188,43 @@
       area.innerHTML = `<div class="events-list">${upcomingEvents.map(ev => buildEventCard(ev)).join("")}</div>`;
     }
 
+    function to12h(time24) {
+      if (!time24) return "";
+      const [h, m] = time24.split(":").map(Number);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12  = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    }
+
+    function tzAbbr(tz) {
+      const map = {
+        "America/New_York":    "ET",
+        "America/Chicago":     "CT",
+        "America/Denver":      "MT",
+        "America/Los_Angeles": "PT",
+        "America/Anchorage":   "AKT",
+        "Pacific/Honolulu":    "HT",
+        "Europe/London":       "GMT",
+        "Europe/Paris":        "CET",
+        "Asia/Tokyo":          "JST",
+        "Australia/Sydney":    "AEST",
+        "UTC":                 "UTC"
+      };
+      return map[tz] || "";
+    }
+
     function buildEventCard(ev) {
       const date  = ev.date ? new Date(ev.date + "T00:00:00") : null;
       const month = date ? date.toLocaleString("default", { month: "short" }).toUpperCase() : "";
       const day   = date ? date.getDate() : "?";
-      const time  = ev.startTime ? ev.startTime : "";
+
+      // Format time in 12h with timezone
+      let timeStr = "";
+      if (ev.startTime) {
+        timeStr = to12h(ev.startTime);
+        if (ev.endTime) timeStr += ` – ${to12h(ev.endTime)}`;
+        if (ev.timezone) timeStr += ` ${tzAbbr(ev.timezone)}`;
+      }
 
       const userRsvp = getUserRsvp(ev);
       const rsvpClass = userRsvp === "yes"   ? "rsvp-yes" :
@@ -1211,7 +1243,7 @@
           <div class="event-info">
             <div class="event-name">${WR.escapeHTML(ev.name || "Club Event")}</div>
             <div class="event-club">${WR.escapeHTML(ev.clubName || "")}</div>
-            ${time ? `<div class="event-time">${WR.escapeHTML(time)}</div>` : ""}
+            ${timeStr ? `<div class="event-time">${WR.escapeHTML(timeStr)}</div>` : ""}
           </div>
           <button class="event-rsvp ${rsvpClass}"
                   onclick="event.preventDefault();event.stopPropagation();handleRSVP('${ev.clubId}','${ev.id}')">
