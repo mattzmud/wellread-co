@@ -816,6 +816,8 @@
     async function sendAppNotification() {
       const { title, body, bodyHTML, inApp, email } = getNotifFields();
 
+      console.log("sendAppNotification called:", { title, bodyLen: body.length, inApp, email, allUsersCount: allUsers.length });
+
       if (!title || !body) {
         WR.showToast("Please enter a title and body.", "error");
         return;
@@ -826,6 +828,13 @@
       }
 
       const userCount = allUsers.length;
+
+      if (userCount === 0) {
+        WR.showToast("No users loaded yet — please wait a moment and try again.", "error");
+        console.error("allUsers is empty — loadUsers may have failed");
+        return;
+      }
+
       showConfirm(
         "Send to All Users",
         `Send "${title}" to all ${userCount} users?${email ? " Includes email." : ""}`,
@@ -835,7 +844,10 @@
           const btn = document.getElementById("sendNotifBtn");
           btn.classList.add("loading"); btn.disabled = true;
           try {
+            console.log("Starting broadcast to", userCount, "users");
+
             // 1. Save to appNotifications ledger
+            console.log("Writing to ledger...");
             await WR.getDb().collection("appNotifications").add({
               title,
               body,
@@ -845,9 +857,11 @@
               sentAt:    firebase.firestore.FieldValue.serverTimestamp(),
               sentByUid: WR.getCurrentUser().uid
             });
+            console.log("Ledger written ✓");
 
             // 2. Send in-app notifications via Firestore batch
             if (inApp) {
+              console.log("Sending in-app notifications...");
               const batchSize = 400;
               for (let i = 0; i < allUsers.length; i += batchSize) {
                 const batch = WR.getDb().batch();
@@ -863,11 +877,13 @@
                   });
                 });
                 await batch.commit();
+                console.log(`Batch ${i / batchSize + 1} committed ✓`);
               }
             }
 
             // 3. Send broadcast emails via Worker
             if (email) {
+              console.log("Sending broadcast emails...");
               const emailUsers = allUsers
                 .filter(u => u.email && !u.suspended)
                 .map(u => ({ email: u.email, displayName: u.displayName || "reader" }));
@@ -876,8 +892,8 @@
                 const result = await WR.callWorker("send_broadcast_emails", {
                   title, body, users: emailUsers
                 });
+                console.log("Broadcast email result:", result);
                 if (!result?.success) {
-                  console.error("Broadcast email result:", result);
                   WR.showToast(`In-app sent. Email had issues: ${result?.error || "check logs"}`, "error");
                   return;
                 }
@@ -886,7 +902,7 @@
 
             clearNotifForm();
             WR.showToast(`Sent to ${userCount} users! 📢`, "success");
-            loadNotifLedger(); // Refresh ledger
+            loadNotifLedger();
           } catch (e) {
             console.error("Broadcast error:", e);
             WR.showToast("Error sending notification: " + e.message, "error");
