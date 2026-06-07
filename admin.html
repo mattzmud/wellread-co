@@ -326,13 +326,10 @@
       const confirmBtn = document.getElementById("confirmProceedBtn");
       if (confirmBtn) {
         confirmBtn.addEventListener("click", async () => {
-          console.log("Confirm button clicked via event listener, confirmAction:", !!confirmAction);
+          const action = confirmAction;
           document.getElementById("confirmOverlay").classList.remove("open");
-          if (confirmAction) {
-            const fn = confirmAction;
-            confirmAction = null;
-            await fn();
-          }
+          confirmAction = null;
+          if (action) await action();
         });
       }
     });
@@ -993,8 +990,9 @@
     }
 
     async function proceedConfirm() {
+      const action = confirmAction; // save before closeConfirm nulls it
       closeConfirm();
-      if (confirmAction) await confirmAction();
+      if (action) await action();
     }
 
     window.filterUsers         = filterUsers;
