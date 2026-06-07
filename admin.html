@@ -345,11 +345,10 @@
         const snap = await WR.getDb().collection("users").orderBy("joinedAt", "desc").limit(200).get();
         allUsers     = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
         displayUsers = [...allUsers];
-        renderUsersTable();
+        // Only render table if the element exists (it's inside the detail view)
+        if (document.getElementById("usersTableWrap")) renderUsersTable();
       } catch (e) {
         console.error("Load users error:", e);
-        document.getElementById("usersTableWrap").innerHTML =
-          `<p style="padding:2rem;text-align:center;color:var(--terracotta);">Error loading users.</p>`;
       }
     }
 
@@ -742,12 +741,17 @@
 
     // ── Notification Helpers ──────────────────────────────────
     function getNotifFields() {
-      const title   = document.getElementById("notifTitle").value.trim();
-      const body    = quillEditor ? quillEditor.getText().trim() : "";
+      const title    = document.getElementById("notifTitle").value.trim();
+      // Quill getText() always includes a trailing \n — trim it
+      // Also check if the editor only contains whitespace/newlines
+      const rawText  = quillEditor ? quillEditor.getText() : "";
+      const body     = rawText.replace(/\n+$/, "").trim();
       const bodyHTML = quillEditor ? quillEditor.root.innerHTML.trim() : "";
-      const inApp   = document.getElementById("notifInApp").checked;
-      const email   = document.getElementById("notifEmail").checked;
-      return { title, body, bodyHTML, inApp, email };
+      // If Quill only has the default empty paragraph, treat as empty
+      const isEmptyHTML = bodyHTML === "<p><br></p>" || bodyHTML === "";
+      const inApp    = document.getElementById("notifInApp").checked;
+      const email    = document.getElementById("notifEmail").checked;
+      return { title, body: isEmptyHTML ? "" : body, bodyHTML: isEmptyHTML ? "" : bodyHTML, inApp, email };
     }
 
     function clearNotifForm() {
