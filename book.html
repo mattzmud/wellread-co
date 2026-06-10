@@ -868,6 +868,7 @@
 
         if (userBook.readingSessions?.length > 0) {
           html += `<button class="action-btn btn-read" onclick="openReadModal()">📖 Update Reading</button>`;
+          html += `<button class="action-btn btn-remove" onclick="removeFromReadList()">✕ Remove from Read List</button>`;
         } else {
           html += `<button class="action-btn btn-read" onclick="openReadModal()">📖 Log Reading</button>`;
         }
@@ -1031,6 +1032,35 @@
     }
 
     // ── Remove From Library ───────────────────────────────────
+    async function removeFromReadList() {
+      if (!confirm("Remove this book from your reading log? This will delete your reading sessions and review for this book.")) return;
+      const user   = WR.getCurrentUser();
+      const bookId = book.bookId || book.isbn13 || book.id;
+      try {
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .set({
+            readingSessions: [],
+            onReadList:      false,
+            updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+
+        if (userBook) {
+          userBook.readingSessions = [];
+          userBook.onReadList      = false;
+        }
+
+        // Re-render the page sections that changed
+        document.querySelector(".action-buttons").innerHTML = buildActionButtons();
+        document.getElementById("my-notes-section").innerHTML = renderMyNotes();
+        WR.showToast("Removed from reading log.", "success");
+      } catch (e) {
+        console.error("Remove from read list error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
+    }
+
     async function removeFromLibrary() {
       if (!confirm("Remove this book from your library? Your reading history and reviews will be kept.")) return;
       const user   = WR.getCurrentUser();
@@ -1423,7 +1453,8 @@
     window.openQuickAdd    = openQuickAdd;
     window.saveMyReview    = saveMyReview;
     window.editMyReview    = editMyReview;
-    window.removeFromLibrary = removeFromLibrary;
+    window.removeFromReadList = removeFromReadList;
+    window.removeFromLibrary  = removeFromLibrary;
     window.openReadModal   = openReadModal;
     window.closeReadModal = closeReadModal;
     window.selectFormat   = selectFormat;
