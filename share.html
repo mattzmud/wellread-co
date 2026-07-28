@@ -541,7 +541,7 @@
               <input type="checkbox" ${checked ? "checked" : ""}
                 onchange="toggleBook('${b.id}', this.checked)">
               ${b.coverURL
-                ? `<img class="book-check-cover" src="${WR.escapeHTML(b.coverURL)}" alt="" crossorigin="anonymous">`
+                ? `<img class="book-check-cover" src="${WR.escapeHTML(b.coverURL)}" alt="">`
                 : `<div class="book-check-cover-ph">📖</div>`}
               <div class="book-check-info">
                 <div class="book-check-title">${WR.escapeHTML(b.title || "")}</div>
