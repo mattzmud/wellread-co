@@ -660,8 +660,8 @@
               : `<div class="profile-photo-placeholder">👤</div>`}
           </div>
           <div class="profile-info">
-            <h1 class="profile-display-name">${WR.escapeHTML(profileData.displayName || "")}</h1>
-            <p class="profile-handle">${WR.escapeHTML(profileData.firstName || "")} ${WR.escapeHTML(profileData.lastName || "")}</p>
+            <h1 class="profile-display-name">${WR.escapeHTML((profileData.firstName || "") + " " + (profileData.lastName || "")).trim() || WR.escapeHTML(profileData.displayName || "")}</h1>
+            <p class="profile-handle">${WR.escapeHTML(profileData.displayName || "")}</p>
             ${joinedDate ? `<span class="wellread-since">📖 WellRead since ${joinedDate}</span>` : ""}
             ${profileData.bio ? `<p class="profile-bio">${WR.escapeHTML(profileData.bio)}</p>` : ""}
             ${buildSocialLinks()}
@@ -673,23 +673,23 @@
 
         <!-- Quick Stats -->
         <div class="stats-row">
-          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html'" : ""}">
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html'" : "scrollToSection('library')"}" style="cursor:pointer;">
             <span class="stat-num">${libraryBooks.length}</span>
             <span class="stat-label">Books in Library</span>
           </div>
-          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html?tab=readlist'" : ""}">
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html?tab=readlist'" : "scrollToSection('library')"}" style="cursor:pointer;">
             <span class="stat-num">${readBooks.length}</span>
             <span class="stat-label">Lifetime Reads</span>
           </div>
-          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html?tab=wishlist'" : ""}">
+          <div class="stat-card" onclick="${isOwnProfile ? "location.href='library.html?tab=wishlist'" : "scrollToSection('library')"}" style="cursor:pointer;">
             <span class="stat-num">${wishlistBooks.length}</span>
             <span class="stat-label">Wishlist</span>
           </div>
-          <div class="stat-card">
+          <div class="stat-card" onclick="scrollToSection('clubs')" style="cursor:pointer;">
             <span class="stat-num">${userClubs.length}</span>
             <span class="stat-label">Book Clubs</span>
           </div>
-          <div class="stat-card">
+          <div class="stat-card" onclick="scrollToSection('friends')" style="cursor:pointer;">
             <span class="stat-num" data-stat="friends">${(profileData.friendsList || []).length}</span>
             <span class="stat-label">Friends</span>
           </div>
@@ -1341,7 +1341,19 @@
       }
     }
 
-    window.toggleSection        = toggleSection;
+    function scrollToSection(id) {
+      // Open the section if collapsed, then scroll to it
+      const body   = document.getElementById(id + "-body");
+      const toggle = body?.previousElementSibling;
+      if (body && !body.classList.contains("open")) {
+        body.classList.add("open");
+        if (toggle) toggle.classList.add("open");
+      }
+      const section = body?.closest(".profile-section");
+      if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.scrollToSection    = scrollToSection;
     window.sendFriendRequest    = sendFriendRequest;
     window.addFriendFromList    = addFriendFromList;
     window.openProfileGoalModal  = openProfileGoalModal;
