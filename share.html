@@ -316,8 +316,9 @@
       <div class="step-label">Step 1</div>
       <div class="step-title">Which reads?</div>
       <div class="mode-row">
-        <button class="mode-btn active" id="modeRolling" onclick="switchMode('rolling')">📅 Last 30 Days</button>
-        <button class="mode-btn" id="modeMonthly" onclick="switchMode('monthly')">📆 Last Full Month</button>
+        <button class="mode-btn active" id="modeThisMonth" onclick="switchMode('thisMonth')">📅 This Month</button>
+        <button class="mode-btn" id="modeRolling"   onclick="switchMode('rolling')">🗓 Last 30 Days</button>
+        <button class="mode-btn" id="modeMonthly"   onclick="switchMode('monthly')">📆 Last Full Month</button>
       </div>
       <div id="modeDesc" style="font-size:12px;color:var(--terracotta);margin-bottom:1rem;">
         Books you completed in the past 30 days.
@@ -364,7 +365,28 @@
 
   <script>
     // ── Template definitions ──────────────────────────────────
+    const DEFAULT_TEMPLATE = {
+      id: "default",
+      name: "My Reads",
+      file: null, // drawn on canvas — no external file
+      slots: [] // filled dynamically based on book count
+    };
+
     const TEMPLATES = [
+      DEFAULT_TEMPLATE,
+      {
+        id: "90s-reads",
+        name: "90s Vibes",
+        file: "templates/90s-reads.png",
+        slots: [
+          { x: 42,    y: 339.5, w: 217.5, h: 326.9 },
+          { x: 325.1, y: 339.5, w: 217.5, h: 326.9 },
+          { x: 608.2, y: 339.5, w: 217.5, h: 326.9 },
+          { x: 172.7, y: 727.2, w: 217.5, h: 326.9 },
+          { x: 451.3, y: 727.2, w: 217.5, h: 326.9 },
+          { x: 729.8, y: 727.2, w: 217.5, h: 326.9 }
+        ]
+      },
       {
         id: "adventures",
         name: "Adventure Awaits",
@@ -390,41 +412,15 @@
           { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
           { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
         ]
-      },
-      {
-        id: "beach-day",
-        name: "Beach Day",
-        file: "templates/july-beach.png",
-        slots: [
-          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
-        ]
-      },
-      {
-        id: "july-doodle",
-        name: "July Doodle",
-        file: "templates/july-reads.png",
-        slots: [
-          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
-        ]
       }
     ];
 
     // ── State ─────────────────────────────────────────────────
-    let mode           = "rolling"; // rolling | monthly
-    let allUserBooks   = [];
-    let filteredBooks  = [];
-    let selectedBooks  = new Set();
-    let selectedTemplate = TEMPLATES[0];
+    let mode             = "thisMonth";
+    let allUserBooks     = [];
+    let filteredBooks    = [];
+    let selectedBooks    = new Set();
+    let selectedTemplate = TEMPLATES[0]; // default template
 
     // ── Init ──────────────────────────────────────────────────
     WR.initAuth(async (user) => {
@@ -432,9 +428,10 @@
       await loadBooks();
       buildTemplateGrid();
 
-      // Check URL param for mode
       const params = new URLSearchParams(location.search);
       if (params.get("mode") === "monthly") switchMode("monthly");
+      else if (params.get("mode") === "rolling") switchMode("rolling");
+      // default is thisMonth
     });
 
     // ── Load books ────────────────────────────────────────────
@@ -454,54 +451,68 @@
     }
 
     function filterBooks() {
-      const now      = new Date();
-      let startDate;
+      const now = new Date();
+      let startKey, endKey;
 
-      if (mode === "rolling") {
-        startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 30);
+      if (mode === "thisMonth") {
+        // Current calendar month
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        startKey = `${y}-${m}-01`;
+        endKey   = now.toISOString().split("T")[0];
+        const monthName = now.toLocaleString("default", { month: "long" });
+        document.getElementById("modeDesc").textContent =
+          `Books you completed in ${monthName} ${y}.`;
+      } else if (mode === "rolling") {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 30);
+        startKey = start.toISOString().split("T")[0];
+        endKey   = now.toISOString().split("T")[0];
         document.getElementById("modeDesc").textContent =
           "Books you completed in the past 30 days.";
       } else {
         // Last full calendar month
         const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        startDate = new Date(firstOfThisMonth);
-        startDate.setMonth(startDate.getMonth() - 1);
-        const lastMonth = startDate.toLocaleString("default", { month: "long", year: "numeric" });
+        const lastMonth        = new Date(firstOfThisMonth);
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        const endOfLastMonth   = new Date(firstOfThisMonth);
+        endOfLastMonth.setDate(endOfLastMonth.getDate() - 1);
+        startKey = lastMonth.toISOString().split("T")[0].slice(0, 7) + "-01";
+        endKey   = endOfLastMonth.toISOString().split("T")[0];
+        const label = lastMonth.toLocaleString("default", { month: "long", year: "numeric" });
         document.getElementById("modeDesc").textContent =
-          `Books you completed in ${lastMonth}.`;
+          `Books you completed in ${label}.`;
       }
 
-      const startKey = startDate.toISOString().split("T")[0];
-      const endKey   = mode === "monthly"
-        ? new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0]
-        : now.toISOString().split("T")[0];
-
-      // Find books with completed sessions in the date range
       filteredBooks = [];
       allUserBooks.forEach(b => {
         (b.readingSessions || []).forEach(s => {
           if (s.completed && s.endDate && s.endDate >= startKey && s.endDate <= endKey) {
             filteredBooks.push({ ...b, _endDate: s.endDate });
           }
+          // Also include completedWithoutDate books for thisMonth tab
+          if (s.completedWithoutDate && mode === "thisMonth") {
+            if (!filteredBooks.find(f => f.id === b.id)) {
+              filteredBooks.push({ ...b, _endDate: null });
+            }
+          }
         });
       });
 
-      // Sort by most recently finished
-      filteredBooks.sort((a, b) => b._endDate.localeCompare(a._endDate));
+      filteredBooks.sort((a, b) => (b._endDate || "").localeCompare(a._endDate || ""));
 
-      // Auto-select up to 6
       selectedBooks.clear();
       filteredBooks.slice(0, 6).forEach(b => selectedBooks.add(b.id));
 
       renderBookList();
+      updateTemplateAvailability();
     }
 
     function renderBookList() {
       const wrap = document.getElementById("bookListWrap");
 
       if (!filteredBooks.length) {
-        wrap.innerHTML = `<div class="empty-msg">No completed books found for this period.<br>Try switching to "Last 30 Days".</div>`;
+        wrap.innerHTML = `<div class="empty-msg">No completed books found for this period.<br>Try a different time range.</div>`;
         updateSelectionNote();
         return;
       }
@@ -515,8 +526,7 @@
           return `
             <label class="book-check-item${checked ? " selected" : ""}" id="item-${b.id}">
               <input type="checkbox" ${checked ? "checked" : ""}
-                onchange="toggleBook('${b.id}', this.checked)"
-                ${!checked && selectedBooks.size >= 6 ? "disabled" : ""}>
+                onchange="toggleBook('${b.id}', this.checked)">
               ${b.coverURL
                 ? `<img class="book-check-cover" src="${WR.escapeHTML(b.coverURL)}" alt="" crossorigin="anonymous">`
                 : `<div class="book-check-cover-ph">📖</div>`}
@@ -534,25 +544,16 @@
 
     function toggleBook(bookId, checked) {
       if (checked) {
-        if (selectedBooks.size >= 6) return;
         selectedBooks.add(bookId);
       } else {
         selectedBooks.delete(bookId);
       }
 
-      // Update item styling
       const item = document.getElementById(`item-${bookId}`);
       if (item) item.classList.toggle("selected", checked);
 
-      // Enable/disable unchecked boxes at the limit
-      document.querySelectorAll(".book-check-item input[type='checkbox']").forEach(cb => {
-        const id = cb.closest(".book-check-item")?.id?.replace("item-", "");
-        if (!selectedBooks.has(id)) {
-          cb.disabled = selectedBooks.size >= 6;
-        }
-      });
-
       updateSelectionNote();
+      updateTemplateAvailability();
     }
 
     function updateSelectionNote() {
@@ -560,15 +561,43 @@
       const count = selectedBooks.size;
       if (count === 0) {
         note.innerHTML = "Select books to include in your graphic.";
+      } else if (count > 6) {
+        note.innerHTML = `<span>${count}</span> books selected — using the <strong>My Reads</strong> default template`;
       } else {
-        note.innerHTML = `<span>${count}</span> of 6 books selected`;
+        note.innerHTML = `<span>${count}</span> book${count === 1 ? "" : "s"} selected`;
+      }
+    }
+
+    // ── Template availability ─────────────────────────────────
+    function updateTemplateAvailability() {
+      const count   = selectedBooks.size;
+      const tooMany = count > 6;
+
+      TEMPLATES.forEach(t => {
+        const el = document.getElementById(`tmpl-${t.id}`);
+        if (!el) return;
+        if (tooMany && t.id !== "default") {
+          el.style.opacity = "0.35";
+          el.style.cursor  = "not-allowed";
+          el.title         = "Select 6 or fewer books to use this template";
+        } else {
+          el.style.opacity = "1";
+          el.style.cursor  = "pointer";
+          el.title         = "";
+        }
+      });
+
+      // Auto-switch to default if over 6
+      if (tooMany && selectedTemplate.id !== "default") {
+        selectTemplate("default");
       }
     }
 
     function switchMode(m) {
       mode = m;
-      document.getElementById("modeRolling").classList.toggle("active", m === "rolling");
-      document.getElementById("modeMonthly").classList.toggle("active", m === "monthly");
+      document.getElementById("modeThisMonth").classList.toggle("active", m === "thisMonth");
+      document.getElementById("modeRolling").classList.toggle("active",   m === "rolling");
+      document.getElementById("modeMonthly").classList.toggle("active",   m === "monthly");
       filterBooks();
     }
 
@@ -579,13 +608,23 @@
         <div>
           <div class="template-thumb${t.id === selectedTemplate.id ? " selected" : ""}"
             id="tmpl-${t.id}" onclick="selectTemplate('${t.id}')">
-            <img src="${t.file}" alt="${t.name}" crossorigin="anonymous">
+            ${t.id === "default"
+              ? `<div style="width:100%;height:100%;background:linear-gradient(135deg,#2D1B4E 0%,#7B5EA7 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+                  <span style="font-size:24px;">📚</span>
+                  <span style="font-family:'Playfair Display',serif;font-size:11px;color:#FAF6EE;font-weight:600;text-align:center;line-height:1.2;">My<br>Reads</span>
+                  <span style="font-size:9px;color:rgba(247,243,255,0.6);text-align:center;">Unlimited books</span>
+                </div>`
+              : `<img src="${t.file}" alt="${t.name}" crossorigin="anonymous">`}
           </div>
           <div class="template-name">${t.name}</div>
         </div>`).join("");
     }
 
     function selectTemplate(id) {
+      const count   = selectedBooks.size;
+      const tooMany = count > 6;
+      if (tooMany && id !== "default") return; // blocked
+
       selectedTemplate = TEMPLATES.find(t => t.id === id) || TEMPLATES[0];
       document.querySelectorAll(".template-thumb").forEach(el => el.classList.remove("selected"));
       document.getElementById(`tmpl-${id}`)?.classList.add("selected");
@@ -593,8 +632,8 @@
 
     // ── Generate graphic ──────────────────────────────────────
     async function generateGraphic() {
-      const btn     = document.getElementById("generateBtn");
-      const errEl   = document.getElementById("errorBanner");
+      const btn   = document.getElementById("generateBtn");
+      const errEl = document.getElementById("errorBanner");
       errEl.classList.remove("show");
 
       const chosen = filteredBooks.filter(b => selectedBooks.has(b.id));
@@ -608,7 +647,11 @@
       btn.disabled = true;
 
       try {
-        await compositeGraphic(chosen, selectedTemplate);
+        if (selectedTemplate.id === "default" || chosen.length > 6) {
+          await compositeDefault(chosen);
+        } else {
+          await compositeGraphic(chosen, selectedTemplate);
+        }
         document.getElementById("resultSection").style.display = "block";
         document.getElementById("resultSection").scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {
@@ -621,26 +664,123 @@
       }
     }
 
-    // ── Canvas compositing ────────────────────────────────────
+    // ── Default template compositor ───────────────────────────
+    async function compositeDefault(books) {
+      const canvas  = document.getElementById("resultCanvas");
+      const ctx     = canvas.getContext("2d");
+      canvas.width  = 1080;
+      canvas.height = 1080;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+      grad.addColorStop(0, "#2D1B4E");
+      grad.addColorStop(1, "#4A2D7A");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1080);
+
+      // Subtle pattern overlay — dots
+      ctx.fillStyle = "rgba(123, 94, 167, 0.15)";
+      for (let x = 0; x < 1080; x += 60) {
+        for (let y = 0; y < 1080; y += 60) {
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Title
+      ctx.fillStyle = "#FAF6EE";
+      ctx.font      = "bold 72px serif";
+      ctx.textAlign = "center";
+      ctx.fillText("My Reads", 540, 110);
+
+      // Subtitle line
+      ctx.fillStyle = "rgba(247,243,255,0.55)";
+      ctx.font      = "36px serif";
+      ctx.fillText("wellreadco.app", 540, 1040);
+
+      // Calculate grid layout
+      const count   = books.length;
+      const cols    = count <= 3 ? count : count <= 6 ? 3 : count <= 9 ? 3 : 4;
+      const rows    = Math.ceil(count / cols);
+      const padding = 60;
+      const gap     = 20;
+      const areaW   = 1080 - padding * 2;
+      const areaH   = 1080 - 160; // leave room for title and footer
+      const coverW  = Math.floor((areaW - gap * (cols - 1)) / cols);
+      const coverH  = Math.floor(coverW * 1.5); // 2:3 aspect ratio
+      const totalH  = coverH * rows + gap * (rows - 1);
+      const startX  = padding;
+      const startY  = 140 + Math.max(0, (areaH - totalH) / 2);
+
+      // Draw each cover
+      await Promise.all(books.map(async (book, i) => {
+        const col  = i % cols;
+        const row  = Math.floor(i / cols);
+        const x    = startX + col * (coverW + gap);
+        const y    = startY + row * (coverH + gap);
+
+        if (book.coverURL) {
+          try {
+            const img = await loadImage(book.coverURL, true);
+            const { sx, sy, sw, sh } = coverFit(img.naturalWidth, img.naturalHeight, coverW, coverH);
+            // Rounded clip
+            ctx.save();
+            roundRect(ctx, x, y, coverW, coverH, 8);
+            ctx.clip();
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, coverW, coverH);
+            ctx.restore();
+            // Shadow
+            ctx.save();
+            ctx.shadowColor = "rgba(0,0,0,0.4)";
+            ctx.shadowBlur  = 12;
+            ctx.shadowOffsetY = 4;
+            roundRect(ctx, x, y, coverW, coverH, 8);
+            ctx.strokeStyle = "rgba(255,255,255,0.1)";
+            ctx.lineWidth   = 1;
+            ctx.stroke();
+            ctx.restore();
+          } catch (e) {
+            console.warn("Cover failed:", book.coverURL, e);
+            drawPlaceholder(ctx, { x, y, w: coverW, h: coverH });
+          }
+        } else {
+          drawPlaceholder(ctx, { x, y, w: coverW, h: coverH });
+        }
+      }));
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // ── Canvas compositing (Canva templates) ──────────────────
     async function compositeGraphic(books, template) {
       const canvas  = document.getElementById("resultCanvas");
       const ctx     = canvas.getContext("2d");
       canvas.width  = 1080;
       canvas.height = 1080;
 
-      // 1. Draw the template background (same origin — no proxy needed)
       const bg = await loadImage(template.file, false);
       ctx.drawImage(bg, 0, 0, 1080, 1080);
 
-      // 2. Draw each book cover into its slot (proxied through Worker for CORS)
       const slots = template.slots.slice(0, books.length);
       await Promise.all(slots.map(async (slot, i) => {
         const book = books[i];
         if (!book) return;
-
         if (book.coverURL) {
           try {
-            const img = await loadImage(book.coverURL, true); // proxy=true
+            const img = await loadImage(book.coverURL, true);
             const { sx, sy, sw, sh } = coverFit(img.naturalWidth, img.naturalHeight, slot.w, slot.h);
             ctx.drawImage(img, sx, sy, sw, sh, slot.x, slot.y, slot.w, slot.h);
           } catch (e) {
@@ -651,8 +791,6 @@
           drawPlaceholder(ctx, slot);
         }
       }));
-
-      // 3. If fewer than 6 books, leave remaining slots as-is (transparent over template)
     }
 
     function loadImage(src, proxy = false) {
@@ -660,35 +798,37 @@
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload  = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed: ${src}`));
+        img.onerror = (e) => reject(new Error(`Failed: ${src}`));
 
         if (proxy) {
-          // Fetch via Worker to bypass CORS
           fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "proxy_image", url: src })
           })
-            .then(r => r.blob())
+            .then(r => {
+              if (!r.ok) throw new Error(`Worker returned ${r.status}`);
+              return r.blob();
+            })
             .then(blob => { img.src = URL.createObjectURL(blob); })
-            .catch(reject);
+            .catch(err => {
+              console.error("Proxy failed for", src, err);
+              reject(err);
+            });
         } else {
           img.src = src;
         }
       });
     }
 
-    // Calculates source crop to fill dest slot (object-fit: cover)
     function coverFit(imgW, imgH, destW, destH) {
       const imgAR  = imgW / imgH;
       const destAR = destW / destH;
       let sx = 0, sy = 0, sw = imgW, sh = imgH;
       if (imgAR > destAR) {
-        // Image wider than slot — crop sides
         sw = imgH * destAR;
         sx = (imgW - sw) / 2;
       } else {
-        // Image taller than slot — crop top/bottom
         sh = imgW / destAR;
         sy = (imgH - sh) / 2;
       }
@@ -696,12 +836,11 @@
     }
 
     function drawPlaceholder(ctx, slot) {
-      ctx.fillStyle = "rgba(123, 94, 167, 0.15)";
-      ctx.beginPath();
-      ctx.roundRect(slot.x, slot.y, slot.w, slot.h, 8);
+      ctx.fillStyle = "rgba(123, 94, 167, 0.2)";
+      roundRect(ctx, slot.x, slot.y, slot.w, slot.h, 8);
       ctx.fill();
-      ctx.fillStyle = "rgba(123, 94, 167, 0.4)";
-      ctx.font = `${slot.h * 0.3}px serif`;
+      ctx.fillStyle = "rgba(247,243,255,0.4)";
+      ctx.font      = `${slot.h * 0.25}px serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("📖", slot.x + slot.w / 2, slot.y + slot.h / 2);
@@ -709,12 +848,12 @@
 
     // ── Download ──────────────────────────────────────────────
     function downloadGraphic() {
-      const canvas   = document.getElementById("resultCanvas");
-      const link     = document.createElement("a");
-      const now      = new Date();
-      const month    = now.toLocaleString("default", { month: "long" });
-      link.download  = `wellread-${month.toLowerCase()}-reads.png`;
-      link.href      = canvas.toDataURL("image/png");
+      const canvas  = document.getElementById("resultCanvas");
+      const link    = document.createElement("a");
+      const now     = new Date();
+      const month   = now.toLocaleString("default", { month: "long" });
+      link.download = `wellread-${month.toLowerCase()}-reads.png`;
+      link.href     = canvas.toDataURL("image/png");
       link.click();
     }
 
