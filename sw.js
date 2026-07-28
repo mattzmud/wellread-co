@@ -5,7 +5,7 @@
 
 // ⚠️ Bump this version number every time you deploy changes.
 // This forces the old cache to be cleared and fresh files fetched.
-const CACHE_NAME    = "wellread-v25";
+const CACHE_NAME    = "wellread-v26";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -19,7 +19,6 @@ const STATIC_ASSETS = [
   "/club.html",
   "/messages.html",
   "/login.html",
-  "/setup.html",
   "/reset.html",
   "/share.html",
   "/admin.html",
@@ -27,6 +26,7 @@ const STATIC_ASSETS = [
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
+  // Note: setup.html intentionally excluded — always served from network
 ];
 
 // ─── Install ─────────────────────────────────────────────────
