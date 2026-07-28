@@ -69,19 +69,27 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET requests
   if (request.method !== "GET") return;
 
-  // Skip Firebase, Google APIs, Cloudflare Worker — always go network
+  // Skip all cross-origin requests — only handle requests to our own domain
+  if (url.origin !== self.location.origin) return;
+
+  // Skip Firebase, Google APIs, Cloudflare Worker, and image CDNs — always go network
   const bypassHosts = [
     "firestore.googleapis.com",
     "firebase.googleapis.com",
     "identitytoolkit.googleapis.com",
     "securetoken.googleapis.com",
-    "www.googleapis.com",        // Google Books API
+    "www.googleapis.com",
     "googleapis.com",
     "firebaseapp.com",
     "firebasestorage.googleapis.com",
-    "workers.dev"                // Cloudflare Worker
+    "workers.dev",
+    "books.google.com",             // Google Books cover images
+    "gstatic.com",                  // Google static CDN (cover redirects)
+    "googleusercontent.com",        // Google user content CDN
+    "openlibrary.org",              // Open Library covers
+    "archive.org"                   // Internet Archive (Open Library backend)
   ];
-  if (bypassHosts.some(host => url.hostname.includes(host))) return;
+  if (bypassHosts.some(host => url.hostname === host || url.hostname.endsWith("." + host))) return;
 
   // Network-first for HTML pages and common.js — always try to get the latest
   const isHtml = request.headers.get("accept")?.includes("text/html");
