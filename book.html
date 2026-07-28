@@ -532,7 +532,7 @@
 
   <!-- ── Reading Details Modal ── -->
   <div class="modal-overlay" id="readModal" onclick="if(event.target===this)closeReadModal()" style="display:none;position:fixed;inset:0;background:rgba(45,27,78,0.45);z-index:500;align-items:flex-end;justify-content:center;">
-    <div style="background:var(--aged-paper);border-radius:20px 20px 0 0;padding:1.75rem;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(45,27,78,0.18);">
+    <div style="background:var(--aged-paper);border-radius:20px 20px 0 0;padding:1.75rem;padding-bottom:calc(1.75rem + env(safe-area-inset-bottom));width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(45,27,78,0.18);">
       <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1.25rem;"></div>
       <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);margin-bottom:0.25rem;">📖 Log Reading</h2>
       <p style="font-size:13px;color:var(--terracotta);margin-bottom:1.25rem;">Record how and when you read this book.</p>
@@ -552,9 +552,17 @@
         </div>
         <div>
           <label style="display:block;font-size:11px;font-weight:600;color:var(--terracotta);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Finish Date <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#BDB5CC;font-size:10px;">(optional)</span></label>
-          <input type="date" id="rmEndDate" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);background:#fff;outline:none;">
+          <input type="date" id="rmEndDate" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito Sans',sans-serif;font-size:13px;color:var(--deep-plum);background:#fff;outline:none;" oninput="onEndDateInput()">
         </div>
       </div>
+
+      <label id="rmNoDateWrap" style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--deep-plum);cursor:pointer;padding:10px 12px;background:#EDF7F0;border-radius:8px;margin-bottom:0.75rem;border:1px solid #C8E6D0;">
+        <input type="checkbox" id="rmNoDate" style="width:16px;height:16px;accent-color:var(--faded-moss);cursor:pointer;margin-top:1px;flex-shrink:0;" onchange="onNoDateChange()">
+        <div>
+          <div style="font-weight:600;color:#2E6B50;">Log as complete without a date</div>
+          <div style="font-size:11px;color:#5A8A6A;margin-top:2px;">Counts toward your all-time reads but not "This Year".</div>
+        </div>
+      </label>
 
       <label style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--deep-plum);cursor:pointer;padding:10px;background:var(--lavender-mist);border-radius:8px;margin-bottom:1.25rem;">
         <input type="checkbox" id="rmDNF" style="width:16px;height:16px;accent-color:var(--amethyst);cursor:pointer;">
@@ -1083,12 +1091,27 @@
     // ── Reading Details Modal ─────────────────────────────────
     let selectedFormat = "read";
 
+    function onEndDateInput() {
+      // If user enters an end date, uncheck the no-date option
+      if (document.getElementById("rmEndDate").value) {
+        document.getElementById("rmNoDate").checked = false;
+      }
+    }
+
+    function onNoDateChange() {
+      // If user checks no-date, clear the end date field
+      if (document.getElementById("rmNoDate").checked) {
+        document.getElementById("rmEndDate").value = "";
+      }
+    }
+
     function openReadModal() {
       const session = userBook?.readingSessions?.[0];
       selectedFormat = session?.format || "read";
-      document.getElementById("rmStartDate").value = session?.startDate || "";
-      document.getElementById("rmEndDate").value   = session?.endDate   || "";
-      document.getElementById("rmDNF").checked     = session?.dnf       || false;
+      document.getElementById("rmStartDate").value  = session?.startDate || "";
+      document.getElementById("rmEndDate").value    = session?.endDate   || "";
+      document.getElementById("rmDNF").checked      = session?.dnf       || false;
+      document.getElementById("rmNoDate").checked   = session?.completedWithoutDate || false;
       selectFormat(selectedFormat);
       const modal = document.getElementById("readModal");
       // Update modal title based on whether this is an update
@@ -1129,8 +1152,11 @@
     async function confirmMarkRead() {
       const user      = WR.getCurrentUser();
       const bookId    = book.bookId || book.isbn13 || book.id;
-      const startDate = document.getElementById("rmStartDate").value || null;
-      const endDate   = document.getElementById("rmEndDate").value   || null;
+      const startDate          = document.getElementById("rmStartDate").value || null;
+      const endDate            = document.getElementById("rmEndDate").value   || null;
+      const dnf                = document.getElementById("rmDNF").checked;
+      const completedNoDate    = document.getElementById("rmNoDate").checked && !endDate && !dnf;
+      const completed          = (!!endDate || completedNoDate) && !dnf;
       const dnf       = document.getElementById("rmDNF").checked;
 
       try {
@@ -1151,8 +1177,9 @@
           sessions[0] = {
             ...sessions[0],
             startDate: startDate || sessions[0].startDate || null,
-            endDate:   endDate   || null,
-            completed: !!endDate && !dnf,
+            endDate:              endDate   || null,
+            completed:            completed,
+            completedWithoutDate: completedNoDate,
             dnf,
             format:    selectedFormat
           };
@@ -1162,8 +1189,9 @@
           const session = {
             sessionId:       WR.generateId(),
             startDate:       startDate || null,
-            endDate:         endDate   || null,
-            completed:       !!endDate && !dnf,
+            endDate:              endDate   || null,
+            completed:            completed,
+            completedWithoutDate: completedNoDate,
             dnf,
             format:          selectedFormat,
             review:          null,
@@ -1176,11 +1204,11 @@
 
         userBook = await WR.getUserBook(bookId);
         closeReadModal();
-        const msg = endDate ? "Reading logged! ✅" : "Started reading! 📖";
+        const msg = completed ? "Reading logged! ✅" : endDate ? "Reading logged! ✅" : "Started reading! 📖";
         WR.showToast(msg, "success");
 
         // Check for newly earned badges after logging a completed read
-        if (endDate && !dnf) {
+        if (completed && !dnf) {
           setTimeout(() => WR.checkBadges().then(() => WR.showBadgePopupIfNeeded()), 500);
         }
         document.querySelector(".action-buttons").innerHTML = buildActionButtons();
@@ -1453,6 +1481,8 @@
     window.openQuickAdd    = openQuickAdd;
     window.saveMyReview    = saveMyReview;
     window.editMyReview    = editMyReview;
+    window.onEndDateInput     = onEndDateInput;
+    window.onNoDateChange     = onNoDateChange;
     window.removeFromReadList = removeFromReadList;
     window.removeFromLibrary  = removeFromLibrary;
     window.openReadModal   = openReadModal;

@@ -728,9 +728,12 @@
       document.getElementById("pageTitle").textContent    = "📖 Reading Log";
       document.getElementById("pageSubtitle").textContent = `${books.length} book${books.length === 1 ? "" : "s"} logged`;
 
-      const completed = books.filter(b => b.readingSessions?.[0]?.completed).length;
-      const inProgress = books.filter(b => b.readingSessions?.[0]?.startDate && !b.readingSessions?.[0]?.completed && !b.readingSessions?.[0]?.dnf).length;
-      const thisYear = books.filter(b => {
+      const completed  = books.filter(b =>
+        b.readingSessions?.[0]?.completed ||
+        b.readingSessions?.[0]?.completedWithoutDate
+      ).length;
+      const inProgress = books.filter(b => b.readingSessions?.[0]?.startDate && !b.readingSessions?.[0]?.completed && !b.readingSessions?.[0]?.dnf && !b.readingSessions?.[0]?.completedWithoutDate).length;
+      const thisYear   = books.filter(b => {
         const end = b.readingSessions?.[0]?.endDate;
         return end && new Date(end).getFullYear() === new Date().getFullYear();
       }).length;
