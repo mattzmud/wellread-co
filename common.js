@@ -950,10 +950,28 @@ async function dismissNotif(notifId, actionTaken) {
 
 async function acceptFriendRequest(friendshipId, notifId) {
   try {
+    const friendSnap = await _db.collection("friends").doc(friendshipId).get();
+    const users = friendSnap.exists ? friendSnap.data().users : [];
+
     await _db.collection("friends").doc(friendshipId).update({
       status: "accepted",
       acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+
+    // Maintain friendsList and friendCount on both user docs
+    if (users.length === 2) {
+      await Promise.all([
+        _db.collection("users").doc(users[0]).set({
+          friendsList:  firebase.firestore.FieldValue.arrayUnion(users[1]),
+          friendCount:  firebase.firestore.FieldValue.increment(1)
+        }, { merge: true }),
+        _db.collection("users").doc(users[1]).set({
+          friendsList:  firebase.firestore.FieldValue.arrayUnion(users[0]),
+          friendCount:  firebase.firestore.FieldValue.increment(1)
+        }, { merge: true })
+      ]);
+    }
+
     if (notifId) await dismissNotif(notifId, "Friend request accepted");
     showToast("Friend request accepted! 🎉", "success");
   } catch (e) {
