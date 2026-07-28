@@ -375,19 +375,6 @@
     const TEMPLATES = [
       DEFAULT_TEMPLATE,
       {
-        id: "90s-reads",
-        name: "90s Vibes",
-        file: "templates/90s-reads.png",
-        slots: [
-          { x: 42,    y: 339.5, w: 217.5, h: 326.9 },
-          { x: 325.1, y: 339.5, w: 217.5, h: 326.9 },
-          { x: 608.2, y: 339.5, w: 217.5, h: 326.9 },
-          { x: 172.7, y: 727.2, w: 217.5, h: 326.9 },
-          { x: 451.3, y: 727.2, w: 217.5, h: 326.9 },
-          { x: 729.8, y: 727.2, w: 217.5, h: 326.9 }
-        ]
-      },
-      {
         id: "adventures",
         name: "Adventure Awaits",
         file: "templates/adventures.png",
@@ -404,6 +391,32 @@
         id: "summer-reads",
         name: "Summer Reads",
         file: "templates/summer-reads.png",
+        slots: [
+          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
+        ]
+      },
+      {
+        id: "july-beach",
+        name: "Beach Day",
+        file: "templates/july-beach.png",
+        slots: [
+          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
+          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
+          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
+        ]
+      },
+      {
+        id: "july-reads",
+        name: "July Doodle",
+        file: "templates/july-reads.png",
         slots: [
           { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
           { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
@@ -798,19 +811,27 @@
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload  = () => resolve(img);
-        img.onerror = (e) => reject(new Error(`Failed: ${src}`));
+        img.onerror = (e) => {
+          console.error("Image load failed:", src, e);
+          reject(new Error(`Failed: ${src}`));
+        };
 
         if (proxy) {
+          console.log("Proxying:", src);
           fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "proxy_image", url: src })
           })
             .then(r => {
+              console.log("Proxy response status:", r.status, "for", src);
               if (!r.ok) throw new Error(`Worker returned ${r.status}`);
               return r.blob();
             })
-            .then(blob => { img.src = URL.createObjectURL(blob); })
+            .then(blob => {
+              console.log("Got blob:", blob.type, blob.size, "bytes for", src);
+              img.src = URL.createObjectURL(blob);
+            })
             .catch(err => {
               console.error("Proxy failed for", src, err);
               reject(err);
