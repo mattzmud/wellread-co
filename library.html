@@ -732,7 +732,10 @@
         b.readingSessions?.[0]?.completed ||
         b.readingSessions?.[0]?.completedWithoutDate
       ).length;
-      const inProgress = books.filter(b => b.readingSessions?.[0]?.startDate && !b.readingSessions?.[0]?.completed && !b.readingSessions?.[0]?.dnf && !b.readingSessions?.[0]?.completedWithoutDate).length;
+      const inProgress = books.filter(b => {
+        const s = b.readingSessions?.[0];
+        return s && !s.completed && !s.dnf && !s.completedWithoutDate;
+      }).length;
       const thisYear   = books.filter(b => {
         const end = b.readingSessions?.[0]?.endDate;
         return end && new Date(end).getFullYear() === new Date().getFullYear();

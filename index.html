@@ -1049,7 +1049,7 @@
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(b => {
             const s = b.readingSessions?.[0];
-            return s?.startDate && !s?.completed && !s?.dnf;
+            return s && !s.completed && !s.dnf && !s.completedWithoutDate;
           });
 
         renderCurrentlyReading();
