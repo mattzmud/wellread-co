@@ -553,6 +553,12 @@
       document.title = `${profileData.displayName} — WellRead Co.`;
       renderPage();
 
+      // Auto-migrate friendsList for own profile if not yet set
+      await migrateFriendsListIfNeeded();
+
+      // Load friend profile cards after page renders
+      loadFriendsListProfiles();
+
       // If viewing own profile, run badge check and refresh the badges section
       // in case new badges were just awarded
       if (isOwnProfile) {
@@ -712,7 +718,7 @@
             <span class="stat-label">Book Clubs</span>
           </div>
           <div class="stat-card">
-            <span class="stat-num">${userFriends.length}</span>
+            <span class="stat-num">${(profileData.friendsList || []).length}</span>
             <span class="stat-label">Friends</span>
           </div>
         </div>
@@ -843,39 +849,179 @@
         </div>` : ""}
 
         <!-- Friends -->
-        ${userFriends.length ? `
-        <div class="profile-section">
-          <div class="section-toggle" onclick="toggleSection('friends', this)">
-            <span class="section-title">🤝 Friends <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${userFriends.length}</span></span>
-            <span class="section-arrow">▼</span>
-          </div>
-          <div class="section-body" id="friends-body">
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:12px;">
-              ${userFriends.map(f => `
-                <a href="profile.html?uid=${f.uid}" style="text-decoration:none;text-align:center;">
-                  ${f.photoURL
-                    ? `<img src="${WR.escapeHTML(f.photoURL)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin:0 auto 5px;display:block;border:2px solid var(--border);">`
-                    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--lavender-mist);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 5px;">👤</div>`}
-                  <div style="font-size:10px;color:var(--deep-plum);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${WR.escapeHTML(f.displayName || "")}</div>
-                </a>`).join("")}
-            </div>
-            ${isOwnProfile ? `
-            <div style="margin-top:1rem;">
-              <a href="search.html?tab=people" style="font-size:13px;color:var(--amethyst);text-decoration:none;">+ Find more readers →</a>
-            </div>` : ""}
-          </div>
-        </div>` : isOwnProfile ? `
-        <div class="profile-section">
-          <div style="padding:1.25rem;text-align:center;">
-            <p style="font-size:14px;color:var(--terracotta);margin-bottom:0.75rem;">You haven't added any friends yet.</p>
-            <a href="search.html?tab=people" style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;text-decoration:none;">🔍 Find Readers</a>
-          </div>
-        </div>` : ""}
+        ${buildFriendsSection(profileData, isOwnProfile)}
 
         ${isOwnProfile ? buildGoalSection(profileData) : ""}
 
         ${buildBadgesSection(profileData, isOwnProfile)}
       `;
+    }
+
+    // ── Friends Section ───────────────────────────────────────
+    function buildFriendsSection(profile, isOwn) {
+      const friendsList    = profile.friendsList || [];
+      const count          = friendsList.length;
+      const vis            = profile.profileVisibility || {};
+      const friendsVisible = vis.friendsList !== false;
+
+      // Own profile — always show
+      // Other profile — check visibility setting
+      if (!isOwn && !friendsVisible) {
+        return `
+          <div class="profile-section">
+            <div class="section-toggle" onclick="toggleSection('friends', this)">
+              <span class="section-title">🤝 Friends</span>
+              <span class="section-arrow">▼</span>
+            </div>
+            <div class="section-body" id="friends-body">
+              <p style="font-size:13px;color:#BDB5CC;text-align:center;padding:1rem;">This user's friends list is private.</p>
+            </div>
+          </div>`;
+      }
+
+      if (!count && isOwn) {
+        return `
+          <div class="profile-section">
+            <div class="section-toggle" onclick="toggleSection('friends', this)">
+              <span class="section-title">🤝 Friends</span>
+              <span class="section-arrow">▼</span>
+            </div>
+            <div class="section-body" id="friends-body">
+              <div style="text-align:center;padding:1rem;">
+                <p style="font-size:14px;color:var(--terracotta);margin-bottom:0.75rem;">You haven't added any friends yet.</p>
+                <a href="search.html?tab=people" style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;background:var(--amethyst);color:#FAF6EE;text-decoration:none;">🔍 Find Readers</a>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      return `
+        <div class="profile-section">
+          <div class="section-toggle" onclick="toggleSection('friends', this)">
+            <span class="section-title">🤝 Friends
+              <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${count}</span>
+            </span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body" id="friends-body">
+            <div id="friendsListInner">
+              <p style="font-size:13px;color:#BDB5CC;text-align:center;padding:0.5rem;">Loading friends...</p>
+            </div>
+            ${isOwn ? `<div style="margin-top:1rem;"><a href="search.html?tab=people" style="font-size:13px;color:var(--amethyst);text-decoration:none;">+ Find more readers →</a></div>` : ""}
+          </div>
+        </div>`;
+    }
+
+    async function loadFriendsListProfiles() {
+      const friendsList = profileData.friendsList || [];
+      if (!friendsList.length) return;
+
+      const el = document.getElementById("friendsListInner");
+      if (!el) return;
+
+      try {
+        // Load profiles for all friends in the list
+        const profiles = await Promise.all(
+          friendsList.slice(0, 48).map(uid =>
+            WR.getDb().collection("users").doc(uid).get()
+          )
+        );
+
+        const friends = profiles
+          .filter(s => s.exists)
+          .map(s => ({ uid: s.id, ...s.data() }));
+
+        // Get current user's own friendsList for mutual detection
+        const myFriendsList = isOwnProfile
+          ? (profileData.friendsList || [])
+          : (WR.getCurrentUser()._profile?.friendsList || []);
+
+        const myUid = WR.getCurrentUser().uid;
+
+        el.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;margin-bottom:0.5rem;">
+            ${friends.map(f => {
+              const isMutual = !isOwnProfile && myFriendsList.includes(f.uid);
+              const isMe     = f.uid === myUid;
+              const isAlreadyFriend = myFriendsList.includes(f.uid);
+
+              return `
+                <div style="text-align:center;">
+                  <a href="profile.html?uid=${f.uid}" style="text-decoration:none;">
+                    ${f.photoURL
+                      ? `<img src="${WR.escapeHTML(f.photoURL)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;margin:0 auto 5px;display:block;border:2px solid ${isMutual ? "var(--amethyst)" : "var(--border)"};">`
+                      : `<div style="width:52px;height:52px;border-radius:50%;background:var(--lavender-mist);border:2px solid ${isMutual ? "var(--amethyst)" : "var(--border)"};display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 5px;">👤</div>`}
+                    <div style="font-size:10px;color:var(--deep-plum);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${WR.escapeHTML(f.displayName || "")}</div>
+                    ${isMutual ? `<div style="font-size:9px;color:var(--amethyst);margin-top:2px;font-weight:600;">Mutual</div>` : ""}
+                  </a>
+                  ${!isOwnProfile && !isMe && !isAlreadyFriend ? `
+                    <button onclick="addFriendFromList('${f.uid}')" id="add-btn-${f.uid}"
+                      style="font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--amethyst);background:#fff;color:var(--amethyst);cursor:pointer;margin-top:4px;">
+                      + Add
+                    </button>` : ""}
+                </div>`;
+            }).join("")}
+          </div>`;
+      } catch (e) {
+        console.error("Load friends list error:", e);
+        if (el) el.innerHTML = `<p style="font-size:13px;color:var(--terracotta);text-align:center;">Couldn't load friends list.</p>`;
+      }
+    }
+
+    async function addFriendFromList(targetUid) {
+      const btn = document.getElementById(`add-btn-${targetUid}`);
+      if (btn) { btn.textContent = "Sent!"; btn.disabled = true; btn.style.color = "#BDB5CC"; btn.style.borderColor = "#BDB5CC"; }
+      try {
+        const myUid   = WR.getCurrentUser().uid;
+        const fid     = WR.getFriendshipId(myUid, targetUid);
+        await WR.getDb().collection("friends").doc(fid).set({
+          users:     [myUid, targetUid],
+          status:    "pending",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: myUid
+        });
+        await WR.createNotification(targetUid, {
+          type:    "friend_request",
+          title:   "New friend request",
+          body:    `${WR.getCurrentUser()._profile?.displayName || "Someone"} wants to be your friend.`,
+          linkedId: fid
+        });
+        WR.showToast("Friend request sent! 🤝", "success");
+      } catch (e) {
+        console.error("Add friend error:", e);
+        WR.showToast("Error sending request.", "error");
+        if (btn) { btn.textContent = "+ Add"; btn.disabled = false; }
+      }
+    }
+
+    // ── Auto-migration: build friendsList from friends collection ──
+    async function migrateFriendsListIfNeeded() {
+      const user = WR.getCurrentUser();
+      if (!user || !isOwnProfile) return;
+      if (profileData.friendsList !== undefined) return; // already migrated
+
+      try {
+        const snap = await WR.getDb()
+          .collection("friends")
+          .where("users", "array-contains", user.uid)
+          .get();
+
+        const acceptedUids = snap.docs
+          .filter(d => d.data().status === "accepted")
+          .map(d => d.data().users.find(u => u !== user.uid))
+          .filter(Boolean);
+
+        // Write friendsList to user doc (even if empty, so we don't re-run)
+        await WR.getDb().collection("users").doc(user.uid).set(
+          { friendsList: acceptedUids },
+          { merge: true }
+        );
+
+        profileData.friendsList = acceptedUids;
+        console.log(`Migrated friendsList: ${acceptedUids.length} friends`);
+      } catch (e) {
+        console.error("friendsList migration error:", e);
+      }
     }
 
     function buildGoalSection(profile) {
@@ -1123,7 +1269,21 @@
     async function removeFriend() {
       if (!confirm("Remove this friend?")) return;
       try {
+        const user = WR.getCurrentUser();
         await WR.getDb().collection("friends").doc(friendshipId).delete();
+
+        // Remove each other from friendsList and decrement count
+        await Promise.all([
+          WR.getDb().collection("users").doc(user.uid).set({
+            friendsList: firebase.firestore.FieldValue.arrayRemove(profileUid),
+            friendCount: firebase.firestore.FieldValue.increment(-1)
+          }, { merge: true }),
+          WR.getDb().collection("users").doc(profileUid).set({
+            friendsList: firebase.firestore.FieldValue.arrayRemove(user.uid),
+            friendCount: firebase.firestore.FieldValue.increment(-1)
+          }, { merge: true })
+        ]);
+
         friendStatus = null;
         document.querySelector(".profile-actions").innerHTML = buildActionButtons();
         WR.showToast("Friend removed.");
@@ -1207,6 +1367,7 @@
 
     window.toggleSection        = toggleSection;
     window.sendFriendRequest    = sendFriendRequest;
+    window.addFriendFromList    = addFriendFromList;
     window.openProfileGoalModal  = openProfileGoalModal;
     window.closeProfileGoalModal = closeProfileGoalModal;
     window.adjustProfileGoal     = adjustProfileGoal;

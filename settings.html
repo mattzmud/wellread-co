@@ -506,6 +506,16 @@
         </div>
         <div class="toggle-row">
           <div class="toggle-info">
+            <div class="toggle-label">Show My Friends List</div>
+            <div class="toggle-desc">Let others see who you're friends with on your profile</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vis-friends" onchange="saveVisibility()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
             <div class="toggle-label">Show My Wishlist</div>
             <div class="toggle-desc">Make your wishlist visible on your profile and via share link</div>
           </div>
@@ -676,6 +686,7 @@
       setChecked("vis-reading",  vis.currentlyReading !== false);
       setChecked("vis-recent",   vis.recentlyFinished !== false);
       setChecked("vis-library",  vis.library          !== false);
+      setChecked("vis-friends",  vis.friendsList      !== false);
       setChecked("vis-wishlist", vis.wishlist          !== false);
 
       // Email prefs
@@ -841,6 +852,7 @@
             currentlyReading: document.getElementById("vis-reading").checked,
             recentlyFinished: document.getElementById("vis-recent").checked,
             library:          document.getElementById("vis-library").checked,
+            friendsList:      document.getElementById("vis-friends").checked,
             wishlist:         document.getElementById("vis-wishlist").checked
           }
         }, { merge: true });
