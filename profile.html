@@ -527,7 +527,6 @@
     let friendshipId = null;
     let userBooks    = [];
     let userClubs    = [];
-    let userFriends  = [];
 
     // ── Init ──────────────────────────────────────────────────
     WR.initAuth(async (user) => {
@@ -541,7 +540,6 @@
         loadProfile(),
         loadUserBooks(),
         loadUserClubs(),
-        loadUserFriends(),
         isOwnProfile ? Promise.resolve() : checkFriendStatus()
       ]);
 
@@ -610,32 +608,6 @@
           .get();
         userClubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (e) { console.error("Clubs load error:", e); }
-    }
-
-    async function loadUserFriends() {
-      try {
-        const snap = await WR.getDb()
-          .collection("friends")
-          .where("users", "array-contains", profileUid)
-          .get();
-
-        // Filter accepted client-side to avoid needing a composite index
-        const accepted = snap.docs
-          .filter(d => d.data().status === "accepted")
-          .map(d => d.data().users.find(u => u !== profileUid))
-          .filter(Boolean);
-
-        if (!accepted.length) { userFriends = []; return; }
-
-        const profiles = await Promise.all(
-          accepted.slice(0, 24).map(uid =>
-            WR.getDb().collection("users").doc(uid).get()
-          )
-        );
-        userFriends = profiles
-          .filter(s => s.exists)
-          .map(s => ({ uid: s.id, ...s.data() }));
-      } catch (e) { console.error("Friends load error:", e); }
     }
 
     async function checkFriendStatus() {
@@ -718,7 +690,7 @@
             <span class="stat-label">Book Clubs</span>
           </div>
           <div class="stat-card">
-            <span class="stat-num">${(profileData.friendsList || []).length}</span>
+            <span class="stat-num" data-stat="friends">${(profileData.friendsList || []).length}</span>
             <span class="stat-label">Friends</span>
           </div>
         </div>
@@ -1019,6 +991,10 @@
 
         profileData.friendsList = acceptedUids;
         console.log(`Migrated friendsList: ${acceptedUids.length} friends`);
+
+        // Refresh the friend count stat in the UI
+        const statEl = document.querySelector(".stat-num[data-stat='friends']");
+        if (statEl) statEl.textContent = acceptedUids.length;
       } catch (e) {
         console.error("friendsList migration error:", e);
       }
