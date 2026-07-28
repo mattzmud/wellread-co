@@ -1121,22 +1121,27 @@
       const user = WR.getCurrentUser();
       try {
         tbrOrder = tbrOrder.filter(id => id !== bookId);
-        await WR.getDb().collection("users").doc(user.uid).update({
-          onTBR: false,
-          tbrNeedsAcquisition: false,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        // Also update tbrOrder on user doc
-        await WR.getDb().collection("users").doc(user.uid).set(
-          { tbrOrder },
-          { merge: true }
-        );
+
+        // Update the book's onTBR flag on the book subcollection doc
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .collection("books").doc(bookId)
+          .set({ onTBR: false, tbrNeedsAcquisition: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+        // Also save the updated tbrOrder on the user doc
+        await WR.getDb()
+          .collection("users").doc(user.uid)
+          .set({ tbrOrder }, { merge: true });
+
         const idx = allBooks.findIndex(b => b.id === bookId);
         if (idx !== -1) allBooks[idx].onTBR = false;
         updateCounts();
         renderTBR();
         WR.showToast("Removed from TBR.");
-      } catch (e) { WR.showToast("Something went wrong.", "error"); }
+      } catch (e) {
+        console.error("Remove from TBR error:", e);
+        WR.showToast("Something went wrong.", "error");
+      }
     }
 
     // ════════════════════════════════════════════════════════
