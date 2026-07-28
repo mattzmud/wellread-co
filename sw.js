@@ -5,7 +5,7 @@
 
 // ⚠️ Bump this version number every time you deploy changes.
 // This forces the old cache to be cleared and fresh files fetched.
-const CACHE_NAME    = "wellread-v29";
+const CACHE_NAME    = "wellread-v30";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
