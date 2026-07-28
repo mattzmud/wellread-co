@@ -438,7 +438,7 @@
 
       const total   = books.length;
       const read    = books.filter(b => b.readingSessions?.some(s => s.completed)).length;
-      const reading = books.filter(b => b.readingSessions?.some(s => s.startDate && !s.completed && !s.dnf)).length;
+      const reading = books.filter(b => b.readingSessions?.some(s => !s.completed && !s.dnf && !s.completedWithoutDate)).length;
       const lent    = books.filter(b => b.lendingHistory?.some(l => l.currentlyLent)).length;
 
       const lentItems = [];
@@ -540,7 +540,7 @@
       const session = book.readingSessions?.[0];
       let badges = "";
       if (session?.completed)                                          badges += `<span class="status-badge badge-read">Read</span>`;
-      if (session?.startDate && !session?.completed && !session?.dnf) badges += `<span class="status-badge badge-reading">Reading</span>`;
+      if (session?.startDate && !session?.completed && !session?.dnf && !session?.completedWithoutDate) badges += `<span class="status-badge badge-reading">Reading</span>`;
       if (session?.dnf)                                               badges += `<span class="status-badge badge-dnf">DNF</span>`;
       if (book.lendingHistory?.some(l => l.currentlyLent))           badges += `<span class="status-badge badge-lent">Lent Out</span>`;
       return `
@@ -779,7 +779,10 @@
       const val  = document.getElementById("readSort")?.value || "dateCompleted-desc";
       const [field, dir] = val.split("-");
       let books = allBooks.filter(b => b.readingSessions?.length > 0);
-      if (activeFilter === "inprogress") books = books.filter(b => b.readingSessions?.[0]?.startDate && !b.readingSessions?.[0]?.completed && !b.readingSessions?.[0]?.dnf);
+      if (activeFilter === "inprogress") books = books.filter(b => {
+        const s = b.readingSessions?.[0];
+        return s && !s.completed && !s.dnf && !s.completedWithoutDate;
+      });
       if (activeFilter === "completed")  books = books.filter(b => b.readingSessions?.[0]?.completed);
       if (activeFilter === "dnf")        books = books.filter(b => b.readingSessions?.[0]?.dnf);
       books.sort((a, b) => {
