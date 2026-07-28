@@ -1725,7 +1725,6 @@ async function showBadgePopupIfNeeded() {
 }
 
 function buildBadgeGrid(badges) {
-  // badges = array of {id, earnedAt, seen} — only earned badges
   if (!badges.length) return "";
 
   return badges.map(entry => {
@@ -1736,15 +1735,14 @@ function buildBadgeGrid(badges) {
       ? getBadgeMonthLabel(entry.id) : "";
 
     return `
-      <div title="${def.name}: ${def.desc}" style="
-        display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;
+      <div style="
+        display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px;
         border-radius:12px;border:1.5px solid ${rarity.border};
-        background:${rarity.bg};
-        text-align:center;">
+        background:${rarity.bg};text-align:center;">
         <span style="font-size:24px;">${def.icon}</span>
-        <span style="font-size:10px;font-weight:600;color:${rarity.text};line-height:1.3;">${def.name}</span>
-        ${monthLabel ? `<span style="font-size:9px;color:${rarity.text};opacity:0.7;">${monthLabel}</span>` : ""}
-        ${entry.earnedAt ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;">Earned</span>` : ""}
+        <span style="font-size:10px;font-weight:700;color:${rarity.text};line-height:1.3;">${def.name}</span>
+        <span style="font-size:9px;color:${rarity.text};opacity:0.75;line-height:1.3;">${def.desc}</span>
+        ${monthLabel ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;">${monthLabel}</span>` : ""}
       </div>`;
   }).join("");
 }
