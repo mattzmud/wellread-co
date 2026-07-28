@@ -438,7 +438,10 @@
 
       const total   = books.length;
       const read    = books.filter(b => b.readingSessions?.some(s => s.completed)).length;
-      const reading = books.filter(b => b.readingSessions?.some(s => !s.completed && !s.dnf && !s.completedWithoutDate)).length;
+      const reading = books.filter(b => {
+        const s = b.readingSessions?.[0];
+        return s?.startDate && !s.completed && !s.dnf && !s.completedWithoutDate;
+      }).length;
       const lent    = books.filter(b => b.lendingHistory?.some(l => l.currentlyLent)).length;
 
       const lentItems = [];
