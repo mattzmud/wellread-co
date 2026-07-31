@@ -975,9 +975,9 @@
       const isOpen = body.classList.contains("open");
       toggle.classList.toggle("open", !isOpen);
       body.classList.toggle("open", !isOpen);
-      // Init star picker when notes section is opened
+      // Always init star picker when notes section is opened
       if (id === "notes" && !isOpen) {
-        WR.initStarPicker("myStarPicker");
+        setTimeout(() => WR.initStarPicker("myStarPicker"), 50);
       }
     }
 
@@ -1211,8 +1211,10 @@
           setTimeout(() => WR.checkBadges().then(() => WR.showBadgePopupIfNeeded()), 500);
         }
         document.querySelector(".action-buttons").innerHTML = buildActionButtons();
+
+        // Always re-render notes section so review form appears with fresh data
         const notesBody = document.getElementById("notes-body");
-        if (notesBody && notesBody.classList.contains("open")) {
+        if (notesBody) {
           notesBody.innerHTML = renderMyNotes();
           WR.initStarPicker("myStarPicker");
         }
