@@ -1022,6 +1022,7 @@
           return;
         }
 
+        const wasOnWishlist = existing.onWishlist || false;
         const flags = { inLibrary: true, onReadList: false, onTBR: false, onWishlist: false };
         const success = await WR.addBookToUserCollection(book, flags);
 
@@ -1033,7 +1034,10 @@
             countEl.style.display = "block";
             countEl.textContent   = `✓ ${scanCount} book${scanCount === 1 ? "" : "s"} added this session`;
           }
-          WR.showToast(`📚 "${book.title}" added to your library!`, "success");
+          const msg = wasOnWishlist
+            ? `📚 "${book.title}" added to your library and removed from wishlist!`
+            : `📚 "${book.title}" added to your library!`;
+          WR.showToast(msg, "success");
         } else {
           WR.showToast("Couldn't add book — please try again.", "error");
         }
@@ -1315,11 +1319,13 @@
         const bookId   = modalBook.bookId || modalBook.isbn13 || modalBook.id;
         const existing = userBooks[bookId] || {};
 
+        const addingToLibrary = selectedOption === "library" || selectedOption === "read" || selectedOption === "tbr";
         const flags = {
           inLibrary:  existing.inLibrary  || selectedOption === "library",
           onReadList: existing.onReadList || selectedOption === "read",
           onTBR:      existing.onTBR      || selectedOption === "tbr",
-          onWishlist: existing.onWishlist || selectedOption === "wishlist",
+          // Clear wishlist when adding to library, read list, or TBR
+          onWishlist: addingToLibrary ? false : (existing.onWishlist || selectedOption === "wishlist"),
           tbrNeedsAcquisition: selectedOption === "tbr" && !existing.inLibrary
         };
 
