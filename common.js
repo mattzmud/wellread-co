@@ -1448,19 +1448,19 @@ async function lookupBookTitleAuthor(title, author = "") {
     const authorLower  = author.toLowerCase().trim();
     const authorParts  = authorLower.split(/\s+/).filter(w => w.length > 1);
 
-    filtered = merged.filter(book => {
-      const bookAuthors = (book.authors || []).map(a => a.toLowerCase()).join(" | ");
-      if (!bookAuthors) return false;
+    console.log("Author filter - searching for:", authorParts);
+    console.log("Books before filter:", merged.map(b => ({title: b.title, authors: b.authors})));
 
-      // Check if any author on the book contains the search terms
-      return (book.authors || []).some(a => {
+    filtered = merged.filter(book => {
+      const matches = (book.authors || []).some(a => {
         const aLower = a.toLowerCase();
-        // All parts of the searched name must appear in the author string
         return authorParts.every(part => aLower.includes(part));
       });
+      if (!matches) console.log("Filtered out:", book.title, book.authors);
+      return matches;
     });
 
-    // Fall back to unfiltered if we filtered everything out
+    console.log("Books after filter:", filtered.length);
     if (filtered.length === 0) filtered = merged;
   }
 
