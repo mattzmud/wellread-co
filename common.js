@@ -1212,15 +1212,86 @@ async function searchGoogleBooks(query) {
   }
 }
 
+async function searchGoogleBooksTitle(query) {
+  // Run intitle: search in parallel with plain search for better title matching
+  const encoded     = encodeURIComponent(query);
+  const encodedIT   = encodeURIComponent(`intitle:${query}`);
+  const [plain, titled] = await Promise.all([
+    fetch(`https://www.googleapis.com/books/v1/volumes?q=${encoded}&maxResults=20&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`)
+      .then(r => r.json()).then(d => d.items || []).catch(() => []),
+    fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodedIT}&maxResults=10&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`)
+      .then(r => r.json()).then(d => d.items || []).catch(() => [])
+  ]);
+
+  // Merge — intitle results first, then plain, deduped by volumeId
+  const seen = new Set();
+  return [...titled, ...plain]
+    .filter(item => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    })
+    .map(normalizeGoogleBook);
+}
+
 async function getGoogleBookByISBN(isbn) {
   const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`;
   try {
     const res  = await fetch(url);
     const data = await res.json();
-    if (!data.items || !data.items.length) return null;
-    return normalizeGoogleBook(data.items[0]);
+    if (data.items?.length) return normalizeGoogleBook(data.items[0]);
   } catch (e) {
     console.error("Google Books ISBN lookup error:", e);
+  }
+
+  // Fall back to Open Library if Google returns nothing
+  return await getOpenLibraryByISBN(isbn);
+}
+
+async function getOpenLibraryByISBN(isbn) {
+  try {
+    const res  = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    // Fetch work and author details
+    const workKey  = data.works?.[0]?.key;
+    const authorKey = data.authors?.[0]?.key;
+
+    const [work, author] = await Promise.all([
+      workKey  ? fetch(`https://openlibrary.org${workKey}.json`).then(r => r.json()).catch(() => null) : Promise.resolve(null),
+      authorKey ? fetch(`https://openlibrary.org${authorKey}.json`).then(r => r.json()).catch(() => null) : Promise.resolve(null)
+    ]);
+
+    const title       = data.title || work?.title || "Unknown Title";
+    const authorName  = author?.name || "";
+    const description = typeof work?.description === "string"
+      ? work.description
+      : work?.description?.value || "";
+    const cover       = data.covers?.[0]
+      ? `https://covers.openlibrary.org/b/id/${data.covers[0]}-L.jpg`
+      : null;
+
+    return {
+      bookId:        isbn,
+      googleBooksId: null,
+      isbn13:        isbn,
+      isbn10:        null,
+      title,
+      authors:       authorName ? [authorName] : [],
+      description,
+      publisher:     data.publishers?.[0] || "",
+      publishedDate: data.publish_date    || "",
+      pageCount:     data.number_of_pages || null,
+      categories:    [],
+      coverURL:      cover,
+      seriesInfo:    null,
+      averageRating: null,
+      ratingsCount:  0,
+      source:        "openlibrary"
+    };
+  } catch (e) {
+    console.error("Open Library ISBN lookup error:", e);
     return null;
   }
 }
@@ -1284,7 +1355,7 @@ async function lookupBook(query, type = "text") {
   // Merge in any Firestore matches so we keep community data (ratings etc)
   // but never let Firestore results block the Google Books response.
   const [apiResults, internalMap] = await Promise.all([
-    searchGoogleBooks(query).catch(() => []),
+    searchGoogleBooksTitle(query).catch(() => []),
     (async () => {
       const map = {};
       try {
@@ -1773,7 +1844,9 @@ window.WR = {
   addBookToUserCollection,
   getUserBook,
   searchGoogleBooks,
+  searchGoogleBooksTitle,
   getGoogleBookByISBN,
+  getOpenLibraryByISBN,
   normalizeGoogleBook,
 
   // UI
