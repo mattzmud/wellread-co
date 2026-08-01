@@ -1444,15 +1444,23 @@ async function lookupBookTitleAuthor(title, author = "") {
   // Post-filter: when author is specified, remove results that don't
   // actually have that author (Google's inauthor: is not strict enough)
   let filtered = merged;
-  if (hasAuthor && !hasTitle) {
-    const authorLower = author.toLowerCase();
-    const authorWords = authorLower.split(/\s+/);
+  if (hasAuthor) {
+    const authorLower  = author.toLowerCase().trim();
+    const authorParts  = authorLower.split(/\s+/).filter(w => w.length > 1);
+
     filtered = merged.filter(book => {
-      const bookAuthors = (book.authors || []).join(" ").toLowerCase();
-      // Must match at least one word of the author name (handles "Laura Dave" vs "L. Dave" etc)
-      return authorWords.some(word => word.length > 2 && bookAuthors.includes(word));
+      const bookAuthors = (book.authors || []).map(a => a.toLowerCase()).join(" | ");
+      if (!bookAuthors) return false;
+
+      // Check if any author on the book contains the search terms
+      return (book.authors || []).some(a => {
+        const aLower = a.toLowerCase();
+        // All parts of the searched name must appear in the author string
+        return authorParts.every(part => aLower.includes(part));
+      });
     });
-    // If filtering removed everything, return unfiltered (better than nothing)
+
+    // Fall back to unfiltered if we filtered everything out
     if (filtered.length === 0) filtered = merged;
   }
 
