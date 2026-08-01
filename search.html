@@ -650,20 +650,30 @@
 
     <!-- Books Search Panel -->
     <div id="booksPanel">
-    <div class="search-form">
-      <div class="search-input-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="search-input" id="searchInput"
-               placeholder="Search for a book..."
-               oninput="onSearchInput(this.value)"
+    <div class="search-form" style="flex-direction:column;gap:8px;">
+      <div style="display:flex;gap:8px;">
+        <div class="search-input-wrap" style="flex:1;">
+          <span class="search-icon">📖</span>
+          <input type="text" class="search-input" id="searchInput"
+                 placeholder="Title..."
+                 oninput="onSearchInput(this.value)"
+                 onkeydown="onSearchKey(event)"
+                 autocomplete="off">
+          <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search">✕</button>
+        </div>
+        <button class="search-btn" id="searchBtn" onclick="doSearch()">
+          <div class="spinner"></div>
+          <span class="btn-text">Search</span>
+        </button>
+      </div>
+      <div class="search-input-wrap" id="authorInputWrap">
+        <span class="search-icon">✍️</span>
+        <input type="text" class="search-input" id="authorInput"
+               placeholder="Author (optional)..."
                onkeydown="onSearchKey(event)"
                autocomplete="off">
-        <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search">✕</button>
+        <button class="search-clear" id="authorClear" onclick="clearAuthor()" aria-label="Clear author" style="display:none;">✕</button>
       </div>
-      <button class="search-btn" id="searchBtn" onclick="doSearch()">
-        <div class="spinner"></div>
-        <span class="btn-text">Search</span>
-      </button>
     </div>
 
     <!-- Search Type Pills -->
@@ -876,16 +886,26 @@
       searchType = type;
       document.querySelectorAll(".type-pill").forEach(p => p.classList.remove("active"));
       document.getElementById("pill-" + type).classList.add("active");
-      const input = document.getElementById("searchInput");
-      input.placeholder = type === "isbn"
-        ? "Enter ISBN number (e.g. 9780743273565)"
-        : "Search by title or author...";
+      const input      = document.getElementById("searchInput");
+      const authorWrap = document.getElementById("authorInputWrap");
+      if (type === "isbn") {
+        input.placeholder = "Enter ISBN number (e.g. 9780743273565)";
+        if (authorWrap) authorWrap.style.display = "none";
+      } else {
+        input.placeholder = "Title...";
+        if (authorWrap) authorWrap.style.display = "";
+      }
       input.focus();
     }
 
     // ── Input Handlers ────────────────────────────────────────
     function onSearchInput(val) {
       document.getElementById("searchClear").classList.toggle("show", val.length > 0);
+    }
+
+    function clearAuthor() {
+      document.getElementById("authorInput").value = "";
+      document.getElementById("authorClear").style.display = "none";
     }
 
     function onSearchKey(e) {
@@ -906,6 +926,10 @@
     function clearSearch() {
       document.getElementById("searchInput").value = "";
       document.getElementById("searchClear").classList.remove("show");
+      const authorInput = document.getElementById("authorInput");
+      const authorClear = document.getElementById("authorClear");
+      if (authorInput) authorInput.value = "";
+      if (authorClear) authorClear.style.display = "none";
       document.getElementById("resultsArea").innerHTML = `
         <div class="state-box" id="emptyState">
           <span class="state-icon">📚</span>
@@ -916,14 +940,23 @@
     }
 
     // ── Main Search ───────────────────────────────────────────
-    // Author search — skips Firestore, hits Google Books inauthor: query directly
+    // Author search from book page — sets author field and searches
     async function doAuthorSearch(author) {
       setSearchLoading(true);
       showSkeleton();
+
+      // Put author name in the author field, clear title field
+      const authorInput = document.getElementById("authorInput");
+      const titleInput  = document.getElementById("searchInput");
+      if (authorInput) { authorInput.value = author; }
+      if (titleInput)  { titleInput.value  = ""; }
+      document.getElementById("pageTitle").textContent    = `Books by ${author}`;
+      document.getElementById("pageSubtitle").textContent = `Showing results for author: ${author}`;
+
       try {
-        const results = await WR.searchGoogleBooks(`inauthor:${author}`);
+        const results = await WR.lookupBookTitleAuthor("", author);
         lastResults   = results;
-        renderResults(results, author);
+        renderResults(results, `by ${author}`);
       } catch (e) {
         console.error("Author search error:", e);
         showError();
@@ -933,13 +966,22 @@
     }
 
     async function doSearch() {
-      const query = document.getElementById("searchInput").value.trim();
-      if (!query) return;
+      const title  = document.getElementById("searchInput").value.trim();
+      const author = searchType === "text"
+        ? (document.getElementById("authorInput")?.value.trim() || "")
+        : "";
+
+      if (!title) return;
       setSearchLoading(true);
       showSkeleton();
       try {
-        const results = await WR.lookupBook(query, searchType);
-        lastResults   = results;
+        let results;
+        if (searchType === "isbn") {
+          results = await WR.lookupBook(title, "isbn");
+        } else {
+          results = await WR.lookupBookTitleAuthor(title, author);
+        }
+        lastResults = results;
 
         // Scan mode + ISBN + exactly one result = auto-add to library
         if (scanMode && searchType === "isbn" && results.length === 1) {
@@ -947,7 +989,7 @@
           return;
         }
 
-        renderResults(results, query);
+        renderResults(results, title + (author ? ` by ${author}` : ""));
         afterScanComplete();
       } catch (e) {
         console.error("Search error:", e);
@@ -1556,8 +1598,9 @@
     window.onSearchKey        = onSearchKey;
     window.clearSearch        = clearSearch;
     window.toggleScanMode      = toggleScanMode;
-    window.doSearch           = doSearch;
-    window.doAuthorSearch     = doAuthorSearch;
+    window.clearAuthor         = clearAuthor;
+    window.doSearch            = doSearch;
+    window.doAuthorSearch      = doAuthorSearch;
     window.openAddModal       = openAddModal;
     window.closeModal         = closeModal;
     window.handleModalOverlayClick = handleModalOverlayClick;
