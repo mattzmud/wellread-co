@@ -1376,6 +1376,57 @@ function normalizeGoogleBook(item) {
 }
 
 // ─── Firestore — Book DB ─────────────────────────────────────
+// Title + optional author search — uses Google Books field operators
+// for precision, then supplements with Open Library
+async function lookupBookTitleAuthor(title, author = "") {
+  // Build targeted Google Books queries
+  const titleQ  = title
+    ? `intitle:${title}${author ? ` inauthor:${author}` : ""}`
+    : `inauthor:${author}`;
+  const plainQ  = [title, author].filter(Boolean).join(" ");
+
+  const [titled, plain, olResults, internalMap] = await Promise.all([
+    // Google Books intitle: + inauthor: — most precise
+    searchGoogleBooks(titleQ).catch(() => []),
+    // Google Books plain — catches cases where operators are too strict
+    searchGoogleBooks(plainQ).catch(() => []),
+    // Open Library — international coverage
+    searchOpenLibraryTitle(title).catch(() => []),
+    // Firestore DB — community data
+    (async () => {
+      const map = {};
+      try {
+        const snap = await _db.collection("books")
+          .orderBy("addedAt", "desc").limit(200).get();
+        const q = title.toLowerCase();
+        snap.docs.forEach(d => {
+          const b = d.data();
+          if (
+            (b.title  || "").toLowerCase().includes(q) ||
+            (b.authors || []).some(a => a.toLowerCase().includes(q))
+          ) {
+            map[b.isbn13 || b.googleBooksId] = { id: d.id, ...b };
+          }
+        });
+      } catch (e) { /* silent */ }
+      return map;
+    })()
+  ]);
+
+  // Merge all sources, deduped by ISBN/googleBooksId, titled results first
+  const seen = new Set();
+  const merged = [];
+
+  for (const book of [...titled, ...plain, ...olResults]) {
+    const key = book.isbn13 || book.googleBooksId;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(internalMap[key] || book);
+  }
+
+  return merged;
+}
+
 async function lookupBook(query, type = "text") {
   // ISBN search — check Firestore first, it's exact match so no need for Google
   if (type === "isbn") {
@@ -1889,6 +1940,7 @@ window.WR = {
 
   // Books
   lookupBook,
+  lookupBookTitleAuthor,
   saveBookToDb,
   addBookToUserCollection,
   getUserBook,
