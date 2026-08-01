@@ -1398,7 +1398,7 @@ async function lookupBookTitleAuthor(title, author = "") {
       title
     ];
   } else if (hasAuthor) {
-    // Author only — inauthor: ONLY, no plain fallback (too noisy)
+    // Author only — inauthor: query, then post-filter to books actually by this author
     queries = [
       `inauthor:${author}`
     ];
@@ -1441,7 +1441,22 @@ async function lookupBookTitleAuthor(title, author = "") {
     merged.push(internalMap[key] || book);
   }
 
-  return merged;
+  // Post-filter: when author is specified, remove results that don't
+  // actually have that author (Google's inauthor: is not strict enough)
+  let filtered = merged;
+  if (hasAuthor && !hasTitle) {
+    const authorLower = author.toLowerCase();
+    const authorWords = authorLower.split(/\s+/);
+    filtered = merged.filter(book => {
+      const bookAuthors = (book.authors || []).join(" ").toLowerCase();
+      // Must match at least one word of the author name (handles "Laura Dave" vs "L. Dave" etc)
+      return authorWords.some(word => word.length > 2 && bookAuthors.includes(word));
+    });
+    // If filtering removed everything, return unfiltered (better than nothing)
+    if (filtered.length === 0) filtered = merged;
+  }
+
+  return filtered;
 }
 
 async function lookupBook(query, type = "text") {
