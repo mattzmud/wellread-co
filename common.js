@@ -1213,25 +1213,8 @@ async function searchGoogleBooks(query) {
 }
 
 async function searchGoogleBooksTitle(query) {
-  // Run intitle: search in parallel with plain search for better title matching
-  const encoded     = encodeURIComponent(query);
-  const encodedIT   = encodeURIComponent(`intitle:${query}`);
-  const [plain, titled] = await Promise.all([
-    fetch(`https://www.googleapis.com/books/v1/volumes?q=${encoded}&maxResults=20&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`)
-      .then(r => r.json()).then(d => d.items || []).catch(() => []),
-    fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodedIT}&maxResults=10&key=AIzaSyCdPs_QjB6XKHcx3Q18WQcqQezDn8hYVCo`)
-      .then(r => r.json()).then(d => d.items || []).catch(() => [])
-  ]);
-
-  // Merge — intitle results first, then plain, deduped by volumeId
-  const seen = new Set();
-  return [...titled, ...plain]
-    .filter(item => {
-      if (seen.has(item.id)) return false;
-      seen.add(item.id);
-      return true;
-    })
-    .map(normalizeGoogleBook);
+  // Single query — quota conservation is critical (1000/day limit)
+  return searchGoogleBooks(`intitle:${query}`).catch(() => []);
 }
 
 async function getGoogleBookByISBN(isbn) {
@@ -1239,12 +1222,14 @@ async function getGoogleBookByISBN(isbn) {
   try {
     const res  = await fetch(url);
     const data = await res.json();
+    console.log("Google Books ISBN response:", isbn, "status:", res.status, "items:", data.items?.length ?? 0, "error:", data.error?.message);
     if (data.items?.length) return normalizeGoogleBook(data.items[0]);
   } catch (e) {
     console.error("Google Books ISBN lookup error:", e);
   }
 
   // Fall back to Open Library if Google returns nothing
+  console.log("Falling back to Open Library for ISBN:", isbn);
   return await getOpenLibraryByISBN(isbn);
 }
 
@@ -1288,6 +1273,8 @@ async function searchOpenLibraryTitle(query) {
 
 async function getOpenLibraryByISBN(isbn) {
   try {
+    const res  = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+    console.log("Open Library ISBN response:", isbn, "status:", res.status);
     if (!res.ok) return null;
     const data = await res.json();
 
@@ -1383,32 +1370,20 @@ async function lookupBookTitleAuthor(title, author = "") {
   const hasAuthor = author.trim().length > 0;
 
   // Build targeted Google Books queries
-  let queries = [];
+  let query = "";
 
   if (hasTitle && hasAuthor) {
-    // Both fields — intitle: + inauthor: first, then title+author plain as fallback
-    queries = [
-      `intitle:${title} inauthor:${author}`,
-      `${title} ${author}`
-    ];
+    query = `intitle:${title} inauthor:${author}`;
   } else if (hasTitle) {
-    // Title only — intitle: first, then plain title
-    queries = [
-      `intitle:${title}`,
-      title
-    ];
+    query = `intitle:${title}`;
   } else if (hasAuthor) {
-    // Author only — inauthor: query, then post-filter to books actually by this author
-    queries = [
-      `inauthor:${author}`
-    ];
+    query = `inauthor:${author}`;
   } else {
     return [];
   }
 
-  const [primary, secondary, olResults, internalMap] = await Promise.all([
-    searchGoogleBooks(queries[0]).catch(() => []),
-    queries[1] ? searchGoogleBooks(queries[1]).catch(() => []) : Promise.resolve([]),
+  const [primary, olResults, internalMap] = await Promise.all([
+    searchGoogleBooks(query).catch(() => []),
     hasTitle ? searchOpenLibraryTitle(title).catch(() => []) : Promise.resolve([]),
     (async () => {
       const map = {};
@@ -1434,7 +1409,7 @@ async function lookupBookTitleAuthor(title, author = "") {
   const seen   = new Set();
   const merged = [];
 
-  for (const book of [...primary, ...secondary, ...olResults]) {
+  for (const book of [...primary, ...olResults]) {
     const key = book.isbn13 || book.googleBooksId;
     if (!key || seen.has(key)) continue;
     seen.add(key);
@@ -1462,22 +1437,50 @@ async function lookupBookTitleAuthor(title, author = "") {
 
     console.log("Books after filter:", filtered.length);
 
-    // If everything was filtered out, the inauthor: query returned junk.
-    // Try a plain "Author Name books" query instead as fallback.
+    // If everything was filtered out, Google's inauthor: returned junk.
+    // Fall back to Open Library author search which is more reliable.
     if (filtered.length === 0) {
-      console.log("inauthor: returned no valid results, trying plain search fallback");
+      console.log("Google inauthor: returned no valid results, trying Open Library author search");
       try {
-        const fallback = await searchGoogleBooks(author);
-        const fallbackFiltered = fallback.filter(book =>
-          (book.authors || []).some(a => {
-            const aLower = a.toLowerCase();
-            return authorParts.every(part => aLower.includes(part));
+        const res  = await fetch(`https://openlibrary.org/search.json?author=${encodeURIComponent(author)}&limit=20&fields=key,title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median`);
+        const data = await res.json();
+        const olAuthorResults = (data.docs || [])
+          .filter(d => {
+            // Verify author name matches
+            return (d.author_name || []).some(a =>
+              authorParts.every(part => a.toLowerCase().includes(part))
+            );
           })
-        );
-        console.log("Fallback filtered results:", fallbackFiltered.length);
-        filtered = fallbackFiltered.length > 0 ? fallbackFiltered : fallback;
+          .map(d => {
+            const isbn13 = d.isbn?.find(i => i.length === 13) || d.isbn?.[0] || null;
+            return {
+              bookId:        isbn13,
+              googleBooksId: null,
+              isbn13,
+              isbn10:        d.isbn?.find(i => i.length === 10) || null,
+              title:         d.title || "Unknown Title",
+              authors:       d.author_name || [],
+              description:   "",
+              publisher:     "",
+              publishedDate: d.first_publish_year?.toString() || "",
+              pageCount:     d.number_of_pages_median || null,
+              categories:    [],
+              coverURL:      d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg` : null,
+              seriesInfo:    null,
+              averageRating: null,
+              ratingsCount:  0,
+              source:        "openlibrary"
+            };
+          })
+          .filter(b => b.isbn13); // only include books with ISBNs
+
+        console.log("Open Library author results:", olAuthorResults.length);
+        if (olAuthorResults.length > 0) {
+          filtered = olAuthorResults;
+        }
+        // If still nothing, show empty rather than garbage
       } catch (e) {
-        filtered = merged; // last resort
+        console.error("Open Library author fallback error:", e);
       }
     }
   }
