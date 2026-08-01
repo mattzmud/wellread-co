@@ -1379,26 +1379,43 @@ function normalizeGoogleBook(item) {
 // Title + optional author search — uses Google Books field operators
 // for precision, then supplements with Open Library
 async function lookupBookTitleAuthor(title, author = "") {
-  // Build targeted Google Books queries
-  const titleQ  = title
-    ? `intitle:${title}${author ? ` inauthor:${author}` : ""}`
-    : `inauthor:${author}`;
-  const plainQ  = [title, author].filter(Boolean).join(" ");
+  const hasTitle  = title.trim().length > 0;
+  const hasAuthor = author.trim().length > 0;
 
-  const [titled, plain, olResults, internalMap] = await Promise.all([
-    // Google Books intitle: + inauthor: — most precise
-    searchGoogleBooks(titleQ).catch(() => []),
-    // Google Books plain — catches cases where operators are too strict
-    searchGoogleBooks(plainQ).catch(() => []),
-    // Open Library — international coverage
-    searchOpenLibraryTitle(title).catch(() => []),
-    // Firestore DB — community data
+  // Build targeted Google Books queries
+  let queries = [];
+
+  if (hasTitle && hasAuthor) {
+    // Both fields — intitle: + inauthor: first, then title+author plain as fallback
+    queries = [
+      `intitle:${title} inauthor:${author}`,
+      `${title} ${author}`
+    ];
+  } else if (hasTitle) {
+    // Title only — intitle: first, then plain title
+    queries = [
+      `intitle:${title}`,
+      title
+    ];
+  } else if (hasAuthor) {
+    // Author only — inauthor: ONLY, no plain fallback (too noisy)
+    queries = [
+      `inauthor:${author}`
+    ];
+  } else {
+    return [];
+  }
+
+  const [primary, secondary, olResults, internalMap] = await Promise.all([
+    searchGoogleBooks(queries[0]).catch(() => []),
+    queries[1] ? searchGoogleBooks(queries[1]).catch(() => []) : Promise.resolve([]),
+    hasTitle ? searchOpenLibraryTitle(title).catch(() => []) : Promise.resolve([]),
     (async () => {
       const map = {};
       try {
         const snap = await _db.collection("books")
           .orderBy("addedAt", "desc").limit(200).get();
-        const q = title.toLowerCase();
+        const q = (title || author).toLowerCase();
         snap.docs.forEach(d => {
           const b = d.data();
           if (
@@ -1413,11 +1430,11 @@ async function lookupBookTitleAuthor(title, author = "") {
     })()
   ]);
 
-  // Merge all sources, deduped by ISBN/googleBooksId, titled results first
-  const seen = new Set();
+  // Merge all sources, deduped by ISBN/googleBooksId, primary results first
+  const seen   = new Set();
   const merged = [];
 
-  for (const book of [...titled, ...plain, ...olResults]) {
+  for (const book of [...primary, ...secondary, ...olResults]) {
     const key = book.isbn13 || book.googleBooksId;
     if (!key || seen.has(key)) continue;
     seen.add(key);
