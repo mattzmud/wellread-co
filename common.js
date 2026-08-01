@@ -1248,9 +1248,46 @@ async function getGoogleBookByISBN(isbn) {
   return await getOpenLibraryByISBN(isbn);
 }
 
+async function searchOpenLibraryTitle(query) {
+  try {
+    const encoded = encodeURIComponent(query);
+    const res  = await fetch(`https://openlibrary.org/search.json?title=${encoded}&limit=10&fields=key,title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median,subject`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.docs || [])
+      .filter(d => d.isbn?.length) // only include if has ISBN
+      .map(d => {
+        const isbn13 = d.isbn?.find(i => i.length === 13) || d.isbn?.[0] || null;
+        const cover  = d.cover_i
+          ? `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg`
+          : null;
+        return {
+          bookId:        isbn13,
+          googleBooksId: null,
+          isbn13,
+          isbn10:        d.isbn?.find(i => i.length === 10) || null,
+          title:         d.title || "Unknown Title",
+          authors:       d.author_name || [],
+          description:   "",
+          publisher:     "",
+          publishedDate: d.first_publish_year?.toString() || "",
+          pageCount:     d.number_of_pages_median || null,
+          categories:    d.subject?.slice(0, 3) || [],
+          coverURL:      cover,
+          seriesInfo:    null,
+          averageRating: null,
+          ratingsCount:  0,
+          source:        "openlibrary"
+        };
+      });
+  } catch (e) {
+    console.error("Open Library title search error:", e);
+    return [];
+  }
+}
+
 async function getOpenLibraryByISBN(isbn) {
   try {
-    const res  = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
     if (!res.ok) return null;
     const data = await res.json();
 
@@ -1351,11 +1388,10 @@ async function lookupBook(query, type = "text") {
     return result ? [result] : [];
   }
 
-  // Text search — always hit Google Books for comprehensive results.
-  // Merge in any Firestore matches so we keep community data (ratings etc)
-  // but never let Firestore results block the Google Books response.
-  const [apiResults, internalMap] = await Promise.all([
+  // Text search — hit Google Books and Open Library in parallel
+  const [apiResults, olResults, internalMap] = await Promise.all([
     searchGoogleBooksTitle(query).catch(() => []),
+    searchOpenLibraryTitle(query).catch(() => []),
     (async () => {
       const map = {};
       try {
@@ -1376,12 +1412,25 @@ async function lookupBook(query, type = "text") {
     })()
   ]);
 
-  // Merge: if a Google Books result is already in Firestore, use the Firestore
-  // doc (richer data) but keep Google Books position in the list
-  return apiResults.map(book => {
+  // Merge: Google Books first, then add Open Library results not already present
+  const seenKeys = new Set();
+  const googleMerged = apiResults.map(book => {
     const key = book.isbn13 || book.googleBooksId;
+    if (key) seenKeys.add(key);
     return internalMap[key] || book;
   });
+
+  // Add Open Library results that weren't in Google Books, checking Firestore too
+  const olMerged = olResults
+    .filter(book => {
+      const key = book.isbn13;
+      if (!key || seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    })
+    .map(book => internalMap[book.isbn13] || book);
+
+  return [...googleMerged, ...olMerged];
 }
 
 async function saveBookToDb(book) {
@@ -1845,6 +1894,7 @@ window.WR = {
   getUserBook,
   searchGoogleBooks,
   searchGoogleBooksTitle,
+  searchOpenLibraryTitle,
   getGoogleBookByISBN,
   getOpenLibraryByISBN,
   normalizeGoogleBook,
