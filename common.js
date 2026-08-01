@@ -1461,7 +1461,25 @@ async function lookupBookTitleAuthor(title, author = "") {
     });
 
     console.log("Books after filter:", filtered.length);
-    if (filtered.length === 0) filtered = merged;
+
+    // If everything was filtered out, the inauthor: query returned junk.
+    // Try a plain "Author Name books" query instead as fallback.
+    if (filtered.length === 0) {
+      console.log("inauthor: returned no valid results, trying plain search fallback");
+      try {
+        const fallback = await searchGoogleBooks(author);
+        const fallbackFiltered = fallback.filter(book =>
+          (book.authors || []).some(a => {
+            const aLower = a.toLowerCase();
+            return authorParts.every(part => aLower.includes(part));
+          })
+        );
+        console.log("Fallback filtered results:", fallbackFiltered.length);
+        filtered = fallbackFiltered.length > 0 ? fallbackFiltered : fallback;
+      } catch (e) {
+        filtered = merged; // last resort
+      }
+    }
   }
 
   return filtered;
