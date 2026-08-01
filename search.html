@@ -671,6 +671,7 @@
         <input type="text" class="search-input" id="authorInput"
                placeholder="Author (optional)..."
                onkeydown="onSearchKey(event)"
+               oninput="document.getElementById('authorClear').style.display=this.value?'':'none'"
                autocomplete="off">
         <button class="search-clear" id="authorClear" onclick="clearAuthor()" aria-label="Clear author" style="display:none;">✕</button>
       </div>
@@ -971,7 +972,9 @@
         ? (document.getElementById("authorInput")?.value.trim() || "")
         : "";
 
-      if (!title) return;
+      // Allow search with either title, author, or both
+      if (!title && !author) return;
+
       setSearchLoading(true);
       showSkeleton();
       try {
