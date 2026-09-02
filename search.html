@@ -659,20 +659,14 @@
     <!-- Books Search Panel -->
     <div id="booksPanel">
     <div class="search-form" style="flex-direction:column;gap:8px;">
-      <div style="display:flex;gap:8px;">
-        <div class="search-input-wrap" style="flex:1;">
-          <span class="search-icon">📖</span>
-          <input type="text" class="search-input" id="searchInput"
-                 placeholder="Title..."
-                 oninput="onSearchInput(this.value)"
-                 onkeydown="onSearchKey(event)"
-                 autocomplete="off">
-          <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search">✕</button>
-        </div>
-        <button class="search-btn" id="searchBtn" onclick="doSearch()">
-          <div class="spinner"></div>
-          <span class="btn-text">🔍 <span class="search-btn-label">Search</span></span>
-        </button>
+      <div class="search-input-wrap">
+        <span class="search-icon">📖</span>
+        <input type="text" class="search-input" id="searchInput"
+               placeholder="Title..."
+               oninput="onSearchInput(this.value)"
+               onkeydown="onSearchKey(event)"
+               autocomplete="off">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search">✕</button>
       </div>
       <div class="search-input-wrap" id="authorInputWrap">
         <span class="search-icon">✍️</span>
@@ -683,6 +677,10 @@
                autocomplete="off">
         <button class="search-clear" id="authorClear" onclick="clearAuthor()" aria-label="Clear author" style="display:none;">✕</button>
       </div>
+      <button class="search-btn" id="searchBtn" onclick="doSearch()" style="width:100%;justify-content:center;">
+        <div class="spinner"></div>
+        <span class="btn-text">🔍 Search</span>
+      </button>
     </div>
 
     <!-- Search Type Pills -->

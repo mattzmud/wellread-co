@@ -352,7 +352,12 @@
       <div class="result-canvas-wrap">
         <canvas id="resultCanvas" width="1080" height="1080"></canvas>
       </div>
-      <button class="download-btn" onclick="downloadGraphic()">⬇️ Download PNG</button>
+      <button class="download-btn" onclick="downloadGraphic()">⬇️ <span id="downloadBtnLabel">Download PNG</span></button>
+      <script>
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          document.getElementById("downloadBtnLabel").textContent = "Open to Save (long-press image)";
+        }
+      </script>
       <button class="regenerate-btn" onclick="generateGraphic()">🔄 Try Another Template</button>
     </div>
   </div>
@@ -691,7 +696,7 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1080, 1080);
 
-      // Subtle pattern overlay — dots
+      // Subtle dot pattern
       ctx.fillStyle = "rgba(123, 94, 167, 0.15)";
       for (let x = 0; x < 1080; x += 60) {
         for (let y = 0; y < 1080; y += 60) {
@@ -703,28 +708,37 @@
 
       // Title
       ctx.fillStyle = "#FAF6EE";
-      ctx.font      = "bold 72px serif";
+      ctx.font      = "bold 64px serif";
       ctx.textAlign = "center";
-      ctx.fillText("My Reads", 540, 110);
+      ctx.fillText("My Reads", 540, 95);
 
-      // Subtitle line
-      ctx.fillStyle = "rgba(247,243,255,0.55)";
-      ctx.font      = "36px serif";
-      ctx.fillText("wellreadco.app", 540, 1040);
+      // Footer
+      ctx.fillStyle = "rgba(247,243,255,0.45)";
+      ctx.font      = "30px serif";
+      ctx.fillText("wellreadco.app", 540, 1050);
 
-      // Calculate grid layout
+      // Calculate grid that fits ALL books within the available area
       const count   = books.length;
-      const cols    = count <= 3 ? count : count <= 6 ? 3 : count <= 9 ? 3 : 4;
-      const rows    = Math.ceil(count / cols);
-      const padding = 60;
-      const gap     = 20;
+      const padding = 50;
+      const gap     = 14;
       const areaW   = 1080 - padding * 2;
-      const areaH   = 1080 - 160; // leave room for title and footer
-      const coverW  = Math.floor((areaW - gap * (cols - 1)) / cols);
-      const coverH  = Math.floor(coverW * 1.5); // 2:3 aspect ratio
+      const areaH   = 1080 - 130; // reserve top for title, bottom for footer
+
+      // Find cols that keeps covers a reasonable size
+      const cols    = count <= 2 ? count : count <= 4 ? 2 : count <= 9 ? 3 : 4;
+      const rows    = Math.ceil(count / cols);
+
+      // Fit cover size to available height
+      const maxCoverH = Math.floor((areaH - gap * (rows - 1)) / rows);
+      const maxCoverW = Math.floor((areaW - gap * (cols - 1)) / cols);
+      // Maintain 2:3 ratio, take the smaller constraint
+      const coverW  = Math.min(maxCoverW, Math.floor(maxCoverH * 2 / 3));
+      const coverH  = Math.floor(coverW * 1.5);
+
+      const totalW  = coverW * cols + gap * (cols - 1);
       const totalH  = coverH * rows + gap * (rows - 1);
-      const startX  = padding;
-      const startY  = 140 + Math.max(0, (areaH - totalH) / 2);
+      const startX  = Math.floor((1080 - totalW) / 2);
+      const startY  = 115 + Math.floor((areaH - totalH) / 2);
 
       // Draw each cover
       await Promise.all(books.map(async (book, i) => {
@@ -737,24 +751,12 @@
           try {
             const img = await loadImage(book.coverURL, true);
             const { sx, sy, sw, sh } = coverFit(img.naturalWidth, img.naturalHeight, coverW, coverH);
-            // Rounded clip
             ctx.save();
-            roundRect(ctx, x, y, coverW, coverH, 8);
+            roundRect(ctx, x, y, coverW, coverH, 6);
             ctx.clip();
             ctx.drawImage(img, sx, sy, sw, sh, x, y, coverW, coverH);
             ctx.restore();
-            // Shadow
-            ctx.save();
-            ctx.shadowColor = "rgba(0,0,0,0.4)";
-            ctx.shadowBlur  = 12;
-            ctx.shadowOffsetY = 4;
-            roundRect(ctx, x, y, coverW, coverH, 8);
-            ctx.strokeStyle = "rgba(255,255,255,0.1)";
-            ctx.lineWidth   = 1;
-            ctx.stroke();
-            ctx.restore();
-          } catch (e) {
-            console.warn("Cover failed:", book.coverURL, e);
+          } catch {
             drawPlaceholder(ctx, { x, y, w: coverW, h: coverH });
           }
         } else {
@@ -870,12 +872,26 @@
     // ── Download ──────────────────────────────────────────────
     function downloadGraphic() {
       const canvas  = document.getElementById("resultCanvas");
-      const link    = document.createElement("a");
       const now     = new Date();
-      const month   = now.toLocaleString("default", { month: "long" });
-      link.download = `wellread-${month.toLowerCase()}-reads.png`;
-      link.href     = canvas.toDataURL("image/png");
+      const month   = now.toLocaleString("default", { month: "long" }).toLowerCase();
+      const dataURL = canvas.toDataURL("image/png");
+
+      // iOS Safari doesn't support link.click() for downloads
+      // Detect iOS and open in new tab instead
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        // Open the image in a new tab — user can long-press to save
+        const win = window.open();
+        win.document.write(`<img src="${dataURL}" style="max-width:100%"><p style="font-family:sans-serif;text-align:center;color:#666;margin-top:1rem;">Long-press the image and tap "Save to Photos" to download.</p>`);
+        return;
+      }
+
+      const link    = document.createElement("a");
+      link.download = `wellread-${month}-reads.png`;
+      link.href     = dataURL;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     }
 
     window.switchMode      = switchMode;
