@@ -187,6 +187,7 @@
     .btn-view     { background: var(--lavender-mist); color: var(--amethyst); border: 1.5px solid var(--amethyst); }
     .btn-greyed   { background: #F0EAF8; color: #BDB5CC; cursor: default; }
     .btn-remove   { background: transparent; color: var(--terracotta); border: 1.5px solid var(--border); }
+    .btn-refresh  { background: transparent; color: #BDB5CC; border: 1.5px solid var(--border); font-size: 12px; padding: 7px 14px; }
 
     /* ── Content Sections ── */
     .content-section {
@@ -894,7 +895,47 @@
         }
       }
 
-      return html;
+      return html + `<button class="action-btn btn-refresh" onclick="refreshBookData()" id="refreshBtn" title="Pull fresh metadata from Google Books / Open Library">🔄 Refresh Book Data</button>`;
+    }
+
+    async function refreshBookData() {
+      const btn    = document.getElementById("refreshBtn");
+      const bookId = book.bookId || book.isbn13 || book.id;
+      if (btn) { btn.textContent = "Refreshing..."; btn.disabled = true; }
+
+      try {
+        const fresh = await fetchFromAPI(bookId);
+        if (!fresh) {
+          WR.showToast("Couldn't find updated data for this book.", "error");
+          return;
+        }
+
+        // Save fresh metadata to the global books collection
+        await WR.saveBookToDb(fresh);
+
+        // Merge into current book object (keep user-specific fields)
+        book = {
+          ...book,
+          title:         fresh.title         || book.title,
+          authors:       fresh.authors        || book.authors,
+          description:   fresh.description    || book.description,
+          coverURL:      fresh.coverURL        || book.coverURL,
+          categories:    fresh.categories     || book.categories,
+          seriesInfo:    fresh.seriesInfo      ?? book.seriesInfo,
+          pageCount:     fresh.pageCount       || book.pageCount,
+          publisher:     fresh.publisher       || book.publisher,
+          publishedDate: fresh.publishedDate   || book.publishedDate
+        };
+
+        // Re-render the page with fresh data
+        renderPage();
+        WR.showToast("Book data refreshed! ✓", "success");
+      } catch (e) {
+        console.error("Refresh error:", e);
+        WR.showToast("Error refreshing book data.", "error");
+      } finally {
+        if (btn) { btn.textContent = "🔄 Refresh Book Data"; btn.disabled = false; }
+      }
     }
 
     function renderMyNotes() {
@@ -1485,6 +1526,7 @@
     window.onEndDateInput     = onEndDateInput;
     window.onNoDateChange     = onNoDateChange;
     window.removeFromReadList = removeFromReadList;
+    window.refreshBookData    = refreshBookData;
     window.removeFromLibrary  = removeFromLibrary;
     window.openReadModal   = openReadModal;
     window.closeReadModal = closeReadModal;
