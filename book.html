@@ -801,7 +801,7 @@
             ${(() => {
               const genres = book.genres?.length ? book.genres : WR.normalizeGenres(book.categories || []);
               return genres.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-                ${genres.map(g => `<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,0.15);color:#FAF6EE;letter-spacing:0.03em;">${WR.escapeHTML(g)}</span>`).join("")}
+                ${genres.map(g => `<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--lavender-mist);color:var(--amethyst);border:1px solid var(--border);letter-spacing:0.03em;">${WR.escapeHTML(g)}</span>`).join("")}
               </div>` : "";
             })()}
             ${ratingHTML}
