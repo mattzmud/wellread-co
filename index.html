@@ -711,6 +711,23 @@
       </div>
     </div>
 
+    <!-- Annual Goal Card -->
+    <div class="goal-card" id="annualGoalCard" style="display:none;">
+      <span class="goal-icon">📅</span>
+      <div class="goal-info">
+        <p class="goal-title" id="annualGoalTitle">Set an annual reading goal</p>
+        <div class="goal-progress-bar">
+          <div class="goal-progress-fill" id="annualGoalFill" style="width:0%;background:var(--warm-gold,#C9A84C);"></div>
+        </div>
+        <p class="goal-progress-label" id="annualGoalLabel">No annual goal set</p>
+      </div>
+      <div style="flex-shrink:0;">
+        <button class="goal-set-btn" onclick="openAnnualGoalModal()">
+          <span id="annualGoalBtnText">Set Goal</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Quick Stats -->
     <div class="quick-stats" id="quickStats">
       <a class="quick-stat-card" href="library.html">
@@ -810,6 +827,24 @@
     </div>
   </div>
 
+  <!-- Annual Goal Modal -->
+  <div class="modal-overlay" id="annualGoalModal" onclick="if(event.target===this)closeAnnualGoalModal()">
+    <div class="goal-modal">
+      <h2 class="goal-modal-title">📅 Annual Reading Goal</h2>
+      <p class="goal-modal-desc">How many books do you want to read in <span id="annualGoalYear"></span>?</p>
+      <div class="goal-input-row">
+        <button class="goal-stepper-btn" onclick="adjustAnnualGoal(-5)">−</button>
+        <input type="number" class="goal-number-input" id="annualGoalInput" value="24" min="1" max="365">
+        <span class="goal-unit">books this year</span>
+        <button class="goal-stepper-btn" onclick="adjustAnnualGoal(5)">+</button>
+      </div>
+      <div class="goal-modal-actions">
+        <button class="goal-btn goal-btn-cancel" onclick="closeAnnualGoalModal()">Cancel</button>
+        <button class="goal-btn goal-btn-save"   onclick="saveAnnualGoal()">Save Goal</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -897,6 +932,7 @@
         // Check if we need to snapshot last month's goal result
         await checkMonthEnd();
         renderGoalCard();
+        renderAnnualGoalCard();
       } catch (e) {
         console.error("Stats error:", e);
       }
@@ -913,6 +949,17 @@
       allBooks.forEach(b => {
         (b.readingSessions || []).forEach(s => {
           if (s.completed && s.endDate && s.endDate.startsWith(monthKey)) count++;
+        });
+      });
+      return count;
+    }
+
+    function countBooksReadThisYear() {
+      const year = new Date().getFullYear();
+      let count  = 0;
+      allBooks.forEach(b => {
+        (b.readingSessions || []).forEach(s => {
+          if (s.completed && s.endDate && new Date(s.endDate + "T12:00:00").getFullYear() === year) count++;
         });
       });
       return count;
@@ -937,12 +984,25 @@
       const surpassed = booksRead > goal.target;
       const entry     = { target: goal.target, booksRead, met, surpassed };
 
+      // Also check annual goal
+      const annualGoal = profile?.annualGoal;
+      const thisYear   = new Date().getFullYear();
+      const updates    = {
+        goalHistory: { ...history, [goal.month]: entry }
+      };
+
+      if (annualGoal?.year === thisYear) {
+        const booksThisYear = countBooksReadThisYear();
+        const annualMet       = booksThisYear >= annualGoal.target;
+        const annualSurpassed = booksThisYear > annualGoal.target;
+        updates.annualGoal = { ...annualGoal, booksRead: booksThisYear, met: annualMet, surpassed: annualSurpassed };
+      }
+
       try {
-        await WR.getDb().collection("users").doc(user.uid).set({
-          goalHistory: { ...history, [goal.month]: entry }
-        }, { merge: true });
+        await WR.getDb().collection("users").doc(user.uid).set(updates, { merge: true });
         if (!profile.goalHistory) profile.goalHistory = {};
         profile.goalHistory[goal.month] = entry;
+        if (updates.annualGoal) profile.annualGoal = updates.annualGoal;
       } catch (e) { console.error("Goal snapshot error:", e); }
     }
 
@@ -982,6 +1042,102 @@
         `<strong>${pct}%</strong> of your ${monthName} goal`;
       document.getElementById("goalBtnText").textContent = "Edit Goal";
     }
+
+    // ── Annual Goal Card ──────────────────────────────────────
+    function renderAnnualGoalCard() {
+      const card       = document.getElementById("annualGoalCard");
+      const annualGoal = profile?.annualGoal;
+      const thisYear   = new Date().getFullYear();
+      card.style.display = "flex";
+
+      if (!annualGoal?.year || annualGoal.year !== thisYear) {
+        document.getElementById("annualGoalTitle").textContent   = `Set your ${thisYear} reading goal`;
+        document.getElementById("annualGoalLabel").textContent   = "No annual goal set yet";
+        document.getElementById("annualGoalFill").style.width    = "0%";
+        document.getElementById("annualGoalBtnText").textContent = "Set Goal";
+        return;
+      }
+
+      const booksThisYear = countBooksReadThisYear();
+      const target        = annualGoal.target;
+      const pct           = Math.min(100, Math.round((booksThisYear / target) * 100));
+
+      // Calculate remaining accounting for monthly goals set this year
+      const monthlyGoalsThisYear = Object.entries(profile?.goalHistory || {})
+        .filter(([k]) => k.startsWith(String(thisYear)))
+        .reduce((sum, [, e]) => sum + (e.target || 0), 0);
+      const currentMonthGoal = (() => {
+        const g = profile?.monthlyGoal;
+        const thisMonth = getMonthKey();
+        return (g?.month === thisMonth ? g.target : 0);
+      })();
+      const totalMonthlyGoals = monthlyGoalsThisYear + currentMonthGoal;
+      const remaining = Math.max(0, target - totalMonthlyGoals);
+
+      let titleText;
+      if (booksThisYear > target) {
+        titleText = `🏆 Annual goal surpassed! ${booksThisYear} of ${target} books read`;
+      } else if (pct >= 100) {
+        titleText = `🎉 Annual goal complete! ${booksThisYear} of ${target} books`;
+      } else {
+        titleText = `${booksThisYear} of ${target} books read in ${thisYear}`;
+      }
+
+      document.getElementById("annualGoalTitle").textContent  = titleText;
+      document.getElementById("annualGoalFill").style.width   = pct + "%";
+      document.getElementById("annualGoalLabel").innerHTML    =
+        `<strong>${pct}%</strong> complete · ${remaining > 0 ? `${remaining} books remaining after monthly goals` : "All books accounted for in monthly goals!"}`;
+      document.getElementById("annualGoalBtnText").textContent = "Edit Goal";
+    }
+
+    // ── Annual Goal Modal ─────────────────────────────────────
+    function openAnnualGoalModal() {
+      const annualGoal = profile?.annualGoal;
+      const thisYear   = new Date().getFullYear();
+      document.getElementById("annualGoalYear").textContent = thisYear;
+      document.getElementById("annualGoalInput").value =
+        (annualGoal?.year === thisYear ? annualGoal.target : 24);
+      document.getElementById("annualGoalModal").classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeAnnualGoalModal() {
+      document.getElementById("annualGoalModal").classList.remove("open");
+      document.body.style.overflow = "";
+    }
+
+    function adjustAnnualGoal(delta) {
+      const input = document.getElementById("annualGoalInput");
+      input.value = Math.max(1, Math.min(365, parseInt(input.value || 24) + delta));
+    }
+
+    async function saveAnnualGoal() {
+      const target   = parseInt(document.getElementById("annualGoalInput").value);
+      if (!target || target < 1) return;
+      const user     = WR.getCurrentUser();
+      const thisYear = new Date().getFullYear();
+      const booksThisYear = countBooksReadThisYear();
+      const annualGoal = { year: thisYear, target, booksRead: booksThisYear, met: false, surpassed: false };
+
+      try {
+        await WR.getDb().collection("users").doc(user.uid).set(
+          { annualGoal },
+          { merge: true }
+        );
+        profile.annualGoal = annualGoal;
+        closeAnnualGoalModal();
+        renderAnnualGoalCard();
+        WR.showToast("Annual goal saved! 📅", "success");
+      } catch (e) {
+        console.error("Save annual goal error:", e);
+        WR.showToast("Error saving goal.", "error");
+      }
+    }
+
+    window.openAnnualGoalModal  = openAnnualGoalModal;
+    window.closeAnnualGoalModal = closeAnnualGoalModal;
+    window.adjustAnnualGoal     = adjustAnnualGoal;
+    window.saveAnnualGoal       = saveAnnualGoal;
 
     // ── Goal Modal ────────────────────────────────────────────
     function openGoalModal() {
@@ -1028,6 +1184,7 @@
 
         if (profile) profile.monthlyGoal = { month: thisMonth, target, achieved: false };
         renderGoalCard();
+        renderAnnualGoalCard(); // monthly goal affects annual remaining count
         WR.showToast(`Goal set: ${target} books this month! 🎯`, "success");
         closeGoalModal();
       } catch (e) {
