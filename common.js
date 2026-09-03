@@ -1222,14 +1222,10 @@ async function getGoogleBookByISBN(isbn) {
   try {
     const res  = await fetch(url);
     const data = await res.json();
-    console.log("Google Books ISBN response:", isbn, "status:", res.status, "items:", data.items?.length ?? 0, "error:", data.error?.message);
     if (data.items?.length) return normalizeGoogleBook(data.items[0]);
   } catch (e) {
     console.error("Google Books ISBN lookup error:", e);
   }
-
-  // Fall back to Open Library if Google returns nothing
-  console.log("Falling back to Open Library for ISBN:", isbn);
   return await getOpenLibraryByISBN(isbn);
 }
 
@@ -1274,7 +1270,6 @@ async function searchOpenLibraryTitle(query) {
 async function getOpenLibraryByISBN(isbn) {
   try {
     const res  = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
-    console.log("Open Library ISBN response:", isbn, "status:", res.status);
     if (!res.ok) return null;
     const data = await res.json();
 
@@ -1423,34 +1418,21 @@ async function lookupBookTitleAuthor(title, author = "") {
     const authorLower  = author.toLowerCase().trim();
     const authorParts  = authorLower.split(/\s+/).filter(w => w.length > 1);
 
-    console.log("Author filter - searching for:", authorParts);
-    console.log("Books before filter:", merged.map(b => ({title: b.title, authors: b.authors})));
-
     filtered = merged.filter(book => {
-      const matches = (book.authors || []).some(a => {
+      return (book.authors || []).some(a => {
         const aLower = a.toLowerCase();
         return authorParts.every(part => aLower.includes(part));
       });
-      if (!matches) console.log("Filtered out:", book.title, book.authors);
-      return matches;
     });
 
-    console.log("Books after filter:", filtered.length);
-
-    // If everything was filtered out, Google's inauthor: returned junk.
-    // Fall back to Open Library author search which is more reliable.
     if (filtered.length === 0) {
-      console.log("Google inauthor: returned no valid results, trying Open Library author search");
       try {
         const res  = await fetch(`https://openlibrary.org/search.json?author=${encodeURIComponent(author)}&limit=20&fields=key,title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median`);
         const data = await res.json();
         const olAuthorResults = (data.docs || [])
-          .filter(d => {
-            // Verify author name matches
-            return (d.author_name || []).some(a =>
-              authorParts.every(part => a.toLowerCase().includes(part))
-            );
-          })
+          .filter(d => (d.author_name || []).some(a =>
+            authorParts.every(part => a.toLowerCase().includes(part))
+          ))
           .map(d => {
             const isbn13 = d.isbn?.find(i => i.length === 13) || d.isbn?.[0] || null;
             return {
@@ -1472,13 +1454,9 @@ async function lookupBookTitleAuthor(title, author = "") {
               source:        "openlibrary"
             };
           })
-          .filter(b => b.isbn13); // only include books with ISBNs
+          .filter(b => b.isbn13);
 
-        console.log("Open Library author results:", olAuthorResults.length);
-        if (olAuthorResults.length > 0) {
-          filtered = olAuthorResults;
-        }
-        // If still nothing, show empty rather than garbage
+        if (olAuthorResults.length > 0) filtered = olAuthorResults;
       } catch (e) {
         console.error("Open Library author fallback error:", e);
       }
@@ -1956,27 +1934,87 @@ async function showBadgePopupIfNeeded() {
   }
 }
 
-function buildBadgeGrid(badges) {
-  if (!badges.length) return "";
+function buildBadgeGrid(earnedBadges) {
+  // Build a map of earned badges by id for quick lookup
+  // For repeatable badges (goal_met_, goal_surpassed_) we may have multiple
+  const earnedMap = {};
+  const repeatables = [];
 
-  return badges.map(entry => {
-    const def    = getBadgeDef(entry.id);
-    if (!def) return "";
+  (earnedBadges || []).forEach(entry => {
+    if (!entry.id) return;
+    if (entry.id.startsWith("goal_met_") || entry.id.startsWith("goal_surpassed_")) {
+      repeatables.push(entry);
+    } else {
+      earnedMap[entry.id] = entry;
+    }
+  });
+
+  const rows = [];
+
+  // 1. Render all non-repeatable badge defs — greyed if not earned
+  Object.keys(BADGE_DEFS).forEach(id => {
+    if (id === "goal_met" || id === "goal_surpassed") return; // handle separately
+    const def    = getBadgeDef(id);
+    if (!def) return;
+    const entry  = earnedMap[id];
+    const earned = !!entry;
     const rarity = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
-    const monthLabel = (entry.id.startsWith("goal_met_") || entry.id.startsWith("goal_surpassed_"))
-      ? getBadgeMonthLabel(entry.id) : "";
+    const dateLabel = earned && entry.earnedAt
+      ? new Date(entry.earnedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+      : null;
 
-    return `
-      <div style="
+    rows.push(`
+      <div title="${def.name}: ${def.desc}" style="
         display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px;
-        border-radius:12px;border:1.5px solid ${rarity.border};
-        background:${rarity.bg};text-align:center;">
-        <span style="font-size:24px;">${def.icon}</span>
-        <span style="font-size:10px;font-weight:700;color:${rarity.text};line-height:1.3;">${def.name}</span>
-        <span style="font-size:9px;color:${rarity.text};opacity:0.75;line-height:1.3;">${def.desc}</span>
-        ${monthLabel ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;">${monthLabel}</span>` : ""}
-      </div>`;
-  }).join("");
+        border-radius:12px;border:1.5px solid ${earned ? rarity.border : "var(--border)"};
+        background:${earned ? rarity.bg : "#F5F3F8"};
+        opacity:${earned ? "1" : "0.45"};
+        text-align:center;">
+        <span style="font-size:24px;${earned ? "" : "filter:grayscale(1);"}">${def.icon}</span>
+        <span style="font-size:10px;font-weight:700;color:${earned ? rarity.text : "#BDB5CC"};line-height:1.3;">${def.name}</span>
+        <span style="font-size:9px;color:${earned ? rarity.text : "#BDB5CC"};opacity:${earned ? "0.8" : "0.7"};line-height:1.3;">${def.desc}</span>
+        ${dateLabel ? `<span style="font-size:9px;color:${rarity.text};opacity:0.6;margin-top:1px;">${dateLabel}</span>` : ""}
+      </div>`);
+  });
+
+  // 2. Render repeatable badges — one entry per earned month, plus one greyed placeholder
+  ["goal_met", "goal_surpassed"].forEach(baseId => {
+    const def      = BADGE_DEFS[baseId];
+    if (!def) return;
+    const rarity   = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
+    const instances = repeatables.filter(e => e.id.startsWith(baseId + "_"));
+
+    if (instances.length === 0) {
+      // Show one greyed placeholder
+      rows.push(`
+        <div title="${def.name}: ${def.desc}" style="
+          display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px;
+          border-radius:12px;border:1.5px solid var(--border);
+          background:#F5F3F8;opacity:0.45;text-align:center;">
+          <span style="font-size:24px;filter:grayscale(1);">${def.icon}</span>
+          <span style="font-size:10px;font-weight:700;color:#BDB5CC;line-height:1.3;">${def.name}</span>
+          <span style="font-size:9px;color:#BDB5CC;opacity:0.7;line-height:1.3;">${def.desc}</span>
+        </div>`);
+    } else {
+      // Show one card per earned month
+      instances.sort((a, b) => (a.id > b.id ? 1 : -1));
+      instances.forEach(entry => {
+        const monthLabel = getBadgeMonthLabel(entry.id);
+        rows.push(`
+          <div title="${def.name} — ${monthLabel}" style="
+            display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px;
+            border-radius:12px;border:1.5px solid ${rarity.border};
+            background:${rarity.bg};text-align:center;">
+            <span style="font-size:24px;">${def.icon}</span>
+            <span style="font-size:10px;font-weight:700;color:${rarity.text};line-height:1.3;">${def.name}</span>
+            <span style="font-size:9px;color:${rarity.text};opacity:0.8;line-height:1.3;">${def.desc}</span>
+            <span style="font-size:9px;color:${rarity.text};opacity:0.65;margin-top:1px;">${monthLabel}</span>
+          </div>`);
+      });
+    }
+  });
+
+  return rows.join("");
 }
 
 window.WR = {
