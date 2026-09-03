@@ -1729,6 +1729,8 @@ const BADGE_DEFS = {
   // Library
   wishlist_10:    { name: "Ambitious Reader",  icon: "⭐", desc: "Added 10 books to your wishlist",        rarity: "common"    },
   dnf_3:          { name: "Life's Too Short",  icon: "🚪", desc: "DNF'd 3 books — no shame in that!",     rarity: "common"    },
+  annual_goal_met:       { name: "Year Achieved",   icon: "🗓️", desc: "Met your annual reading goal",          rarity: "rare"      },
+  annual_goal_surpassed: { name: "Year Conquered",  icon: "🏆", desc: "Surpassed your annual reading goal",    rarity: "legendary" },
 };
 
 const RARITY_COLORS = {
@@ -1739,9 +1741,10 @@ const RARITY_COLORS = {
 };
 
 function getBadgeDef(badgeId) {
-  // Handle dynamic goal badges like "goal_met_2025_06"
-  if (badgeId.startsWith("goal_met_"))       return { ...BADGE_DEFS.goal_met,       id: badgeId };
-  if (badgeId.startsWith("goal_surpassed_")) return { ...BADGE_DEFS.goal_surpassed, id: badgeId };
+  if (badgeId.startsWith("goal_met_"))              return { ...BADGE_DEFS.goal_met,              id: badgeId };
+  if (badgeId.startsWith("goal_surpassed_"))        return { ...BADGE_DEFS.goal_surpassed,        id: badgeId };
+  if (badgeId.startsWith("annual_goal_met_"))       return { ...BADGE_DEFS.annual_goal_met,       id: badgeId };
+  if (badgeId.startsWith("annual_goal_surpassed_")) return { ...BADGE_DEFS.annual_goal_surpassed, id: badgeId };
   return BADGE_DEFS[badgeId] ? { ...BADGE_DEFS[badgeId], id: badgeId } : null;
 }
 
@@ -1818,6 +1821,15 @@ async function checkBadges(context = {}) {
     if (streak >= 3  && !existing.has("streak_3"))  newBadges.push("streak_3");
     if (streak >= 6  && !existing.has("streak_6"))  newBadges.push("streak_6");
     if (streak >= 12 && !existing.has("streak_12")) newBadges.push("streak_12");
+
+    // Annual goal badges
+    const annualGoal = userData.annualGoal;
+    if (annualGoal?.year) {
+      const annMetId  = `annual_goal_met_${annualGoal.year}`;
+      const annSurpId = `annual_goal_surpassed_${annualGoal.year}`;
+      if (annualGoal.met       && !existing.has(annMetId))  newBadges.push(annMetId);
+      if (annualGoal.surpassed && !existing.has(annSurpId)) newBadges.push(annSurpId);
+    }
 
     if (!newBadges.length) return [];
 
@@ -1942,7 +1954,8 @@ function buildBadgeGrid(earnedBadges) {
 
   (earnedBadges || []).forEach(entry => {
     if (!entry.id) return;
-    if (entry.id.startsWith("goal_met_") || entry.id.startsWith("goal_surpassed_")) {
+    if (entry.id.startsWith("goal_met_") || entry.id.startsWith("goal_surpassed_") ||
+        entry.id.startsWith("annual_goal_met_") || entry.id.startsWith("annual_goal_surpassed_")) {
       repeatables.push(entry);
     } else {
       earnedMap[entry.id] = entry;
@@ -1978,7 +1991,7 @@ function buildBadgeGrid(earnedBadges) {
   });
 
   // 2. Render repeatable badges — one entry per earned month, plus one greyed placeholder
-  ["goal_met", "goal_surpassed"].forEach(baseId => {
+  ["goal_met", "goal_surpassed", "annual_goal_met", "annual_goal_surpassed"].forEach(baseId => {
     const def      = BADGE_DEFS[baseId];
     if (!def) return;
     const rarity   = RARITY_COLORS[def.rarity] || RARITY_COLORS.common;
