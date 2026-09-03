@@ -1159,11 +1159,14 @@
     // ════════════════════════════════════════════════════════
     // ── WISHLIST TAB ─────────────────────────────────────────
     // ════════════════════════════════════════════════════════
+    let wishlistSort = localStorage.getItem("wr-wishlist-sort") || "added-desc";
+    let wishlistView = localStorage.getItem("wr-wishlist-view") || "list";
+
     function renderWishlist() {
-      const books = allBooks.filter(b => b.onWishlist);
+      const allWish = allBooks.filter(b => b.onWishlist);
       document.getElementById("pageTitle").textContent    = "⭐ My Wishlist";
-      document.getElementById("pageSubtitle").textContent = `${books.length} book${books.length === 1 ? "" : "s"} on your wishlist`;
-      const user    = WR.getCurrentUser();
+      document.getElementById("pageSubtitle").textContent = `${allWish.length} book${allWish.length === 1 ? "" : "s"} on your wishlist`;
+      const user      = WR.getCurrentUser();
       const shareLink = `${location.origin}/wishlist-public.html?uid=${user.uid}`;
 
       document.getElementById("contentArea").innerHTML = `
@@ -1191,12 +1194,88 @@
           </div>
           <p style="font-size:12px;color:var(--terracotta);margin-top:6px;">Anyone with this link can view your wishlist — no account needed.</p>
         </div>
-        <div id="wishlistBooks">${buildWishlistBooks(books)}</div>`;
+
+        <!-- Sort + View controls -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:1rem;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${[
+              ["added-desc", "Recently Added"],
+              ["title-asc",  "Title A–Z"],
+              ["author-asc", "Author A–Z"]
+            ].map(([val, label]) => `
+              <button onclick="setWishlistSort('${val}')" id="wsort-${val}"
+                style="font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;border:1.5px solid ${wishlistSort === val ? "var(--amethyst)" : "var(--border)"};background:${wishlistSort === val ? "var(--amethyst)" : "#fff"};color:${wishlistSort === val ? "#FAF6EE" : "var(--deep-plum)"};">
+                ${label}
+              </button>`).join("")}
+          </div>
+          <div class="view-toggle">
+            <button class="view-btn ${wishlistView === "grid" ? "active" : ""}" id="wViewGrid" onclick="setWishlistView('grid')" title="Grid">▦</button>
+            <button class="view-btn ${wishlistView === "list" ? "active" : ""}" id="wViewList" onclick="setWishlistView('list')" title="List">☰</button>
+          </div>
+        </div>
+
+        <div id="wishlistBooks">${buildWishlistBooks(allWish)}</div>`;
+    }
+
+    function setWishlistSort(val) {
+      wishlistSort = val;
+      localStorage.setItem("wr-wishlist-sort", val);
+      const books = allBooks.filter(b => b.onWishlist);
+      document.getElementById("wishlistBooks").innerHTML = buildWishlistBooks(books);
+      // Update pill styles
+      ["added-desc","title-asc","author-asc"].forEach(v => {
+        const btn = document.getElementById(`wsort-${v}`);
+        if (!btn) return;
+        btn.style.borderColor = v === val ? "var(--amethyst)" : "var(--border)";
+        btn.style.background  = v === val ? "var(--amethyst)" : "#fff";
+        btn.style.color       = v === val ? "#FAF6EE" : "var(--deep-plum)";
+      });
+    }
+
+    function setWishlistView(val) {
+      wishlistView = val;
+      localStorage.setItem("wr-wishlist-view", val);
+      const books = allBooks.filter(b => b.onWishlist);
+      document.getElementById("wishlistBooks").innerHTML = buildWishlistBooks(books);
+      document.getElementById("wViewGrid").classList.toggle("active", val === "grid");
+      document.getElementById("wViewList").classList.toggle("active", val === "list");
     }
 
     function buildWishlistBooks(books) {
       if (!books.length) return `<div class="empty-state"><span class="empty-icon">⭐</span><h2 class="empty-title">Your wishlist is empty</h2><p class="empty-desc">Add books you want to buy, borrow, or read.</p><a href="search.html" class="empty-btn">🔍 Find a Book</a></div>`;
-      return `<div class="books-list">${books.map(b => {
+
+      // Apply sort
+      const sorted = [...books].sort((a, b) => {
+        if (wishlistSort === "title-asc")  return (a.title  || "").localeCompare(b.title  || "");
+        if (wishlistSort === "author-asc") return (a.author || "").localeCompare(b.author || "");
+        // added-desc (default): newest first
+        const tA = a.addedAt?.seconds || 0;
+        const tB = b.addedAt?.seconds || 0;
+        return tB - tA;
+      });
+
+      if (wishlistView === "grid") {
+        return `<div class="books-grid">${sorted.map(b => {
+          const cover = b.coverURL ? `<img class="grid-cover-img" src="${WR.escapeHTML(b.coverURL)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : "";
+          const ph    = `<div class="grid-cover-placeholder" ${b.coverURL ? 'style="display:none"' : ""}>⭐</div>`;
+          return `
+            <div style="display:flex;flex-direction:column;">
+              <a class="grid-book-item" href="book.html?id=${encodeURIComponent(b.id)}" style="text-decoration:none;">
+                ${cover}${ph}
+                <div class="grid-book-title">${WR.escapeHTML(b.title || "")}</div>
+                <div class="grid-book-author">${WR.escapeHTML(b.author || "")}</div>
+              </a>
+              <div style="display:flex;gap:4px;margin-top:4px;">
+                <button class="wish-btn wish-btn-add" onclick="moveToLibrary('${b.id}')" style="flex:1;font-size:11px;padding:4px;">📚</button>
+                <button class="wish-btn wish-btn-tbr" onclick="moveToTBR('${b.id}')" style="flex:1;font-size:11px;padding:4px;">🔖</button>
+                <button class="wish-btn wish-btn-remove" onclick="removeFromWishlist('${b.id}')" style="flex:1;font-size:11px;padding:4px;">✕</button>
+              </div>
+            </div>`;
+        }).join("")}</div>`;
+      }
+
+      // List view
+      return `<div class="books-list">${sorted.map(b => {
         const cover = b.coverURL ? `<img class="book-cover-img" src="${WR.escapeHTML(b.coverURL)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : "";
         const ph    = `<div class="book-cover-placeholder" ${b.coverURL ? 'style="display:none"' : ""}>⭐</div>`;
         return `<div class="book-card">
@@ -1299,6 +1378,8 @@
     window.copyShareLink    = copyShareLink;
     window.moveToLibrary    = moveToLibrary;
     window.moveToTBR        = moveToTBR;
+    window.setWishlistSort   = setWishlistSort;
+    window.setWishlistView   = setWishlistView;
     window.removeFromWishlist = removeFromWishlist;
   </script>
 

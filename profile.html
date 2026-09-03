@@ -1081,46 +1081,25 @@
     function buildBadgesSection(profile, isOwn) {
       const badges  = profile?.badges || [];
       const earned  = badges.filter(b => b.id);
-
-      // On other profiles — hide the section entirely if no badges
-      if (!earned.length && !isOwn) return "";
-
-      const count    = earned.length;
-      const total    = Object.keys(WR.BADGE_DEFS).length;
-
-      // On own profile with no badges — show empty state
-      if (!count && isOwn) {
-        return `
-          <div class="profile-section">
-            <div class="section-toggle" onclick="toggleSection('badges', this)">
-              <span class="section-title">🏅 Earned Badges</span>
-              <span class="section-arrow">▼</span>
-            </div>
-            <div class="section-body" id="badges-body">
-              <div style="text-align:center;padding:1.25rem;">
-                <p style="font-size:13px;color:#BDB5CC;margin-bottom:4px;">No badges earned yet — keep reading!</p>
-                <p style="font-size:12px;color:#BDB5CC;">Badges are earned by completing books, writing reviews, meeting goals, and more.</p>
-              </div>
-            </div>
-          </div>`;
-      }
-
-      // Show only earned badges — no greyed-out silhouettes
+      const count   = earned.length;
       const gridHTML = WR.buildBadgeGrid(earned);
+
+      // On other profiles with no earned badges, hide the section
+      if (!count && !isOwn) return "";
 
       return `
         <div class="profile-section">
           <div class="section-toggle" onclick="toggleSection('badges', this)">
-            <span class="section-title">🏅 Earned Badges
-              <span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${count}</span>
+            <span class="section-title">🏅 Badges
+              ${count ? `<span style="font-size:12px;font-family:'Nunito Sans';font-weight:600;background:var(--lavender-mist);color:var(--amethyst);padding:2px 8px;border-radius:10px;margin-left:4px;">${count} earned</span>` : ""}
             </span>
             <span class="section-arrow">▼</span>
           </div>
           <div class="section-body" id="badges-body">
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;">
               ${gridHTML}
             </div>
-            ${isOwn ? `<p style="font-size:11px;color:#BDB5CC;text-align:center;margin-top:10px;">${count} of ${total} badges earned</p>` : ""}
+            ${isOwn && !count ? `<p style="font-size:12px;color:#BDB5CC;text-align:center;margin-top:10px;">Complete books, write reviews, and meet goals to earn badges!</p>` : ""}
           </div>
         </div>`;
     }
