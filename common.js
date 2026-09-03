@@ -1315,6 +1315,95 @@ async function getOpenLibraryByISBN(isbn) {
   }
 }
 
+// ─── Genre Normalization ─────────────────────────────────────
+const GENRE_MAP = {
+  // Fiction broad
+  "fiction":              "Fiction",
+  "literary fiction":     "Fiction",
+  "general":              "Fiction",
+  // Genres
+  "mystery":              "Mystery",
+  "mystery & detective":  "Mystery",
+  "crime":                "Mystery",
+  "thriller":             "Thriller",
+  "suspense":             "Thriller",
+  "horror":               "Horror",
+  "romance":              "Romance",
+  "love stories":         "Romance",
+  "science fiction":      "Sci-Fi",
+  "sci-fi":               "Sci-Fi",
+  "fantasy":              "Fantasy",
+  "historical fiction":   "Historical Fiction",
+  "historical":           "Historical Fiction",
+  "adventure":            "Adventure",
+  "action & adventure":   "Adventure",
+  "graphic novel":        "Graphic Novel",
+  "comics":               "Graphic Novel",
+  "humor":                "Humor",
+  "humour":               "Humor",
+  "satire":               "Humor",
+  // Non-fiction
+  "biography":            "Biography",
+  "autobiography":        "Biography",
+  "biography & autobiography": "Biography",
+  "memoir":               "Memoir",
+  "self-help":            "Self-Help",
+  "personal development": "Self-Help",
+  "business":             "Business",
+  "economics":            "Business",
+  "psychology":           "Psychology",
+  "science":              "Science",
+  "nature":               "Science",
+  "history":              "History",
+  "political science":    "Politics",
+  "politics":             "Politics",
+  "social science":       "Social Science",
+  "sociology":            "Social Science",
+  "philosophy":           "Philosophy",
+  "religion":             "Religion",
+  "spirituality":         "Religion",
+  "cooking":              "Food & Drink",
+  "food":                 "Food & Drink",
+  "health":               "Health & Wellness",
+  "fitness":              "Health & Wellness",
+  "travel":               "Travel",
+  "art":                  "Art & Design",
+  "design":               "Art & Design",
+  "music":                "Music",
+  "sports":               "Sports",
+  "technology":           "Technology",
+  "computers":            "Technology",
+  "true crime":           "True Crime",
+  "parenting":            "Parenting",
+  "family":               "Parenting",
+  // Young readers
+  "young adult":          "Young Adult",
+  "juvenile fiction":     "Children's",
+  "children":             "Children's",
+  "picture books":        "Children's",
+};
+
+function normalizeGenres(categories) {
+  if (!categories?.length) return [];
+  const seen   = new Set();
+  const result = [];
+
+  for (const cat of categories) {
+    // Take only the first segment before "/" (e.g. "Fiction / Thriller" → "Fiction")
+    const first = cat.split("/")[0].trim().toLowerCase();
+    const clean = GENRE_MAP[first] || toTitleCase(first);
+    if (clean && !seen.has(clean) && result.length < 3) {
+      seen.add(clean);
+      result.push(clean);
+    }
+  }
+  return result;
+}
+
+function toTitleCase(str) {
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function normalizeGoogleBook(item) {
   const info    = item.volumeInfo || {};
   const isbns   = info.industryIdentifiers || [];
@@ -1350,6 +1439,7 @@ function normalizeGoogleBook(item) {
     publishedDate: info.publishedDate  || "",
     pageCount:     info.pageCount      || null,
     categories:    info.categories     || [],
+    genres:        normalizeGenres(info.categories || []),
     coverURL:      cover,
     seriesInfo,
     averageRating: null,
@@ -1538,6 +1628,8 @@ async function saveBookToDb(book) {
       publishedDate: book.publishedDate || "",
       pageCount:     book.pageCount     || null,
       categories:    book.categories    || [],
+      genres:        book.genres        || normalizeGenres(book.categories || []),
+      seriesInfo:    book.seriesInfo    || null,
       coverURL:      book.coverURL      || null,
       averageRating: book.averageRating || null,
       ratingsCount:  book.ratingsCount  || 0,
@@ -1571,6 +1663,7 @@ async function addBookToUserCollection(book, flags = {}) {
       title:     book.title   || "",
       author:    Array.isArray(book.authors) ? book.authors.join(", ") : (book.author || ""),
       coverURL:  book.coverURL || null,
+      genres:    book.genres  || normalizeGenres(book.categories || []),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -2061,6 +2154,7 @@ window.WR = {
   searchOpenLibraryTitle,
   getGoogleBookByISBN,
   getOpenLibraryByISBN,
+  normalizeGenres,
   normalizeGoogleBook,
 
   // UI
