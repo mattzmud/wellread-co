@@ -798,6 +798,12 @@
             <h1 class="book-title-large">${WR.escapeHTML(book.title || "Unknown Title")}</h1>
             <p class="book-author-large">by <a href="search.html?author=${encodeURIComponent(authors)}" style="color:inherit;text-decoration:none;border-bottom:1px dashed rgba(255,255,255,0.4);cursor:pointer;" title="Search for more books by ${WR.escapeHTML(authors)}">${WR.escapeHTML(authors)}</a></p>
             ${book.seriesInfo ? `<p style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px;">📚 ${WR.escapeHTML(book.seriesInfo)}</p>` : ""}
+            ${(() => {
+              const genres = book.genres?.length ? book.genres : WR.normalizeGenres(book.categories || []);
+              return genres.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+                ${genres.map(g => `<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,0.15);color:#FAF6EE;letter-spacing:0.03em;">${WR.escapeHTML(g)}</span>`).join("")}
+              </div>` : "";
+            })()}
             ${ratingHTML}
             <div class="book-details-grid">${detailsHTML}</div>
             <div class="action-buttons">${actionsHTML}</div>

@@ -347,6 +347,26 @@
     let activeTab    = "library";
     let currentView  = "grid";
     let activeFilter = "all";
+    let activeGenre  = "";   // "" = all genres
+
+    function getAvailableGenres(books) {
+      const seen = new Set();
+      books.forEach(b => (b.genres || []).forEach(g => g && seen.add(g)));
+      return [...seen].sort();
+    }
+
+    function buildGenreSelect(genres, onchange) {
+      if (!genres.length) return "";
+      return `<select class="sort-select" id="genreSelect" onchange="${onchange}" style="min-width:120px;">
+        <option value="">All Genres</option>
+        ${genres.map(g => `<option value="${WR.escapeHTML(g)}" ${activeGenre === g ? "selected" : ""}>${WR.escapeHTML(g)}</option>`).join("")}
+      </select>`;
+    }
+
+    function applyGenreFilter(books) {
+      if (!activeGenre) return books;
+      return books.filter(b => (b.genres || []).includes(activeGenre));
+    }
     let lendTab      = "out";
     let openBookId   = null;
     let isPublic     = true;
@@ -495,6 +515,7 @@
             <option value="title-desc">Title Z–A</option>
             <option value="author-asc">Author A–Z</option>
           </select>
+          ${buildGenreSelect(getAvailableGenres(books), "applyLibraryGenre()")}
           <div class="view-toggle">
             <button class="view-btn active" id="viewGrid" onclick="setView('grid')" title="Grid">▦</button>
             <button class="view-btn"        id="viewList" onclick="setView('list')" title="List">☰</button>
@@ -502,7 +523,7 @@
         </div>
 
         <!-- Books -->
-        <div id="libraryBooksArea">${renderLibraryBooks(books)}</div>
+        <div id="libraryBooksArea">${renderLibraryBooks(applyGenreFilter(books))}</div>
       `;
     }
 
@@ -559,10 +580,16 @@
         </a>`;
     }
 
+    function applyLibraryGenre() {
+      activeGenre = document.getElementById("genreSelect")?.value || "";
+      applyLibrarySort();
+    }
+
     function applyLibrarySort() {
       const val = document.getElementById("sortSelect")?.value || "addedAt-desc";
       const [field, dir] = val.split("-");
       let books = allBooks.filter(b => b.inLibrary);
+      books = applyGenreFilter(books);
       books.sort((a, b) => {
         if (field === "addedAt") { const av = a.addedAt?.seconds||0, bv = b.addedAt?.seconds||0; return dir === "desc" ? bv-av : av-bv; }
         if (field === "title")  { const av = (a.title||"").toLowerCase(), bv = (b.title||"").toLowerCase(); return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av); }
@@ -761,6 +788,7 @@
             <option value="title-asc">Title A–Z</option>
             <option value="rating-desc">Highest Rated</option>
           </select>
+          ${buildGenreSelect(getAvailableGenres(books), "applyReadGenre()")}
           <div class="filter-row">
             <button class="filter-pill active" id="pill-all"        onclick="setReadFilter('all')">All</button>
             <button class="filter-pill"        id="pill-inprogress" onclick="setReadFilter('inprogress')">In Progress</button>
@@ -768,7 +796,12 @@
             <button class="filter-pill"        id="pill-dnf"        onclick="setReadFilter('dnf')">DNF</button>
           </div>
         </div>
-        <div id="readListBooks">${buildReadListBooks(books)}</div>`;
+        <div id="readListBooks">${buildReadListBooks(applyGenreFilter(books))}</div>`;
+    }
+
+    function applyReadGenre() {
+      activeGenre = document.getElementById("genreSelect")?.value || "";
+      applyReadSort();
     }
 
     function setReadFilter(filter) {
@@ -788,6 +821,7 @@
       });
       if (activeFilter === "completed")  books = books.filter(b => b.readingSessions?.[0]?.completed);
       if (activeFilter === "dnf")        books = books.filter(b => b.readingSessions?.[0]?.dnf);
+      books = applyGenreFilter(books);
       books.sort((a, b) => {
         const sa = a.readingSessions?.[0] || {}, sb = b.readingSessions?.[0] || {};
         if (field === "dateCompleted") { const av = sa.endDate||"", bv = sb.endDate||""; return dir === "desc" ? bv.localeCompare(av) : av.localeCompare(bv); }
@@ -859,16 +893,25 @@
       document.getElementById("pageTitle").textContent    = "🔖 To Be Read";
       document.getElementById("pageSubtitle").textContent = `${books.length} book${books.length === 1 ? "" : "s"} to read`;
 
+      const tbrBooks = allBooks.filter(b => b.onTBR);
       document.getElementById("contentArea").innerHTML = `
-        <div class="filter-row" style="margin-bottom:0.75rem;">
-          <button class="filter-pill active" id="pill-all"     onclick="setTBRFilter('all')">All</button>
-          <button class="filter-pill"        id="pill-owned"   onclick="setTBRFilter('owned')">In My Library</button>
-          <button class="filter-pill"        id="pill-acquire" onclick="setTBRFilter('acquire')">Need to Acquire</button>
+        <div class="controls-bar" style="margin-bottom:0.75rem;">
+          <div class="filter-row">
+            <button class="filter-pill active" id="pill-all"     onclick="setTBRFilter('all')">All</button>
+            <button class="filter-pill"        id="pill-owned"   onclick="setTBRFilter('owned')">In My Library</button>
+            <button class="filter-pill"        id="pill-acquire" onclick="setTBRFilter('acquire')">Need to Acquire</button>
+          </div>
+          ${buildGenreSelect(getAvailableGenres(tbrBooks), "applyTBRGenre()")}
         </div>
         <p class="tbr-drag-note">☰ Drag cards to arrange your reading order — changes save automatically.</p>
-        <div id="tbrBooks">${buildTBRBooks(books)}</div>`;
+        <div id="tbrBooks">${buildTBRBooks(applyGenreFilter(sortByTbrOrder(tbrBooks)))}</div>`;
 
       initTBRDragDrop();
+    }
+
+    function applyTBRGenre() {
+      activeGenre = document.getElementById("genreSelect")?.value || "";
+      setTBRFilter(activeFilter);
     }
 
     function setTBRFilter(filter) {
@@ -878,6 +921,7 @@
       let books = sortByTbrOrder(allBooks.filter(b => b.onTBR));
       if (filter === "owned")   books = books.filter(b => b.inLibrary);
       if (filter === "acquire") books = books.filter(b => b.tbrNeedsAcquisition);
+      books = applyGenreFilter(books);
       const area = document.getElementById("tbrBooks");
       if (area) {
         area.innerHTML = buildTBRBooks(books);
@@ -1208,13 +1252,22 @@
                 ${label}
               </button>`).join("")}
           </div>
-          <div class="view-toggle">
-            <button class="view-btn ${wishlistView === "grid" ? "active" : ""}" id="wViewGrid" onclick="setWishlistView('grid')" title="Grid">▦</button>
-            <button class="view-btn ${wishlistView === "list" ? "active" : ""}" id="wViewList" onclick="setWishlistView('list')" title="List">☰</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${buildGenreSelect(getAvailableGenres(allWish), "applyWishlistGenre()")}
+            <div class="view-toggle">
+              <button class="view-btn ${wishlistView === "grid" ? "active" : ""}" id="wViewGrid" onclick="setWishlistView('grid')" title="Grid">▦</button>
+              <button class="view-btn ${wishlistView === "list" ? "active" : ""}" id="wViewList" onclick="setWishlistView('list')" title="List">☰</button>
+            </div>
           </div>
         </div>
 
         <div id="wishlistBooks">${buildWishlistBooks(allWish)}</div>`;
+    }
+
+    function applyWishlistGenre() {
+      activeGenre = document.getElementById("genreSelect")?.value || "";
+      const books = allBooks.filter(b => b.onWishlist);
+      document.getElementById("wishlistBooks").innerHTML = buildWishlistBooks(books);
     }
 
     function setWishlistSort(val) {
@@ -1222,7 +1275,6 @@
       localStorage.setItem("wr-wishlist-sort", val);
       const books = allBooks.filter(b => b.onWishlist);
       document.getElementById("wishlistBooks").innerHTML = buildWishlistBooks(books);
-      // Update pill styles
       ["added-desc","title-asc","author-asc"].forEach(v => {
         const btn = document.getElementById(`wsort-${v}`);
         if (!btn) return;
@@ -1244,8 +1296,8 @@
     function buildWishlistBooks(books) {
       if (!books.length) return `<div class="empty-state"><span class="empty-icon">⭐</span><h2 class="empty-title">Your wishlist is empty</h2><p class="empty-desc">Add books you want to buy, borrow, or read.</p><a href="search.html" class="empty-btn">🔍 Find a Book</a></div>`;
 
-      // Apply sort
-      const sorted = [...books].sort((a, b) => {
+      // Apply sort and genre filter
+      const sorted = applyGenreFilter([...books]).sort((a, b) => {
         if (wishlistSort === "title-asc")  return (a.title  || "").localeCompare(b.title  || "");
         if (wishlistSort === "author-asc") return (a.author || "").localeCompare(b.author || "");
         // added-desc (default): newest first
@@ -1378,7 +1430,11 @@
     window.copyShareLink    = copyShareLink;
     window.moveToLibrary    = moveToLibrary;
     window.moveToTBR        = moveToTBR;
-    window.setWishlistSort   = setWishlistSort;
+    window.applyLibraryGenre  = applyLibraryGenre;
+    window.applyReadGenre     = applyReadGenre;
+    window.applyTBRGenre      = applyTBRGenre;
+    window.applyWishlistGenre = applyWishlistGenre;
+    window.setWishlistSort    = setWishlistSort;
     window.setWishlistView   = setWishlistView;
     window.removeFromWishlist = removeFromWishlist;
   </script>
