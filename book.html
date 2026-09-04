@@ -1487,10 +1487,20 @@
 
     function editMyReview() {
       const notesBody = document.getElementById("notes-body");
-      if (notesBody) {
-        notesBody.innerHTML = renderMyNotes();
-        WR.initStarPicker("myStarPicker");
+      if (!notesBody) return;
+
+      // Open the section if it's collapsed
+      if (!notesBody.classList.contains("open")) {
+        notesBody.classList.add("open");
+        notesBody.previousElementSibling?.classList.add("open");
       }
+
+      // Re-render with editable form
+      notesBody.innerHTML = renderMyNotes();
+      setTimeout(() => WR.initStarPicker("myStarPicker"), 50);
+
+      // Scroll to the notes section
+      notesBody.closest(".content-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     async function updateAggregateRating(bookId) {
