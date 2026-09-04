@@ -1495,11 +1495,31 @@
         notesBody.previousElementSibling?.classList.add("open");
       }
 
-      // Re-render with editable form
-      notesBody.innerHTML = renderMyNotes();
-      setTimeout(() => WR.initStarPicker("myStarPicker"), 50);
+      // Render the edit form directly — bypassing the "show saved" check in renderMyNotes
+      const session        = userBook?.readingSessions?.[0];
+      const existingRating = session?.rating || 0;
+      const existingReview = session?.review || "";
+      myRating = existingRating;
 
-      // Scroll to the notes section
+      notesBody.innerHTML = `
+        <div class="write-review-section" style="margin-top:1rem;">
+          <p class="write-review-title">Edit Your Rating & Review</p>
+          <div class="star-picker-row">
+            <span class="star-pick-label">Rating:</span>
+            ${WR.renderStarPicker("myStarPicker", existingRating, (val) => { myRating = val; })}
+          </div>
+          <textarea class="review-textarea" id="myReviewText" rows="4"
+                    placeholder="Share your thoughts about this book...">${WR.escapeHTML(existingReview)}</textarea>
+          <div class="review-submit-row">
+            <label class="publish-toggle">
+              <input type="checkbox" id="publishReview" ${session?.reviewPublished ? "checked" : ""}>
+              Share publicly on this book's page
+            </label>
+            <button class="submit-review-btn" onclick="saveMyReview()">Save Review</button>
+          </div>
+        </div>`;
+
+      setTimeout(() => WR.initStarPicker("myStarPicker"), 50);
       notesBody.closest(".content-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
