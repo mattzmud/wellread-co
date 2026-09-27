@@ -369,68 +369,96 @@
   <script src="common.js"></script>
 
   <script>
-    // ── Template definitions ──────────────────────────────────
+    // 6-slot coords (1080x1080)
+    const SLOTS_6 = [
+      { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
+      { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
+      { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
+      { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
+      { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
+      { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
+    ];
+
+    // 16-slot coords (1080x1920) — 4 rows of 4
+    const SLOTS_16 = [
+      { x:  49.7, y:  389.6, w: 217.5, h: 326.9 },
+      { x: 301.6, y:  389.6, w: 217.5, h: 326.9 },
+      { x: 553.1, y:  389.6, w: 217.5, h: 326.9 },
+      { x: 812.8, y:  389.6, w: 217.5, h: 326.9 },
+      { x:  49.7, y:  770.5, w: 217.5, h: 326.9 },
+      { x: 301.6, y:  770.5, w: 217.5, h: 326.9 },
+      { x: 553.1, y:  770.5, w: 217.5, h: 326.9 },
+      { x: 812.8, y:  770.5, w: 217.5, h: 326.9 },
+      { x:  49.7, y: 1151.4, w: 217.5, h: 326.9 },
+      { x: 301.6, y: 1151.4, w: 217.5, h: 326.9 },
+      { x: 553.1, y: 1151.4, w: 217.5, h: 326.9 },
+      { x: 812.8, y: 1151.4, w: 217.5, h: 326.9 },
+      { x:  49.7, y: 1532.2, w: 217.5, h: 326.9 },
+      { x: 301.6, y: 1532.2, w: 217.5, h: 326.9 },
+      { x: 553.1, y: 1532.2, w: 217.5, h: 326.9 },
+      { x: 812.8, y: 1532.2, w: 217.5, h: 326.9 }
+    ];
+
+    // sexy_12 coords (1080x1920) — 2 rows of 4 + 2 rows of 2
+    const SLOTS_SEXY_12 = [
+      { x:  49.7, y:  386.9, w: 217.5, h: 326.9 },
+      { x: 301.6, y:  386.9, w: 217.5, h: 326.9 },
+      { x: 553.1, y:  386.9, w: 217.5, h: 326.9 },
+      { x: 812.8, y:  386.9, w: 217.5, h: 326.9 },
+      { x:  49.7, y:  771.8, w: 217.5, h: 326.9 },
+      { x: 301.6, y:  771.8, w: 217.5, h: 326.9 },
+      { x: 553.1, y:  771.8, w: 217.5, h: 326.9 },
+      { x: 812.8, y:  771.8, w: 217.5, h: 326.9 },
+      { x: 300.5, y: 1153.7, w: 217.5, h: 326.9 },
+      { x: 552.0, y: 1153.7, w: 217.5, h: 326.9 },
+      { x: 300.5, y: 1535.5, w: 217.5, h: 326.9 },
+      { x: 552.0, y: 1535.5, w: 217.5, h: 326.9 }
+    ];
+
+    // 12-slot coords (1080x1350) — 3 rows of 4
+    const SLOTS_12_1350 = [
+      { x: 121.0, y:  348.3, w: 185.9, h: 279.4 },
+      { x: 336.3, y:  348.3, w: 185.9, h: 279.4 },
+      { x: 551.2, y:  348.3, w: 185.9, h: 279.4 },
+      { x: 773.2, y:  348.3, w: 185.9, h: 279.4 },
+      { x: 121.0, y:  673.8, w: 185.9, h: 279.4 },
+      { x: 336.3, y:  673.8, w: 185.9, h: 279.4 },
+      { x: 551.2, y:  673.8, w: 185.9, h: 279.4 },
+      { x: 773.2, y:  673.8, w: 185.9, h: 279.4 },
+      { x: 121.0, y:  999.4, w: 185.9, h: 279.4 },
+      { x: 336.3, y:  999.4, w: 185.9, h: 279.4 },
+      { x: 551.2, y:  999.4, w: 185.9, h: 279.4 },
+      { x: 773.2, y:  999.4, w: 185.9, h: 279.4 }
+    ];
+
     const DEFAULT_TEMPLATE = {
-      id: "default",
-      name: "My Reads",
-      file: null, // drawn on canvas — no external file
-      slots: [] // filled dynamically based on book count
+      id: "default", name: "My Reads", file: null,
+      maxBooks: Infinity, canvasW: 1080, canvasH: 1080,
+      slots: []
     };
 
     const TEMPLATES = [
       DEFAULT_TEMPLATE,
-      {
-        id: "adventures",
-        name: "Adventure Awaits",
-        file: "templates/adventures.png",
-        slots: [
-          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
-        ]
-      },
-      {
-        id: "summer-reads",
-        name: "Summer Reads",
-        file: "templates/summer-reads.png",
-        slots: [
-          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
-        ]
-      },
-      {
-        id: "july-beach",
-        name: "Beach Day",
-        file: "templates/july-beach.png",
-        slots: [
-          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
-        ]
-      },
-      {
-        id: "july-reads",
-        name: "July Doodle",
-        file: "templates/july-reads.png",
-        slots: [
-          { x: 148.2, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 286.8, w: 217.5, h: 326.9 },
-          { x: 148.2, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 431.3, y: 673.6, w: 217.5, h: 326.9 },
-          { x: 714.3, y: 673.6, w: 217.5, h: 326.9 }
-        ]
-      }
+
+      // ── 6-book templates (1080×1080) ───────────────────────
+      { id: "adventures",      name: "Adventure Awaits",   file: "templates/adventures.png",      maxBooks: 6,  canvasW: 1080, canvasH: 1080, slots: SLOTS_6 },
+      { id: "boo-6",           name: "Get Lost in a Boo-k",file: "templates/boo_6.png",           maxBooks: 6,  canvasW: 1080, canvasH: 1080, slots: SLOTS_6 },
+      { id: "fall-reads-6",    name: "Fall Reads",          file: "templates/fall_reads_6.png",    maxBooks: 6,  canvasW: 1080, canvasH: 1080, slots: SLOTS_6 },
+      { id: "september-6",     name: "September",           file: "templates/september_6.png",     maxBooks: 6,  canvasW: 1080, canvasH: 1080, slots: SLOTS_6 },
+      { id: "sweater-6",       name: "Sweater Weather",     file: "templates/sweater_weather_6.png",maxBooks: 6, canvasW: 1080, canvasH: 1080, slots: SLOTS_6 },
+
+      // ── 16-book templates (1080×1920) ──────────────────────
+      { id: "get-lost-16",     name: "Get Lost (16)",       file: "templates/get_lost_16.png",     maxBooks: 16, canvasW: 1080, canvasH: 1920, slots: SLOTS_16 },
+      { id: "grow-16",         name: "Books Water Your Mind",file: "templates/grow_16.png",        maxBooks: 16, canvasW: 1080, canvasH: 1920, slots: SLOTS_16 },
+      { id: "halloween-16",    name: "Halloween Reads",      file: "templates/halloween_reads_16.png",maxBooks:16,canvasW: 1080, canvasH: 1920, slots: SLOTS_16 },
+      { id: "plans-16",        name: "I Have Plans (16)",   file: "templates/plans_16.png",        maxBooks: 16, canvasW: 1080, canvasH: 1920, slots: SLOTS_16 },
+      { id: "sweater-16",      name: "Sweater Weather (16)",file: "templates/sweater_weather_16.png",maxBooks:16,canvasW: 1080, canvasH: 1920, slots: SLOTS_16 },
+
+      // ── 12-book templates ──────────────────────────────────
+      { id: "sexy-12",         name: "Reading is Sexy",     file: "templates/sexy_12.png",         maxBooks: 12, canvasW: 1080, canvasH: 1920, slots: SLOTS_SEXY_12 },
+      { id: "fall-reads-12",   name: "Fall Reads (12)",     file: "templates/fall_reads_12.png",   maxBooks: 12, canvasW: 1080, canvasH: 1350, slots: SLOTS_12_1350 },
+      { id: "lost-12",         name: "Get Lost (12)",       file: "templates/lost_12.png",         maxBooks: 12, canvasW: 1080, canvasH: 1350, slots: SLOTS_12_1350 },
+      { id: "plans-12",        name: "I Have Plans (12)",   file: "templates/plans_12.png",        maxBooks: 12, canvasW: 1080, canvasH: 1350, slots: SLOTS_12_1350 },
     ];
 
     // ── State ─────────────────────────────────────────────────
@@ -579,8 +607,8 @@
       const count = selectedBooks.size;
       if (count === 0) {
         note.innerHTML = "Select books to include in your graphic.";
-      } else if (count > 6) {
-        note.innerHTML = `<span>${count}</span> books selected — using the <strong>My Reads</strong> default template`;
+      } else if (selectedTemplate.maxBooks !== Infinity && count > selectedTemplate.maxBooks) {
+        note.innerHTML = `<span>${count}</span> books selected — switching to a higher-capacity template`;
       } else {
         note.innerHTML = `<span>${count}</span> book${count === 1 ? "" : "s"} selected`;
       }
@@ -588,16 +616,16 @@
 
     // ── Template availability ─────────────────────────────────
     function updateTemplateAvailability() {
-      const count   = selectedBooks.size;
-      const tooMany = count > 6;
+      const count = selectedBooks.size;
 
       TEMPLATES.forEach(t => {
-        const el = document.getElementById(`tmpl-${t.id}`);
+        const el      = document.getElementById(`tmpl-${t.id}`);
         if (!el) return;
-        if (tooMany && t.id !== "default") {
+        const tooMany = count > t.maxBooks;
+        if (tooMany) {
           el.style.opacity = "0.35";
           el.style.cursor  = "not-allowed";
-          el.title         = "Select 6 or fewer books to use this template";
+          el.title         = `Requires ${t.maxBooks} or fewer books`;
         } else {
           el.style.opacity = "1";
           el.style.cursor  = "pointer";
@@ -605,9 +633,13 @@
         }
       });
 
-      // Auto-switch to default if over 6
-      if (tooMany && selectedTemplate.id !== "default") {
-        selectTemplate("default");
+      // Auto-switch if selected template can't fit the current selection
+      if (selectedTemplate.maxBooks < count) {
+        // Find the largest-capacity available template
+        const best = TEMPLATES
+          .filter(t => t.maxBooks >= count)
+          .sort((a, b) => a.maxBooks - b.maxBooks)[0];
+        if (best) selectTemplate(best.id);
       }
     }
 
@@ -639,11 +671,10 @@
     }
 
     function selectTemplate(id) {
-      const count   = selectedBooks.size;
-      const tooMany = count > 6;
-      if (tooMany && id !== "default") return; // blocked
-
-      selectedTemplate = TEMPLATES.find(t => t.id === id) || TEMPLATES[0];
+      const t     = TEMPLATES.find(t => t.id === id) || TEMPLATES[0];
+      const count = selectedBooks.size;
+      if (count > t.maxBooks) return; // blocked
+      selectedTemplate = t;
       document.querySelectorAll(".template-thumb").forEach(el => el.classList.remove("selected"));
       document.getElementById(`tmpl-${id}`)?.classList.add("selected");
     }
@@ -665,10 +696,10 @@
       btn.disabled = true;
 
       try {
-        if (selectedTemplate.id === "default" || chosen.length > 6) {
+        if (selectedTemplate.id === "default") {
           await compositeDefault(chosen);
         } else {
-          await compositeGraphic(chosen, selectedTemplate);
+          await compositeGraphic(chosen.slice(0, selectedTemplate.maxBooks), selectedTemplate);
         }
         document.getElementById("resultSection").style.display = "block";
         document.getElementById("resultSection").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -783,11 +814,13 @@
     async function compositeGraphic(books, template) {
       const canvas  = document.getElementById("resultCanvas");
       const ctx     = canvas.getContext("2d");
-      canvas.width  = 1080;
-      canvas.height = 1080;
+      const cW      = template.canvasW || 1080;
+      const cH      = template.canvasH || 1080;
+      canvas.width  = cW;
+      canvas.height = cH;
 
       const bg = await loadImage(template.file, false);
-      ctx.drawImage(bg, 0, 0, 1080, 1080);
+      ctx.drawImage(bg, 0, 0, cW, cH);
 
       const slots = template.slots.slice(0, books.length);
       await Promise.all(slots.map(async (slot, i) => {
