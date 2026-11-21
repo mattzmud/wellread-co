@@ -1179,10 +1179,10 @@
           <h2 style="font-family:'Playfair Display',serif;font-size:20px;color:var(--deep-plum);margin-bottom:0.5rem;">📅 Annual Reading Goal</h2>
           <p style="font-size:13px;color:var(--terracotta);margin-bottom:1.25rem;">How many books do you want to read in ${thisYear}?</p>
           <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:1.25rem;">
-            <button onclick="adjustPAG(-5)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer;">−</button>
+            <button onclick="adjustPAG(-1)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer;">−</button>
             <input type="number" id="pagInput" value="${input}" min="1" max="365"
               style="width:80px;text-align:center;font-size:24px;font-weight:700;border:1.5px solid var(--amethyst);border-radius:8px;padding:8px;font-family:'Nunito Sans',sans-serif;color:var(--deep-plum);">
-            <button onclick="adjustPAG(5)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer;">+</button>
+            <button onclick="adjustPAG(1)" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer;">+</button>
           </div>
           <div style="display:flex;gap:10px;justify-content:flex-end;">
             <button onclick="document.getElementById('profileAnnualGoalModal').remove()"
