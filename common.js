@@ -89,6 +89,14 @@ function initAuth(onReady) {
   }
 
   _auth.onAuthStateChanged(async (user) => {
+    // Anonymous sessions are created by the public wishlist page so visitors can
+    // read data. They are not real accounts: sign them out and let this listener
+    // fire again with user = null, which routes to login (or public page) normally.
+    if (user && user.isAnonymous) {
+      try { await _auth.signOut(); } catch (e) { console.error("Anonymous sign-out error:", e); }
+      return;
+    }
+
     if (!user && !isPublic) {
       location.href = "login.html";
       return;
