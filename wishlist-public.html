@@ -202,9 +202,17 @@
         });
       } catch (e) { /* already set */ }
 
-      // Sign in anonymously so Firestore rules (isSignedIn()) are satisfied
+      // Wait for Firebase to restore any existing session before deciding anything.
+      // If a real user is already signed in, use their session as-is — calling
+      // signInAnonymously() here would replace it with an anonymous one.
+      const existingUser = await new Promise(resolve => {
+        const unsub = auth.onAuthStateChanged(u => { unsub(); resolve(u); });
+      });
+
+      // Only visitors with no session need an anonymous sign-in so Firestore
+      // rules (isSignedIn()) are satisfied
       try {
-        await auth.signInAnonymously();
+        if (!existingUser) await auth.signInAnonymously();
       } catch (e) {
         console.error("Anonymous auth error:", e);
         showError("Something went wrong", "We couldn't load this wishlist. Please try again.");
